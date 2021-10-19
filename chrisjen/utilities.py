@@ -1109,11 +1109,13 @@ def is_iterable(item: Union[object, Type[Any]]) -> bool:
 def is_method(item: Union[object, Type[Any]], attribute: Any) -> bool:
     """Returns if 'attribute' is a method of 'item'."""
     if isinstance(attribute, str):
-        try:
-            attribute = getattr(item, attribute)
-        except AttributeError:
+        if (
+            not hasattr(item, attribute) 
+            or isinstance(getattr(item, attribute), property)):
             return False
-    return inspect.ismethod(attribute)
+    return (
+        isinstance(item, (object, Type))
+        and isinstance(attribute, types.FunctionType))
 
 def is_nested(item: Mapping[Any, Any]) -> bool:
     """Returns if 'item' is nested at least one-level.
@@ -1203,11 +1205,14 @@ def name_methods(
         list[str]: names of methods in 'item'.
             
     """
+    attributes = dir(item)
+    print('test type', type(attributes))
     methods = [
-        a for a in dir(item)
-        if is_method(item = item, attribute = a)]
-    if not include_private:
-        methods = drop_privates(item = methods)
+        a for a in attributes
+        if isinstance(getattr(item, a), types.FunctionType)]
+        # if is_method(item = item, attribute = a)]
+    # if not include_private:
+    #     methods = drop_privates(item = methods)
     return methods
 
 def name_parameters(item: Type[Any]) -> list[str]:
@@ -1265,56 +1270,21 @@ def name_variables(
         names = drop_privates(item = names)
     return names
 
-    
-@dataclasses.dataclass
-class Kind(abc.ABC):
-    """Base class for easy protocol typing.
-    
-    The Kind system allows structural virtual subclassing based by matching 
-    various aspects of a class with those required. 
-    
-    Kind must be subclassed either directly by using the helper function 
-    'kindify'. Kind subclasses can be further subclassed and inherit the aspects
-    of the inherited Kind. All of its attributes are stored as class-level 
-    variables and subclasses are not designed to be instanced.
+def drop_prefix_from_str(item: str, prefix: str, divider: str = '') -> str:
+    """Drops 'prefix' from 'item' with 'divider' in between.
     
     Args:
-        attributes (ClassVar[Union[list[str], MutableMapping[str, Type[Any]]]]): 
-            a list of the str names of attributes that are neither methods nor 
-            properties or a dict of str names of attributes that are neither 
-            methods nor properties with values that are types of those 
-            attributes. Defaults to an empty list.
-        methods (ClassVar[Union[list[str], MutableMapping[str, 
-            inspect.Signature]]]): a list of str names of methods or a dict of 
-            str names of methods with values that are inspect.Signature type for 
-            the named methods. Defaults to an empty list.
-        properties (ClassVar[list[str]]): a list of str names of properties. 
-            Defaults to an empty list.
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of. Defaults to None.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-        registry (ClassVar[MutableMapping[str, Kind]]): dict which stores 
-            registered Kind subclasses.
-    
+        item (str): item to be modified.
+        prefix (str): prefix to be added to 'item'.
+        divider (str): str to add between 'item' and 'prefix'. Defaults to '',
+            which means no divider will be added.
+ 
+    Returns:
+        str: modified str.
+
     """
-    attributes: ClassVar[Union[list[str], Types]] = []
-    methods: ClassVar[Union[list[str], Signatures]] = []
-    properties: ClassVar[list[str]] = []
-    generic: ClassVar[Optional[Type[Any]]] = None
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = None
-    registry: ClassVar[MutableMapping[str, Kind]] = {}
-            
-    """ Dunder Methods """
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-        """Tests whether 'subclass' has the relevant characteristics."""
-        if hasattr(super(), '__subclasshook__'):
-            return (
-                super().__subclasshook__(subclass)
-                and is_kind(item = subclass, kind = cls))
-        else:
-            return is_kind(item = subclass, kind = cls) # type: ignore
+    prefix = ''.join([prefix, divider])
+    if item.startswith(prefix):
+        return item[len(prefix):]
+    else:
+        return item

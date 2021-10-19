@@ -32,6 +32,7 @@ from collections.abc import (
 import dataclasses
 import itertools
 import inspect
+import types
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
 from . import containers
@@ -52,6 +53,7 @@ Types = MutableMapping[str, Type[Any]]
 Changer: Type[Any] = Callable[[Hashable], None]
 Finder: Type[Any] = Callable[[Hashable], Optional[Hashable]]
 
+Node: Type[Any] = Hashable
 Adjacency: Type[Any] = MutableMapping[Hashable, Set[Hashable]]
 Edge: Type[Any] = tuple[Hashable, Hashable]
 Edges: Type[Any] = MutableSequence[Edge]
@@ -136,6 +138,19 @@ def is_edge_list(item: object) -> bool:
         isinstance(item, MutableSequence) 
         and all(is_edge(item = i) for i in item))
 
+def is_graph(item: object) -> bool:
+    """Returns whether 'item' is a graph.
+
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is a graph.
+    
+    """
+        
+    return is_adjacency_list(item = item) or is_adjacency_matrix(item = item)
+    
 def is_node(item: object) -> bool:
     """Returns whether 'item' is a node.
 
@@ -147,6 +162,18 @@ def is_node(item: object) -> bool:
     
     """
     return isinstance(item, Hashable)
+
+def is_nodes(item: object) -> bool:
+    """Returns whether 'item' is a collection of nodes.
+
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is a collection of nodes.
+    
+    """
+    return isinstance(item, Collection) and all(is_node(item = i) for i in item)
 
 def is_pipeline(item: object) -> bool:
     """Returns whether 'item' is a pipeline.
@@ -195,9 +222,61 @@ def is_tree(item: object) -> bool:
 
 
 """ Composite Data Structure Base Classes """
-
+           
 @dataclasses.dataclass # type: ignore
-class Graph(containers.Bunch):
+class Composite(containers.Bunch):
+    """Base class for an graph data 
+    
+    Args:
+        contents (Collection[Any]): stored collection of nodes and/or edges.
+                                      
+    """  
+    contents: Collection[Any]
+    
+    """ Properties """
+
+    @classmethod
+    @property
+    def creators(cls) -> dict[str, types.MethodType]:
+        all_methods = utilities.get_methods(item = cls)
+        creators = [m for m in all_methods if m.__name__.startswith('from_')]
+        return dict(zip(cls.sources, creators))
+    
+    @classmethod
+    @property
+    def sources(cls) -> list[str]:
+        all_methods = utilities.name_methods(item = cls)
+        creators = [m for m in all_methods if m.startswith('from_')]
+        return [
+            utilities.drop_prefix_from_str(item = c, prefix = 'from_') 
+            for c in creators]
+    
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, item: Any, *args: Any, **kwargs: Any) -> Composite:
+        """Creates an instance of a Composite from 'item'.
+        
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a Composite.
+                                
+        Returns:
+            Composite: a Composite instance created based on 'item'.
+                
+        """
+        name = utilities.get_name(item = item)
+        try:
+            creator = dict(cls.creators)[name]
+        except KeyError:
+            raise ValueError(
+                f'Could not create {cls.__name__} from item because it is not '
+                f'one of these supported types: {str(cls.sources)}')
+        return creator(item, *args, **kwargs)
+         
+            
+@dataclasses.dataclass # type: ignore
+class Graph(Composite):
     """Base class for an graph data 
     
     Args:
@@ -248,27 +327,27 @@ class Graph(containers.Bunch):
     
     @abc.abstractclassmethod
     def from_adjacency(cls, item: Adjacency) -> Graph:
-        """Creates a Graph instance from an Adjacency instance."""
+        """Creates a Graph instance from an Adjacency."""
         pass
     
     @abc.abstractclassmethod
     def from_edges(cls, item: Edges) -> Graph:
-        """Creates a Graph instance from an Edges instance."""
+        """Creates a Graph instance from an Edges."""
         pass
     
     @abc.abstractclassmethod
     def from_matrix(cls, item: Matrix) -> Graph:
-        """Creates a Graph instance from a Matrix instance."""
+        """Creates a Graph instance from a Matrix."""
         pass
     
     @abc.abstractclassmethod
     def from_pipeline(cls, item: Pipeline) -> Graph:
-        """Creates a Graph instance from a Pipeline instance."""
+        """Creates a Graph instance from a Pipeline."""
         pass
     
     @abc.abstractclassmethod
     def from_tree(cls, item: Tree) -> Graph:
-        """Creates a Graph instance from a Tree instance."""
+        """Creates a Graph instance from a Tree."""
         pass
        
     @abc.abstractmethod
@@ -291,35 +370,35 @@ class Graph(containers.Bunch):
     def walk(item: Any, *args, **kwargs) -> None:
         pass
 
-    """ Public Methods """
+    # """ Public Methods """
     
-    @classmethod
-    def create(cls, item: Composite) -> Graph:
-        """Creates an instance of a Graph from 'item'.
+    # @classmethod
+    # def create(cls, item: Composite) -> Graph:
+    #     """Creates an instance of a Graph from 'item'.
         
-        Args:
-            item (Composite): an adjacency list, adjacency matrix, 
-                edge list, or pipeline which can used to create the stored 
-                graph.
+    #     Args:
+    #         item (Composite): an adjacency list, adjacency matrix, 
+    #             edge list, or pipeline which can used to create the stored 
+    #             graph.
                 
-        Returns:
-            Graph: a Graph instance created based on 'item'.
+    #     Returns:
+    #         Graph: a Graph instance created based on 'item'.
                 
-        """
-        if is_adjacency_list(item = item):
-            return cls.from_adjacency(item = item) # type: ignore
-        elif is_adjacency_matrix(item = item):
-            return cls.from_matrix(item = item) # type: ignore
-        elif is_edge_list(item = item):
-            return cls.from_edges(item = item) # type: ignore
-        elif is_pipeline(item = item): 
-            return cls.from_pipeline(item = item) # type: ignore
-        elif is_tree(item = item):
-            return cls.from_tree(item = item)
-        else:
-            raise TypeError(
-                f'create requires item to be an adjacency list, adjacency '
-                f'matrix, edge list, pipeline, or tree')      
+    #     """
+    #     if is_adjacency_list(item = item):
+    #         return cls.from_adjacency(item = item) # type: ignore
+    #     elif is_adjacency_matrix(item = item):
+    #         return cls.from_matrix(item = item) # type: ignore
+    #     elif is_edge_list(item = item):
+    #         return cls.from_edges(item = item) # type: ignore
+    #     elif is_pipeline(item = item): 
+    #         return cls.from_pipeline(item = item) # type: ignore
+    #     elif is_tree(item = item):
+    #         return cls.from_tree(item = item) # type: ignore
+    #     else:
+    #         raise TypeError(
+    #             f'create requires item to be an adjacency list, adjacency '
+    #             f'matrix, edge list, pipeline, or tree')      
     
     # """ Dunder Methods """
     
@@ -347,7 +426,7 @@ class Graph(containers.Bunch):
    
    
 @dataclasses.dataclass # type: ignore
-class Pipeline(utilities.SourcesFactory, containers.Hybrid):
+class Pipeline(containers.Hybrid, Composite):
     """Base class for pipeline data structures.
     
     Args:
@@ -357,12 +436,12 @@ class Pipeline(utilities.SourcesFactory, containers.Hybrid):
     """
     contents: MutableSequence[Node] = dataclasses.field(
         default_factory = list)
-    sources: ClassVar[Mapping[Type[Any], str]] = {
-        Graph: 'graph',
-        Edges: 'edges',
-        MutableSequence: 'list',
-        'Pipelines': 'pipelines',
-        'Tree': 'tree'}
+    # sources: ClassVar[Mapping[Type[Any], str]] = {
+    #     Graph: 'graph',
+    #     Edges: 'edges',
+    #     MutableSequence: 'list',
+    #     'Pipelines': 'pipelines',
+    #     'Tree': 'tree'}
      
     """ Required Properties """
 
@@ -389,23 +468,38 @@ class Pipeline(utilities.SourcesFactory, containers.Hybrid):
     """ Required Subclass Methods """
     
     @abc.abstractclassmethod
-    def from_graph(cls, item: Graph) -> Pipeline:
-        """Creates a Pipeline instance from a Graph instance."""
+    def from_adjacency(cls, item: Adjacency) -> Pipeline:
+        """Creates a Pipeline instance from an adjacency list."""
         pass
     
     @abc.abstractclassmethod
-    def from_list(cls, item: list[Node]) -> Pipeline:
+    def from_edges(cls, item: Graph) -> Pipeline:
+        """Creates a Pipeline instance from an Edges."""
+        pass
+
+    @abc.abstractclassmethod
+    def from_graph(cls, item: Graph) -> Pipeline:
+        """Creates a Pipeline instance from a Graph."""
+        pass
+
+    @abc.abstractclassmethod
+    def from_matrix(cls, item: Matrix) -> Pipeline:
+        """Creates a Pipeline instance from an adjacency matrix."""
+        pass
+    
+    @abc.abstractclassmethod
+    def from_nodes(cls, item: Nodes) -> Pipeline:
         """Creates a Pipeline instance from a list of nodes."""
         pass
     
     @abc.abstractclassmethod
     def from_pipelines(cls, item: Pipelines) -> Pipeline:
-        """Creates a Pipeline instance from a Pipelines instance."""
+        """Creates a Pipeline instance from a Pipelines."""
         pass
     
     @abc.abstractclassmethod
     def from_tree(cls, item: Tree) -> Pipeline:
-        """Creates a Pipeline instance from a Tree instance."""
+        """Creates a Pipeline instance from a Tree."""
         pass   
     
     @abc.abstractmethod
@@ -452,9 +546,39 @@ class Pipeline(utilities.SourcesFactory, containers.Hybrid):
     #     """
     #     return amos.recap.beautify(item = self, package = 'chrisjen')
 
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, item: Composite) -> Graph:
+        """Creates an instance of a Graph from 'item'.
+        
+        Args:
+            item (Composite): an adjacency list, adjacency matrix, 
+                edge list, or pipeline which can used to create the stored 
+                graph.
+                
+        Returns:
+            Graph: a Graph instance created based on 'item'.
+                
+        """
+        if is_adjacency_list(item = item):
+            return cls.from_adjacency(item = item) # type: ignore
+        elif is_adjacency_matrix(item = item):
+            return cls.from_matrix(item = item) # type: ignore
+        elif is_edge_list(item = item):
+            return cls.from_edges(item = item) # type: ignore
+        elif is_nodes(item = item): 
+            return cls.from_list(item = item) # type: ignore
+        elif is_tree(item = item):
+            return cls.from_tree(item = item) # type: ignore
+        else:
+            raise TypeError(
+                f'create requires item to be an adjacency list, adjacency '
+                f'matrix, edge list, pipeline, or tree')    
+
 
 @dataclasses.dataclass # type: ignore
-class Pipelines(utilities.SourcesFactory, containers.Lexicon):
+class Pipelines(containers.Lexicon, Composite):
     """Base class a collection of Pipeline instances.
         
     Args:
@@ -465,9 +589,9 @@ class Pipelines(utilities.SourcesFactory, containers.Lexicon):
     """
     contents: MutableMapping[Hashable, Pipeline] = dataclasses.field(
         default_factory = dict)
-    sources: ClassVar[Mapping[Type[Any], str]] = {
-        Graph: 'graph',
-        'Tree': 'tree'}
+    # sources: ClassVar[Mapping[Type[Any], str]] = {
+    #     Graph: 'graph',
+    #     'Tree': 'tree'}
      
     """ Required Properties """
 
@@ -495,7 +619,7 @@ class Pipelines(utilities.SourcesFactory, containers.Lexicon):
     
     @abc.abstractclassmethod
     def from_graph(cls, item: Graph) -> Pipelines:
-        """Creates a Pipelines instance from a Graph instance."""
+        """Creates a Pipelines instance from a Graph."""
         pass
     
     @abc.abstractclassmethod
@@ -505,12 +629,12 @@ class Pipelines(utilities.SourcesFactory, containers.Lexicon):
     
     @abc.abstractclassmethod
     def from_pipeline(cls, item: Pipeline) -> Pipelines:
-        """Creates a Pipelines instance from a Pipelines instance."""
+        """Creates a Pipelines instance from a Pipelines."""
         pass
     
     @abc.abstractclassmethod
     def from_tree(cls, item: Matrix) -> Pipelines:
-        """Creates a Pipelines instance from a Tree instance."""
+        """Creates a Pipelines instance from a Tree."""
         pass   
     
     @abc.abstractmethod
@@ -535,7 +659,7 @@ class Pipelines(utilities.SourcesFactory, containers.Lexicon):
         
     
 @dataclasses.dataclass # type: ignore
-class Tree(utilities.SourcesFactory, containers.Hybrid):
+class Tree(containers.Hybrid, Composite):
     """Base class for an tree data structures.
     
     The Tree class uses a Hybrid instead of a linked list for storing children
@@ -572,11 +696,11 @@ class Tree(utilities.SourcesFactory, containers.Hybrid):
         default_factory = list)
     name: Optional[str] = None
     parent: Optional[Tree] = None 
-    sources: ClassVar[Mapping[Type[Any], str]] = {
-        Edges: 'edges',
-        Graph: 'graph',
-        Pipeline: 'pipeline',
-        Pipelines: 'pipelines'}
+    # sources: ClassVar[Mapping[Type[Any], str]] = {
+    #     Edges: 'edges',
+    #     Graph: 'graph',
+    #     Pipeline: 'pipeline',
+    #     Pipelines: 'pipelines'}
     
     """ Required Properties """
 
@@ -604,7 +728,7 @@ class Tree(utilities.SourcesFactory, containers.Hybrid):
     
     @abc.abstractclassmethod
     def from_graph(cls, item: Graph) -> Pipeline:
-        """Creates a Pipeline instance from a Graph instance."""
+        """Creates a Pipeline instance from a Graph."""
         pass
     
     @abc.abstractclassmethod
@@ -614,12 +738,12 @@ class Tree(utilities.SourcesFactory, containers.Hybrid):
     
     @abc.abstractclassmethod
     def from_pipelines(cls, item: Pipeline) -> Pipeline:
-        """Creates a Pipeline instance from a Pipelines instance."""
+        """Creates a Pipeline instance from a Pipelines."""
         pass
     
     @abc.abstractclassmethod
     def from_tree(cls, item: Matrix) -> Pipeline:
-        """Creates a Pipeline instance from a Tree instance."""
+        """Creates a Pipeline instance from a Tree."""
         pass   
     
     @abc.abstractmethod
