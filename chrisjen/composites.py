@@ -34,8 +34,6 @@ import itertools
 import inspect
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
-import more_itertools
-
 from . import containers
 from . import utilities
    
@@ -58,281 +56,144 @@ Adjacency: Type[Any] = MutableMapping[Hashable, Set[Hashable]]
 Edge: Type[Any] = tuple[Hashable, Hashable]
 Edges: Type[Any] = MutableSequence[Edge]
 Connections: Type[Any] = Set[Hashable]
-RawMatrix: Type[Any] = 
-Matrix: Type[Any] = tuple[
-    MutableSequence[MutableSequence[int]], 
-    MutableSequence[Hashable]]
-Nodes: Type[Any] = Union[Hashable, Pipeline]
+RawMatrix: Type[Any] = MutableSequence[MutableSequence[int]]
+Labels: Type[Any] = MutableSequence[Hashable]
+Matrix: Type[Any] = tuple[RawMatrix, Labels]
+Nodes: Type[Any] = Union[Hashable, Collection[Hashable]]
 Composite: Type[Any] = Union[Adjacency, Edges, Matrix, Nodes]
 
-def is_adjacency_list(item: Any) -> bool:
-    """Returns whether 'item' is an adjacency list."""
+
+def is_adjacency_list(item: object) -> bool:
+    """Returns whether 'item' is an adjacency list.
+
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is an adjacency list.
+        
+    """
     if isinstance(item, MutableMapping):
-        edges = list(item.values())
+        connections = list(item.values())
         nodes = list(itertools.chain(item.values()))
-        return (all(isinstance(e, (Set)) for e in edges)
+        return (all(isinstance(e, (Set)) for e in connections)
                 and all(isinstance(n, Hashable) for n in nodes))
     else:
         return False
 
-def is_adjacency_matrix(item: Any) -> bool:
-    """Returns whether 'item' is an adjacency matrix."""
+def is_adjacency_matrix(item: object) -> bool:
+    """Returns whether 'item' is an adjacency matrix.
+
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is an adjacency matrix.
+        
+    """
     if isinstance(item, tuple) and len(item) == 2:
         matrix = item[0]
-        names = item[1]
-        edges = list(more_itertools.collapse(matrix))
-        return (isinstance(matrix, MutableSequence)
-                and isinstance(names, MutableSequence) 
-                and all(isinstance(i, MutableSequence) for i in matrix)
-                and all(isinstance(n, Hashable) for n in names)
-                and all(isinstance(e, int) for e in edges))
+        labels = item[1]
+        connections = list(itertools.chain(matrix))
+        return (
+            isinstance(matrix, MutableSequence)
+            and isinstance(labels, Sequence) 
+            and not isinstance(labels, str)
+            and all(isinstance(i, MutableSequence) for i in matrix)
+            and all(isinstance(n, Hashable) for n in labels)
+            and all(isinstance(e, int) for e in connections))
     else:
         return False
 
-def is_edge_list(item: Any) -> bool:
-    """Returns whether 'item' is an edge list."""
-    if (isinstance(item, MutableSequence) 
-            and all(len(i) == 2 for i in item)
-            and all(isinstance(i, tuple) for i in item)): 
-        nodes = list(more_itertools.collapse(item))
-        return all(isinstance(n, Hashable) for n in nodes)
-    else:
-        return False
-    
-def is_pipeline(item: Any) -> bool:
-    """Returns whether 'item' is a pipeline."""
-    return (isinstance(item, MutableSequence)
-            and all(isinstance(i, Hashable) for i in item))
-    
-""" Composite-Related Kinds """
+def is_edge(item: object) -> bool:
+    """Returns whether 'item' is an edge.
 
-@dataclasses.dataclass
-class Node(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
     Args:
-        methods (ClassVar[Union[list[str], MutableMapping[str, 
-            inspect.Signature]]]): a list of str names of methods or a dict of 
-            str names of methods with values that are inspect.Signature type for 
-            the named methods. 
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-            
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is an edge.
+        
     """
-    methods: ClassVar[Union[list[str], utilities.Signatures]] = [
-        '__hash__', '__eq__', '__ne__']
-    generic: ClassVar[Optional[Type[Any]]] = Hashable
+    return (
+        isinstance(item, tuple) 
+        and len(item) == 2
+        and is_node(item = item[0])
+        and is_node(item = item[1]))
 
+def is_edge_list(item: object) -> bool:
+    """Returns whether 'item' is an edge list.
 
-@dataclasses.dataclass
-class Composite(utilities.Kind):
-    """ Type for composite objects.
-    
     Args:
-        methods (ClassVar[Union[list[str], MutableMapping[str, 
-            inspect.Signature]]]): a list of str names of methods or a dict of 
-            str names of methods with values that are inspect.Signature type for 
-            the named methods. 
-        properties (ClassVar[list[str]]): a list of str names of properties. 
-            
-    """   
-    methods: ClassVar[Union[list[str], utilities.Signatures]] = [
-        'add', 'delete', 'merge', 'subset', 'walk', '__add__',  '__getitem__', 
-        '__iadd__', '__iter__', '__len__', '__str__']
-    properties: ClassVar[list[str]] = ['nodes']
+        item (object): instance to test.
 
-
-@dataclasses.dataclass
-class Connections(utilities.Kind):
-    """ Type for nodes in composite objects.
+    Returns:
+        bool: whether 'item' is an edge list.
     
+    """
+        
+    return (
+        isinstance(item, MutableSequence) 
+        and all(is_edge(item = i) for i in item))
+
+def is_node(item: object) -> bool:
+    """Returns whether 'item' is a node.
+
     Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = Collection
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = Node
+        item (object): instance to test.
 
-
-@dataclasses.dataclass
-class Network(Composite):
-    """ Type for nodes in composite objects.
+    Returns:
+        bool: whether 'item' is a node.
     
+    """
+    return isinstance(item, Hashable)
+
+def is_pipeline(item: object) -> bool:
+    """Returns whether 'item' is a pipeline.
+
     Args:
-        methods (ClassVar[Union[list[str], MutableMapping[str, 
-            inspect.Signature]]]): a list of str names of methods or a dict of 
-            str names of methods with values that are inspect.Signature type for 
-            the named methods. 
-        properties (ClassVar[list[str]]): a list of str names of properties. 
-            
-    """    
-    methods: ClassVar[Union[list[str], utilities.Signatures]] = [
-        'connect', 'disconnect']
-    properties: ClassVar[list[str]] = ['edges']
+        item (object): instance to test.
 
-
-@dataclasses.dataclass
-class Directed(Network):
-    """ Type for nodes in composite objects.
+    Returns:
+        bool: whether 'item' is a pipeline.
     
+    """
+    return (
+        isinstance(item, Sequence)
+        and not isinstance(item, str)
+        and all(is_node(item = i) for i in item))
+
+def is_pipelines(item: object) -> bool:
+    """Returns whether 'item' is a dict of pipelines.
+
     Args:
-        methods (ClassVar[Union[list[str], MutableMapping[str, 
-            inspect.Signature]]]): a list of str names of methods or a dict of 
-            str names of methods with values that are inspect.Signature type for 
-            the named methods. 
-        properties (ClassVar[list[str]]): a list of str names of properties. 
-            
-    """    
-    methods: ClassVar[Union[list[str], utilities.Signatures]] = [
-        'prepend', 'append']
-    properties: ClassVar[list[str]] = ['endpoints', 'paths', 'roots']
+        item (object): instance to test.
 
-
-@dataclasses.dataclass
-class Adjacency(utilities.Kind):
-    """ Type for nodes in composite objects.
+    Returns:
+        bool: whether 'item' is a dict of pipelines.
     
+    """
+    return (
+        isinstance(item, MutableMapping)
+        and all(isinstance(i, Hashable) for i in item.keys())
+        and all(is_pipeline(item = i) for i in item.values())) 
+    
+def is_tree(item: object) -> bool:
+    """Returns whether 'item' is a tree.
+
     Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = MutableMapping
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (
-        str, Connections)
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is a tree.
+    
+    """
+    return (
+        isinstance(item, MutableMapping)
+        and all(
+            isinstance(i, (MutableMapping, Hashable)) for i in item.values())) 
 
 
-@dataclasses.dataclass
-class Edge(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = tuple
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (Node, Node)
-
-
-@dataclasses.dataclass
-class Edges(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = tuple
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (Edge)
-    
-
-@dataclasses.dataclass
-class Labels(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """   
-    generic: ClassVar[Optional[Type[Any]]] = Sequence
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = str
-
-
-@dataclasses.dataclass
-class RowColumn(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = Sequence
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = int
-    
-    
-@dataclasses.dataclass
-class RawMatrix(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = tuple
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (
-        RowColumn, RowColumn)
-    
-    
-@dataclasses.dataclass
-class Matrix(utilities.Kind):
-    """ Type for nodes in composite objects.
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = tuple
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (
-        RawMatrix, Labels)
-    
-
-@dataclasses.dataclass
-class RawTree(utilities.Kind):
-    """ Type for tree data structure
-    
-    Args:
-        generic (ClassVar[Optional[Type[Any]]]): any generic type (e.g. the
-            base classes in collections.abc) that the Kind must be a subclass
-            of.
-        contains (ClassVar[Optional[Union[Any, tuple[Any, ...]]]]): if 'generic'
-            is a containers, 'contains' may refer to the allowed types in that
-            container.
-            
-    """    
-    generic: ClassVar[Optional[Type[Any]]] = MutableMapping
-    contains: ClassVar[Optional[Union[Any, tuple[Any, ...]]]] = (str, Composite)
-    
-    
 """ Composite Data Structure Base Classes """
 
 @dataclasses.dataclass # type: ignore
@@ -347,7 +208,7 @@ class Graph(containers.Bunch):
             first argument passed.
                                       
     """  
-    # contents: Collection[Any]
+    contents: Collection[Any]
     # sources: ClassVar[Mapping[Type[Any], str]] = {
     #     Adjacency: 'adjacency',
     #     Matrix: 'matrix',
@@ -445,18 +306,20 @@ class Graph(containers.Bunch):
             Graph: a Graph instance created based on 'item'.
                 
         """
-        if isinstance(item, Adjacency):
+        if is_adjacency_list(item = item):
             return cls.from_adjacency(item = item) # type: ignore
-        elif isinstance(item, Matrix):
+        elif is_adjacency_matrix(item = item):
             return cls.from_matrix(item = item) # type: ignore
-        elif isinstance(item, tuple):
+        elif is_edge_list(item = item):
             return cls.from_edges(item = item) # type: ignore
-        elif isinstance(item, Pipeline): 
+        elif is_pipeline(item = item): 
             return cls.from_pipeline(item = item) # type: ignore
+        elif is_tree(item = item):
+            return cls.from_tree(item = item)
         else:
             raise TypeError(
                 f'create requires item to be an adjacency list, adjacency '
-                f'matrix, edge list, or pipeline')      
+                f'matrix, edge list, pipeline, or tree')      
     
     # """ Dunder Methods """
     
