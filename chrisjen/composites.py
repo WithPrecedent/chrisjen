@@ -16,16 +16,19 @@ License: Apache-2.0
     See the License for the specific language governing permissions and
     limitations under the License.
 
-Classes:
+Contents:
     
           
 To Do:
-    Add an Edge class and seamless support for it in Graph to allow for weights,
-        direction, and other edge attributes.
+    Fix 'create' method and related properties in Composite
+    Add an Edge class with seamless support for it in Graph to allow for 
+        weights, direction, and other edge attributes.
+    Integrate ashford Kinds system when it is finished.
     
 """
 from __future__ import annotations
 import abc
+import collections
 from collections.abc import (
     Collection, Hashable, Mapping, MutableMapping, MutableSequence, Sequence,
     Set)
@@ -34,6 +37,8 @@ import itertools
 import inspect
 import types
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
+
+import more_itertools
 
 from . import containers
 from . import utilities
@@ -53,19 +58,72 @@ Types = MutableMapping[str, Type[Any]]
 Changer: Type[Any] = Callable[[Hashable], None]
 Finder: Type[Any] = Callable[[Hashable], Optional[Hashable]]
 
-Node: Type[Any] = Hashable
-Adjacency: Type[Any] = MutableMapping[Hashable, Set[Hashable]]
-Edge: Type[Any] = tuple[Hashable, Hashable]
-Edges: Type[Any] = MutableSequence[Edge]
-Connections: Type[Any] = Set[Hashable]
-RawMatrix: Type[Any] = MutableSequence[MutableSequence[int]]
-Labels: Type[Any] = MutableSequence[Hashable]
-Matrix: Type[Any] = tuple[RawMatrix, Labels]
-Nodes: Type[Any] = Union[Hashable, Collection[Hashable]]
-Composite: Type[Any] = Union[Adjacency, Edges, Matrix, Nodes]
+
+@dataclasses.dataclass
+class Adjacency(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_adjacency(item = subclass)
 
 
-def is_adjacency_list(item: object) -> bool:
+@dataclasses.dataclass
+class Connections(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_connections(item = subclass)
+
+
+@dataclasses.dataclass
+class Edge(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_edge(item = subclass)
+
+
+@dataclasses.dataclass
+class Edges(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_edges(item = subclass)
+    
+    
+@dataclasses.dataclass
+class Matrix(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_matrix(item = subclass)
+    
+
+@dataclasses.dataclass
+class Node(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_node(item = subclass)
+
+    
+@dataclasses.dataclass
+class Nodes(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_nodes(item = subclass)
+
+    
+@dataclasses.dataclass
+class Edge(object):
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Any) -> bool:
+        return is_edge(item = subclass)
+
+    
+def is_adjacency(item: object) -> bool:
     """Returns whether 'item' is an adjacency list.
 
     Args:
@@ -82,8 +140,37 @@ def is_adjacency_list(item: object) -> bool:
                 and all(isinstance(n, Hashable) for n in nodes))
     else:
         return False
+    
+def is_composite(item: object) -> bool:
+    """Returns whether 'item' is a collection of node connections.
 
-def is_adjacency_matrix(item: object) -> bool:
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is a collection of node connections.
+        
+    """
+    return (
+        is_adjacency(item = item)
+        or is_edges(item = item)
+        or is_graph(item = item)
+        or is_matrix(item = item)
+        or is_tree(item = item))
+
+def is_connections(item: object) -> bool:
+    """Returns whether 'item' is a collection of node connections.
+
+    Args:
+        item (object): instance to test.
+
+    Returns:
+        bool: whether 'item' is a collection of node connections.
+        
+    """
+    return isinstance(item, Collection) and all(is_node(item = i) for i in item)
+    
+def is_matrix(item: object) -> bool:
     """Returns whether 'item' is an adjacency matrix.
 
     Args:
@@ -123,7 +210,7 @@ def is_edge(item: object) -> bool:
         and is_node(item = item[0])
         and is_node(item = item[1]))
 
-def is_edge_list(item: object) -> bool:
+def is_edges(item: object) -> bool:
     """Returns whether 'item' is an edge list.
 
     Args:
@@ -149,7 +236,7 @@ def is_graph(item: object) -> bool:
     
     """
         
-    return is_adjacency_list(item = item) or is_adjacency_matrix(item = item)
+    return is_adjacency(item = item) or is_matrix(item = item)
     
 def is_node(item: object) -> bool:
     """Returns whether 'item' is a node.
@@ -219,6 +306,188 @@ def is_tree(item: object) -> bool:
         isinstance(item, MutableMapping)
         and all(
             isinstance(i, (MutableMapping, Hashable)) for i in item.values())) 
+  
+""" Converters """
+
+# @amos.dynamic.dispatcher 
+def to_adjacency(item: Any) -> Adjacency:
+    """Converts 'item' to an Adjacency.
+    
+    Args:
+        item (Any): item to convert to an Adjacency.
+
+    Raises:
+        TypeError: if 'item' is a type that is not registered.
+
+    Returns:
+        Adjacency: derived from 'item'.
+
+    """
+    if isinstance(item, Adjacency):
+        return item
+    else:
+        raise TypeError(
+            f'item cannot be converted because it is an unsupported type: '
+            f'{type(item).__name__}')
+
+# @to_adjacency.register # type: ignore
+def edges_to_adjacency(item: Edges) -> Adjacency:
+    """Converts and edge list to an adjacency list.
+
+    Args:
+        item (Edges): [description]
+
+    Returns:
+        Adjacency: [description]
+        
+    """    
+    adjacency = collections.defaultdict(set)
+    for edge_pair in item:
+        if edge_pair[0] not in adjacency:
+            adjacency[edge_pair[0]] = {edge_pair[1]}
+        else:
+            adjacency[edge_pair[0]].add(edge_pair[1])
+        if edge_pair[1] not in adjacency:
+            adjacency[edge_pair[1]] = set()
+    return adjacency
+
+# @to_adjacency.register # type: ignore 
+def matrix_to_adjacency(item: Matrix) -> Adjacency:
+    """Converts a Matrix to an Adjacency.
+
+    Args:
+        item (Matrix): [description]
+
+    Returns:
+        Adjacency: [description]
+    """    
+    matrix = item[0]
+    names = item[1]
+    name_mapping = dict(zip(range(len(matrix)), names))
+    raw_adjacency = {
+        i: [j for j, adjacent in enumerate(row) if adjacent] 
+        for i, row in enumerate(matrix)}
+    adjacency = collections.defaultdict(set)
+    for key, value in raw_adjacency.items():
+        new_key = name_mapping[key]
+        new_values = set()
+        for edge in value:
+            new_values.add(name_mapping[edge])
+        adjacency[new_key] = new_values
+    return adjacency
+
+# @to_adjacency.register # type: ignore 
+def pipeline_to_adjacency(item: Pipeline) -> Adjacency:
+    """Converts a Pipeline to an Adjacency.
+
+    Args:
+        item (Pipeline): [description]
+
+    Returns:
+        Adjacency: [description]
+    """    
+    adjacency = collections.defaultdict(set)
+    edges = more_itertools.windowed(item, 2)
+    for edge_pair in edges:
+        adjacency[edge_pair[0]] = {edge_pair[1]}
+    return adjacency
+
+# @amos.dynamic.dispatcher   
+def to_edges(item: Any) -> Edges:
+    """Converts 'item' to an Edges.
+    
+    Args:
+        item (Any): item to convert to an Edges.
+
+    Raises:
+        TypeError: if 'item' is a type that is not registered.
+
+    Returns:
+        Edges: derived from 'item'.
+
+    """
+    if isinstance(item, Edges):
+        return item
+    else:
+        raise TypeError(
+            f'item cannot be converted because it is an unsupported type: '
+            f'{type(item).__name__}')
+    
+# @to_edges.register # type: ignore
+def adjacency_to_edges(item: Adjacency) -> Edges:
+    """[summary]
+
+    Args:
+        item (Adjacency): [description]
+
+    Returns:
+        Edges: [description]
+        
+    """    
+    """Converts an Adjacency to an Edges."""
+    edges = []
+    for node, connections in item.items():
+        for connection in connections:
+            edges.append(tuple(node, connection))
+    return edges
+
+# @amos.dynamic.dispatcher   
+def to_matrix(item: Any) -> Matrix:
+    """Converts 'item' to a Edges.
+    
+    Args:
+        item (Any): item to convert to a Matrix.
+
+    Raises:
+        TypeError: if 'item' is a type that is not registered.
+
+    Returns:
+        Matrix: derived from 'item'.
+
+    """
+    if isinstance(item, Matrix):
+        return item
+    else:
+        raise TypeError(
+            f'item cannot be converted because it is an unsupported type: '
+            f'{type(item).__name__}')
+
+# @to_matrix.register # type: ignore 
+def adjacency_to_matrix(item: Adjacency) -> Matrix:
+    """[summary]
+
+    Args:
+        item (Adjacency): [description]
+
+    Returns:
+        Matrix: [description]
+    """    
+    """Converts an Adjacency to a Matrix."""
+    names = list(item.keys())
+    matrix = []
+    for i in range(len(item)): 
+        matrix.append([0] * len(item))
+        for j in item[i]:
+            matrix[i][j] = 1
+    return tuple(matrix, names)    
+
+# @to_tree.register # type: ignore 
+def matrix_to_tree(item: Matrix) -> Tree:
+    """[summary]
+
+    Args:
+        item (Matrix): [description]
+
+    Returns:
+        Tree: [description]
+        
+    """
+    tree = {}
+    for node in item:
+        children = item[:]
+        children.remove(node)
+        tree[node] = matrix_to_tree(children)
+    return tree
 
 
 """ Composite Data Structure Base Classes """
@@ -297,21 +566,10 @@ class Graph(Composite):
     
     Args:
         contents (Collection[Any]): stored collection of nodes and/or edges.
-        sources (ClassVar[Mapping[Type[Any], str]]): keys are the types of the
-            data sources for object creation. For the appropriate creation
-            classmethod to be called, the types need to match the type of the
-            first argument passed.
                                       
     """  
     contents: Collection[Any]
-    # sources: ClassVar[Mapping[Type[Any], str]] = {
-    #     Adjacency: 'adjacency',
-    #     Matrix: 'matrix',
-    #     Edges: 'edges',
-    #     'Pipeline': 'pipeline',
-    #     'Pipelines': 'pipelines',
-    #     'Tree': 'tree'}
-    
+
     """ Required Subclass Properties """
 
     @abc.abstractproperty
@@ -385,52 +643,9 @@ class Graph(Composite):
     @abc.abstractmethod
     def walk(item: Any, *args, **kwargs) -> None:
         pass
-
-    # """ Public Methods """
-    
-    # @classmethod
-    # def create(cls, item: Composite) -> Graph:
-    #     """Creates an instance of a Graph from 'item'.
-        
-    #     Args:
-    #         item (Composite): an adjacency list, adjacency matrix, 
-    #             edge list, or pipeline which can used to create the stored 
-    #             graph.
-                
-    #     Returns:
-    #         Graph: a Graph instance created based on 'item'.
-                
-    #     """
-    #     if is_adjacency_list(item = item):
-    #         return cls.from_adjacency(item = item) # type: ignore
-    #     elif is_adjacency_matrix(item = item):
-    #         return cls.from_matrix(item = item) # type: ignore
-    #     elif is_edge_list(item = item):
-    #         return cls.from_edges(item = item) # type: ignore
-    #     elif is_pipeline(item = item): 
-    #         return cls.from_pipeline(item = item) # type: ignore
-    #     elif is_tree(item = item):
-    #         return cls.from_tree(item = item) # type: ignore
-    #     else:
-    #         raise TypeError(
-    #             f'create requires item to be an adjacency list, adjacency '
-    #             f'matrix, edge list, pipeline, or tree')      
-    
+     
     # """ Dunder Methods """
-    
-    # @classmethod
-    # def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-    #     """Tests whether 'subclass' has the relevant characteristics."""
-    #     return (
-    #         utilities.has_traits(
-    #             item = subclass,
-    #             methods = [
-    #                 'add', 'create', 'delete', 'from_adjacency', 'from_edges', 
-    #                 'from_matrix', 'from_pipeline', 'subset', '__add__', 
-    #                 '__getitem__', '__iadd__', '__iter__', '__len__', 
-    #                 '__str__'],
-    #             properties = ['adjacency', 'matrix']))
-            
+                 
     # def __str__(self) -> str:
     #     """Returns prettier str representation of the stored graph.
 
@@ -452,12 +667,6 @@ class Pipeline(containers.Hybrid, Composite):
     """
     contents: MutableSequence[Node] = dataclasses.field(
         default_factory = list)
-    # sources: ClassVar[Mapping[Type[Any], str]] = {
-    #     Graph: 'graph',
-    #     Edges: 'edges',
-    #     MutableSequence: 'list',
-    #     'Pipelines': 'pipelines',
-    #     'Tree': 'tree'}
      
     """ Required Properties """
 
@@ -537,22 +746,7 @@ class Pipeline(containers.Hybrid, Composite):
     @abc.abstractmethod
     def walk(item: Any, *args, **kwargs) -> None:
         pass
-    
-    # """ Dunder Methods """
-    
-    # @classmethod
-    # def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-    #     """Tests whether 'subclass' has the relevant characteristics."""
-    #     return (
-    #         utilities.has_traits(
-    #             item = subclass,
-    #             methods = [
-    #                 'add', 'create', 'delete', 'from_adjacency', 'from_edges', 
-    #                 'from_matrix', 'from_pipeline', 'subset', '__add__', 
-    #                 '__getitem__', '__iadd__', '__iter__', '__len__', 
-    #                 '__str__'],
-    #             properties = ['adjacency', 'matrix']))
-            
+      
     # def __str__(self) -> str:
     #     """Returns prettier str representation of the stored graph.
 
@@ -560,37 +754,7 @@ class Pipeline(containers.Hybrid, Composite):
     #         str: a formatted str of class information and the contained graph.
             
     #     """
-    #     return amos.recap.beautify(item = self, package = 'chrisjen')
-
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, item: Composite) -> Graph:
-        """Creates an instance of a Graph from 'item'.
-        
-        Args:
-            item (Composite): an adjacency list, adjacency matrix, 
-                edge list, or pipeline which can used to create the stored 
-                graph.
-                
-        Returns:
-            Graph: a Graph instance created based on 'item'.
-                
-        """
-        if is_adjacency_list(item = item):
-            return cls.from_adjacency(item = item) # type: ignore
-        elif is_adjacency_matrix(item = item):
-            return cls.from_matrix(item = item) # type: ignore
-        elif is_edge_list(item = item):
-            return cls.from_edges(item = item) # type: ignore
-        elif is_nodes(item = item): 
-            return cls.from_list(item = item) # type: ignore
-        elif is_tree(item = item):
-            return cls.from_tree(item = item) # type: ignore
-        else:
-            raise TypeError(
-                f'create requires item to be an adjacency list, adjacency '
-                f'matrix, edge list, pipeline, or tree')    
+    #     return amos.recap.beautify(item = self, package = 'chrisjen')  
 
 
 @dataclasses.dataclass # type: ignore
@@ -605,9 +769,6 @@ class Pipelines(containers.Lexicon, Composite):
     """
     contents: MutableMapping[Hashable, Pipeline] = dataclasses.field(
         default_factory = dict)
-    # sources: ClassVar[Mapping[Type[Any], str]] = {
-    #     Graph: 'graph',
-    #     'Tree': 'tree'}
      
     """ Required Properties """
 
@@ -712,11 +873,6 @@ class Tree(containers.Hybrid, Composite):
         default_factory = list)
     name: Optional[str] = None
     parent: Optional[Tree] = None 
-    # sources: ClassVar[Mapping[Type[Any], str]] = {
-    #     Edges: 'edges',
-    #     Graph: 'graph',
-    #     Pipeline: 'pipeline',
-    #     Pipelines: 'pipelines'}
     
     """ Required Properties """
 

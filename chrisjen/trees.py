@@ -16,7 +16,7 @@ License: Apache-2.0
     See the License for the specific language governing permissions and
     limitations under the License.
 
-Classes:
+Contents:
 
         
 To Do:
@@ -37,52 +37,34 @@ from . import utilities
 Changer: Type[Any] = Callable[[composites.Node], None]
 Finder: Type[Any] = Callable[[composites.Node], Optional[composites.Node]]
 
+
 """ Tree Structures """
 
 @dataclasses.dataclass # type: ignore
-class Tree(containers.Hybrid):
+class Categorizer(composites.Tree):
     """Base class for an tree data structures.
-    
-    The Tree class uses a Hybrid instead of a linked list for storing children
-    nodes to allow easier access of nodes further away from the root. For
-    example, a user might use 'a_tree["big_branch"]["small_branch"]["a_leaf"]' 
-    to access a desired node instead of 'a_tree[2][0][3]' (although the latter
-    access technique is also supported).
-    
-    There are several differences between a Tree and a Graph in chrisjen:
-        1) Graphs are more flexible. Trees must have 1 root, are directed, and
-            each node can have only 1 parent node.
-        2) Edges are only implicit in a Tree whereas they are explicit in a 
-            Graph. This allows for certain methods and functions surrounding
-            iteration and traversal to be faster.
-        3) As the size of the data structure increases, a Tree should use less
-            memory because the data about relationships between nodes is not
-            centrally maintained (as with an adjacency matrix). This decreases
-            access time to non-consecutive nodes, but is more efficient for 
-            larger data structures.
         
     Args:
-        contents (MutableSequence[composites.Node]): list of stored Tree or other 
-            Node instances. Defaults to an empty list.
+        contents (MutableSequence[composites.Node]): list of stored Node 
+            instances (including other Trees). Defaults to an empty list.
         name (Optional[str]): name of Tree node which should match a parent 
             tree's key name corresponding to this Tree node. All nodes in a Tree
             must have unique names. The name is used to make all Tree nodes 
             hashable and capable of quick comparison. Defaults to None, but it
             should not be left as None when added to a Tree.
         parent (Optional[Tree]): parent Tree, if any. Defaults to None.
-
-                  
+        
     """
     contents: MutableSequence[composites.Node] = dataclasses.field(
         default_factory = list)
     name: Optional[str] = None
-    parent: Optional[Tree] = None 
+    parent: Optional[composites.Tree] = None 
     
     """ Properties """
         
     @property
-    def branches(self) -> list[Tree]:
-        """Returns all stored Tree nodes in a list."""
+    def branches(self) -> list[composites.Tree]:
+        """Returns all stored composites.Tree nodes in a list."""
         return self.nodes - self.leaves
     
     @property
@@ -127,7 +109,7 @@ class Tree(containers.Hybrid):
         return depth_first_search(tree = self.contents)
 
     @property
-    def root(self) -> Tree:
+    def root(self) -> composites.Tree:
         """
         """
         base = [n.is_root for n in self.nodes]
@@ -147,11 +129,11 @@ class Tree(containers.Hybrid):
         """Adds node(s) in item to 'contents'.
         
         In adding the node(s) to the stored tree, the 'parent' attribute for the
-        node(s) is set to this Tree instance.
+        node(s) is set to this composites.Tree instance.
 
         Args:
-            item (Union[composites.Node, Sequence[composites.Node]]): node(s) to add to 
-                the 'contents' attribute.
+            item (Union[composites.Node, Sequence[composites.Node]]): node(s) to 
+                add to the 'contents' attribute.
 
         Raises:
             ValueError: if 'item' already is in the stored tree or if 'parent'
@@ -178,18 +160,18 @@ class Tree(containers.Hybrid):
         return
     
     def find(self, finder: Finder, **kwargs: Any) -> Optional[composites.Node]:
-        """Finds first matching node in Tree using 'finder'.
+        """Finds first matching node in composites.Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): function or
-                other callable that returns a node if it meets certain criteria
-                or otherwise returns None.
+            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+                function or other callable that returns a node if it meets 
+                certain criteria or otherwise returns None.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node is 
-                found.
+            Optional[composites.Node]: matching Node or None if no matching node 
+                is found.
             
         """                  
         for node in self.nodes:
@@ -198,15 +180,19 @@ class Tree(containers.Hybrid):
                 return node
         return None
             
-    def find_add(self, finder: Finder, item: composites.Node, **kwargs: Any) -> None:
-        """Finds first matching node in Tree using 'finder'.
+    def find_add(
+        self, 
+        finder: Finder, 
+        item: composites.Node, 
+        **kwargs: Any) -> None:
+        """Finds first matching node in composites.Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): function or
-                other callable that returns a node if it meets certain criteria
-                or otherwise returns None.
-            item (composites.Node): node to add to the 'contents' attribute of the
-                first node that meets criteria in 'finder'.
+            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+                function or other callable that returns a node if it meets 
+                certain criteria or otherwise returns None.
+            item (composites.Node): node to add to the 'contents' attribute of 
+                the first node that meets criteria in 'finder'.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
@@ -214,8 +200,8 @@ class Tree(containers.Hybrid):
             ValueError: if no matching node is found by 'finder'.
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node is 
-                found.
+            Optional[composites.Node]: matching Node or None if no matching node 
+                is found.
             
         """  
         node = self.find(finder = finder, **kwargs)
@@ -228,18 +214,18 @@ class Tree(containers.Hybrid):
         return
     
     def find_all(self, finder: Finder, **kwargs: Any) -> list[composites.Node]:
-        """Finds all matching nodes in Tree using 'finder'.
+        """Finds all matching nodes in composites.Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): function or
-                other callable that returns a node if it meets certain criteria
-                or otherwise returns None.
+            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+                function or other callable that returns a node if it meets 
+                certain criteria or otherwise returns None.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
         Returns:
-            list[[composites.Node]: matching nodes or an empty list if no matching 
-                node is found.
+            list[composites.Node]: matching nodes or an empty list if no 
+                matching node is found.
             
         """              
         found = []     
@@ -254,14 +240,14 @@ class Tree(containers.Hybrid):
         finder: Finder, 
         changer: Changer, 
         **kwargs: Any) -> None:
-        """Finds matching nodes in Tree using 'finder' and applies 'changer'.
+        """Finds matching nodes in composites.Tree using 'finder' and applies 'changer'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): function or
-                other callable that returns a node if it meets certain criteria
-                or otherwise returns None.
-            changer (Callable[[composites.Node], None]): function or other callable
-                that modifies the found node.
+            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+                function or other callable that returns a node if it meets 
+                certain criteria or otherwise returns None.
+            changer (Callable[[composites.Node], None]): function or other 
+                callable that modifies the found node.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
@@ -280,14 +266,14 @@ class Tree(containers.Hybrid):
         return
     
     def get(self, item: str) -> Optional[composites.Node]:
-        """Finds first matching node in Tree match 'item'.
+        """Finds first matching node in composites.Tree match 'item'.
 
         Args:
             item (str): 
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node is 
-                found.
+            Optional[composites.Node]: matching Node or None if no matching node 
+                is found.
             
         """                  
         for node in self.nodes:
@@ -316,8 +302,8 @@ class Tree(containers.Hybrid):
         """Adds 'other' to the stored tree using the 'append' method.
 
         Args:
-            other (Union[composites.Composite]): another Tree, an adjacency list, an 
-                edge list, an adjacency matrix, or one or more nodes.
+            other (Union[composites.Composite]): another Composite or supported
+                raw data structure.
             
         """
         self.append(item = other)     
@@ -327,18 +313,18 @@ class Tree(containers.Hybrid):
         """Adds 'other' to the stored tree using the 'prepend' method.
 
         Args:
-            other (Union[composites.Composite]): another Tree, an adjacency list, an 
-                edge list, an adjacency matrix, or one or more nodes.
+            other (Union[composites.Composite]): another Composite or supported
+                raw data structure.
             
         """
         self.prepend(item = other)     
         return 
 
-    def __missing__(self) -> dict[str, Tree]:
+    def __missing__(self) -> dict[str, composites.Tree]:
         """[summary]
 
         Returns:
-            dict[str, Tree]: [description]
+            dict[str, composites.Tree]: [description]
             
         """
         return {}
@@ -381,13 +367,13 @@ class Tree(containers.Hybrid):
 
 
 # def breadth_first_search(
-#     tree: Tree, 
-#     visited: Optional[list[Tree]] = None) -> composites.Pipeline:
+#     tree: composites.Tree, 
+#     visited: Optional[list[composites.Tree]] = None) -> composites.Pipeline:
 #     """Returns a breadth first search path through 'tree'.
 
 #     Args:
-#         tree (Tree): tree to search.
-#         visited (Optional[list[Tree]]): list of visited nodes. Defaults to None.
+#         tree (composites.Tree): tree to search.
+#         visited (Optional[list[composites.Tree]]): list of visited nodes. Defaults to None.
 
 #     Returns:
 #         composites.Pipeline: nodes in a path through 'tree'.
@@ -404,13 +390,13 @@ class Tree(containers.Hybrid):
                 
                      
 def depth_first_search(
-    tree: Tree, 
-    visited: Optional[list[Tree]] = None) -> composites.Pipeline:
+    tree: composites.Tree, 
+    visited: Optional[list[composites.Tree]] = None) -> composites.Pipeline:
     """Returns a depth first search path through 'tree'.
 
     Args:
-        tree (Tree): tree to search.
-        visited (Optional[list[Tree]]): list of visited nodes. Defaults to None.
+        tree (composites.Tree): tree to search.
+        visited (Optional[list[composites.Tree]]): list of visited nodes. Defaults to None.
 
     Returns:
         composites.Pipeline: nodes in a path through 'tree'.

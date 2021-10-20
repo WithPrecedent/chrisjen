@@ -32,23 +32,16 @@ class EvenAnother(chrisjen.Node):
 
 
 def test_graph() -> None:
-    # print('test dir', dir(chrisjen.System))
-    # item = chrisjen.System
-    # directory = dir(item)
-    # attribute = directory[-1]
-    # if isinstance(attribute, str):
-    #     try:
-    #         attribute = getattr(item, attribute)
-    #     except AttributeError:
-    #         pass
-    # print('test attribute type', attribute, type(attribute))
-    # print('test is method', isinstance(attribute, types.FunctionType))
-    # methods = [
-    #     a for a in dir(chrisjen.System)
-    #     if chrisjen.is_method(item = chrisjen.System, attribute = a)]
-    # print('test methods', methods)
     edges = tuple([('a', 'b'), ('c', 'd'), ('a', 'd'), ('d', 'e')])
-    dag = chrisjen.System.create(item = edges)
+    dag = chrisjen.System.from_edges(item = edges)
+    dag.add(node = 'cat')
+    dag.add(node = 'dog', ancestors = 'e', descendants = ['cat'])
+    adjacency = {
+        'tree': {'house', 'yard'},
+        'house': set(),
+        'yard': set()}
+    another_dag = chrisjen.System.from_adjacency(item = adjacency)
+    dag.append(item = another_dag)
     print('test print dag', dag)
     return
 
@@ -56,6 +49,7 @@ def test_pipeline() -> None:
     return
 
 def test_tree() -> None:
+    
     return
 
 
