@@ -238,14 +238,30 @@ class Composite(containers.Bunch):
     @classmethod
     @property
     def creators(cls) -> dict[str, types.MethodType]:
-        all_methods = utilities.get_methods(item = cls)
+        """[summary]
+
+        Returns:
+            dict[str, types.MethodType]: [description]
+            
+        """
+        all_methods = utilities.get_methods(
+            item = cls, 
+            exclude = ['creators', 'sources'])
         creators = [m for m in all_methods if m.__name__.startswith('from_')]
         return dict(zip(cls.sources, creators))
     
     @classmethod
     @property
     def sources(cls) -> list[str]:
-        all_methods = utilities.name_methods(item = cls)
+        """[summary]
+
+        Returns:
+            list[str]: [description]
+            
+        """        
+        all_methods = utilities.name_methods(
+            item = cls, 
+            exclude = ['creators', 'sources'])
         creators = [m for m in all_methods if m.startswith('from_')]
         return [
             utilities.drop_prefix_from_str(item = c, prefix = 'from_') 

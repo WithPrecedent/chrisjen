@@ -111,44 +111,6 @@ def from_file_path(
         imported = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(imported)
         return imported
-
-def get_name(item: Any, default: Optional[str] = None) -> Optional[str]:
-    """Returns str name representation of 'item'.
-    
-    Args:
-        item (Any): item to determine a str name.
-        default(Optional[str]): default name to return if other methods at name
-            creation fail.
-
-    Returns:
-        str: a name representation of 'item.'
-        
-    """        
-    if isinstance(item, str):
-        return item
-    else:
-        if hasattr(item, 'name') and isinstance(item.name, str):
-            return item.name
-        else:
-            try:
-                return snakify(item.__name__) # type: ignore
-            except AttributeError:
-                if item.__class__.__name__ is not None:
-                    return snakify( # type: ignore
-                        item.__class__.__name__) 
-                else:
-                    return default
- 
-def is_property(item: Union[object, Type[Any]], attribute: Any) -> bool:
-    """Returns if 'attribute' is a property of 'item'."""
-    if not inspect.isclass(item):
-        item = item.__class__
-    if isinstance(attribute, str):
-        try:
-            attribute = getattr(item, attribute)
-        except AttributeError:
-            return False
-    return isinstance(attribute, property)
                   
 def iterify(item: Any) -> Iterable:
     """Returns 'item' as an iterable, but does not iterate str types.
@@ -752,39 +714,53 @@ def get_annotations(
 
 def get_attributes(
     item: object, 
-    include_private: bool = False) -> dict[str, Any]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> dict[str, Any]:
     """Returns dict of attributes of 'item'.
     
     Args:
         item (Any): item to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
                         
     Returns:
         dict[str, Any]: dict of attributes in 'item' (keys are attribute names 
             and values are attribute values).
             
     """
-    attributes = name_attributes(item = item, include_private = include_private)
+    exclude = exclude or []
+    attributes = name_attributes(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
     values = [getattr(item, m) for m in attributes]
     return dict(zip(attributes, values))
 
 def get_methods(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> dict[str, types.MethodType]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> dict[str, types.MethodType]:
     """Returns dict of methods of 'item'.
     
     Args:
         item (Union[object, Type[Any]]): class or instance to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+               
     Returns:
         dict[str, types.MethodType]: dict of methods in 'item' (keys are method 
             names and values are methods).
         
     """ 
-    methods = name_methods(item = item, include_private = include_private)
+    exclude = exclude or []
+    methods = name_methods(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
     return [getattr(item, m) for m in methods]
 
 def get_name(item: Any, default: Optional[str] = None) -> Optional[str]:
@@ -816,60 +792,87 @@ def get_name(item: Any, default: Optional[str] = None) -> Optional[str]:
 
 def get_properties(
     item: object, 
-    include_private: bool = False) -> dict[str, Any]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> dict[str, Any]:
     """Returns properties of 'item'.
 
     Args:
         item (object): instance to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+               
     Returns:
         dict[str, Any]: dict of properties in 'item' (keys are property names 
             and values are property values).
         
-    """    
-    properties = name_properties(item = item, include_private = include_private)
+    """ 
+    exclude = exclude or []   
+    properties = name_properties(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
     values = [getattr(item, p) for p in properties]
     return dict(zip(properties, values))
 
 def get_signatures(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> dict[str, inspect.Signature]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> dict[str, inspect.Signature]:
     """Returns dict of method signatures of 'item'.
 
     Args:
         item (Union[object, Type[Any]]): class or instance to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+               
     Returns:
         dict[str, inspect.Signature]: dict of method signatures in 'item' (keys 
             are method names and values are method signatures).
                    
     """ 
-    methods = name_methods(item = item, include_private = include_private)
+    exclude = exclude or []
+    methods = name_methods(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
     signatures = [inspect.signature(getattr(item, m)) for m in methods]
     return dict(zip(methods, signatures))
 
 def get_variables(
     item: object, 
-    include_private: bool = False) -> dict[str, Any]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> dict[str, Any]:
     """Returns dict of attributes of 'item' that are not methods or properties.
     
     Args:
         item (object): instance to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-                        
+         exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+                                      
     Returns:
         dict[str, Any]: dict of attributes in 'item' (keys are attribute names 
             and values are attribute values) that are not methods or properties.
             
     """
-    attributes = name_attributes(item = item, include_private = include_private)
-    methods = name_methods(item = item, include_private = include_private)
-    properties = name_properties(item = item, include_private = include_private)
+    exclude = exclude or []
+    attributes = name_attributes(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
+    methods = name_methods(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
+    properties = name_properties(
+        item = item, 
+        include_private = include_private,
+        exclude = exclude)
     variables = [
         a for a in attributes if a not in methods and a not in properties]
     values = [getattr(item, m) for m in variables]
@@ -1174,45 +1177,53 @@ def is_variable(item: Union[object, Type[Any]], attribute: str) -> bool:
 
 def name_attributes(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> list[str]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> list[str]:
     """Returns attribute names of 'item'.
     
     Args:
         item (Union[object, Type[Any]]): item to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-                        
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+                                       
     Returns:
         list[str]: names of attributes in 'item'.
             
     """
-    names = dir(item)
+    exclude = exclude or []
+    names = [n for n in dir(item) if n not in exclude]
     if not include_private:
         names = drop_privates(item = names)
     return names
 
 def name_methods(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> list[str]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> list[str]:
     """Returns method names of 'item'.
     
     Args:
         item (Union[object, Type[Any]]): item to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-                        
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+                                       
     Returns:
         list[str]: names of methods in 'item'.
             
     """
-    attributes = dir(item)
-    print('test type', type(attributes))
+    exclude = exclude or []
+    names = [n for n in dir(item) if n not in exclude]
+    print('test type', type(names))
     methods = [
-        a for a in attributes
-        if isinstance(getattr(item, a), types.FunctionType)]
-        # if is_method(item = item, attribute = a)]
-    # if not include_private:
-    #     methods = drop_privates(item = methods)
+        a for a in names
+        # if isinstance(getattr(item, a), types.FunctionType)]
+        if is_method(item = item, attribute = a)]
+    if not include_private:
+        methods = drop_privates(item = methods)
     return methods
 
 def name_parameters(item: Type[Any]) -> list[str]:
@@ -1229,22 +1240,27 @@ def name_parameters(item: Type[Any]) -> list[str]:
 
 def name_properties(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> list[str]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> list[str]:
     """Returns method names of 'item'.
     
     Args:
         item (Union[object, Type[Any]]): item to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-                        
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+                                       
     Returns:
         list[str]: names of properties in 'item'.
             
     """
+    exclude = exclude or []
     if not inspect.isclass(item):
         item = item.__class__
+    names = [n for n in dir(item) if n not in exclude]
     properties = [
-        a for a in dir(item)
+        a for a in names
         if is_property(item = item, attribute = a)]
     if not include_private:
         properties = drop_privates(item = properties)
@@ -1252,20 +1268,25 @@ def name_properties(
 
 def name_variables(
     item: Union[object, Type[Any]], 
-    include_private: bool = False) -> list[str]:
+    include_private: bool = False,
+    exclude: Optional[Container[str]] = None) -> list[str]:
     """Returns variable names of 'item'.
     
     Args:
         item (Union[object, Type[Any]]): item to examine.
         include_private (bool): whether to include items that begin with '_'
             (True) or to exclude them (False). Defauls to False.
-                        
+        exclude (Optional[Container[str]]): names of attributes to exclude.
+            Defaults to None.
+                                       
     Returns:
         list[str]: names of attributes in 'item' that are neither methods nor
             properties.
             
     """
-    names = [a for a in dir(item) if is_variable(item = item, attribute = a)]
+    exclude = exclude or []
+    names = [n for n in dir(item) if n not in exclude]
+    names = [a for a in names if is_variable(item = item, attribute = a)]
     if not include_private:
         names = drop_privates(item = names)
     return names
