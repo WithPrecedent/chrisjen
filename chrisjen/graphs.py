@@ -281,12 +281,12 @@ class System(containers.Lexicon, composites.Graph):
         adjacency list that is then added to the existing 'contents'.
         
         Args:
-            item (Union[composites.Composite]): another Graph, an adjacency list, an 
-                edge list, an adjacency matrix, or one or more nodes.
+            item (Union[composites.Composite]): another Graph, an adjacency 
+                list, an edge list, an adjacency matrix, or one or more nodes.
             
         Raises:
-            TypeError: if 'item' is neither a System, composites.Adjacency, composites.Edges, composites.Matrix, 
-                or composites.Nodes type.
+            TypeError: if 'item' is neither a System, composites.Adjacency, 
+                composites.Edges, composites.Matrix, or composites.Nodes type.
             
         """
         if isinstance(item, System):

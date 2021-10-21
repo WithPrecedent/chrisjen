@@ -385,6 +385,7 @@ def pipeline_to_adjacency(item: Pipeline) -> Adjacency:
 
     Returns:
         Adjacency: [description]
+        
     """    
     adjacency = collections.defaultdict(set)
     edges = more_itertools.windowed(item, 2)
@@ -493,7 +494,7 @@ def matrix_to_tree(item: Matrix) -> Tree:
 """ Composite Data Structure Base Classes """
            
 @dataclasses.dataclass # type: ignore
-class Composite(containers.Bunch):
+class Composite(utilities.Registrar, containers.Bunch, abc.ABC):
     """Base class for an graph data 
     
     Args:
@@ -501,6 +502,7 @@ class Composite(containers.Bunch):
                                       
     """  
     contents: Collection[Any]
+    registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
     """ Properties """
 
@@ -513,28 +515,12 @@ class Composite(containers.Bunch):
             dict[str, types.MethodType]: [description]
             
         """
-        all_methods = utilities.get_methods(
-            item = cls, 
-            exclude = ['creators', 'sources'])
+        all_methods = utilities.get_methods(item = cls, exclude = ['creators'])
         creators = [m for m in all_methods if m.__name__.startswith('from_')]
-        return dict(zip(cls.sources, creators))
-    
-    @classmethod
-    @property
-    def sources(cls) -> list[str]:
-        """[summary]
-
-        Returns:
-            list[str]: [description]
-            
-        """        
-        all_methods = utilities.name_methods(
-            item = cls, 
-            exclude = ['creators', 'sources'])
-        creators = [m for m in all_methods if m.startswith('from_')]
-        return [
-            utilities.drop_prefix_from_str(item = c, prefix = 'from_') 
+        sources = [
+            utilities.drop_prefix_from_str(item = c.__name__, prefix = 'from_') 
             for c in creators]
+        return dict(zip(sources, creators))
     
     """ Public Methods """
     

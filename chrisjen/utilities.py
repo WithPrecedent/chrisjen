@@ -911,4 +911,83 @@ def drop_prefix_from_str(item: str, prefix: str, divider: str = '') -> str:
         return item[len(prefix):]
     else:
         return item
+ 
+
+@dataclasses.dataclass
+class Registrar(object):
     
+    registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
+    
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass in 'registry'."""
+        # Because Registrar will often be used as a mixin, it is important to
+        # call other base class '__init_subclass__' methods, if they exist.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        cls.register(item = cls)
+
+    """ Public Methods """
+    
+    @classmethod
+    def register(cls, item: Type[Any], name: Optional[str] = None) -> None:
+        """Adds 'item' to 'registry'.
+        
+        A separate 'register' method is included so that virtual subclasses can
+        also be registered.
+        
+        Args:
+            item (Type[Any]): a class to add to the registry.
+            name (Optional[str]): name to use as the key when 'item' is stored
+                in 'registry'. Defaults to None. If not passed, the 'get_name'
+                method will be used to 
+        
+        """
+        # The default key for storing cls relies on the 'get_name' method, which
+        # usually will use the snakecase name of 'item'.
+        key = name or get_name(item = cls)
+        cls.registry[key] = item
+        return   
+
+
+@dataclasses.dataclass
+class RegistrarFactory(Registrar):
+    
+    registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
+    
+    """ Public Methods """
+
+    @classmethod
+    def create(cls, item: Any, *args: Any, **kwargs: Any) -> TypeFactory:
+        """Calls construction method based on type of 'item'.
+        
+        For create to work properly, there should be a corresponding classmethod
+        named f'from_{snake-case str name of type}'. If you would prefer a 
+        different naming format, you can subclass TypeFactory and override the 
+        '_get_create_method_name' classmethod.
+
+        Raises:
+            AttributeError: If an appropriate method does not exist for the
+                data type of 'item.'
+
+        Returns:
+            TypeFactory: instance of a TypeFactory.
+            
+        """
+        suffix = None
+        for name, kind in cls.registry.items():
+            if isinstance(item, kind):
+                suffix = name  
+                break
+        if suffix is None:
+            raise ValueError('Cannot create a class because ')
+        method_name = cls._get_create_method_name(item = suffix)
+        try:
+            method = getattr(cls, method_name)
+        except AttributeError:
+            raise AttributeError(f'{method_name} does not exist')
+        return method(item, *args, **kwargs)
