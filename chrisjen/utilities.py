@@ -819,7 +819,6 @@ def name_methods(
     """
     exclude = exclude or []
     names = [n for n in dir(item) if n not in exclude]
-
     methods = [
         a for a in names
         # if isinstance(getattr(item, a), types.FunctionType)]
@@ -947,47 +946,51 @@ class Registrar(object):
                 method will be used to 
         
         """
-        # The default key for storing cls relies on the 'get_name' method, which
-        # usually will use the snakecase name of 'item'.
-        key = name or get_name(item = cls)
-        cls.registry[key] = item
+        if abc.ABC not in cls.__bases__:
+            # The default key for storing cls relies on the 'get_name' method, 
+            # which usually will use the snakecase name of 'item'.
+            key = name or get_name(item = cls)
+            cls.registry[key] = item
         return   
 
 
 @dataclasses.dataclass
-class RegistrarFactory(Registrar):
+class RegistrarFactory(Registrar, abc.ABC):
+    """
     
+    """
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
     """ Public Methods """
 
     @classmethod
-    def create(cls, item: Any, *args: Any, **kwargs: Any) -> TypeFactory:
-        """Calls construction method based on type of 'item'.
+    def create(cls, item: Any, *args: Any, **kwargs: Any) -> RegistrarFactory:
+        """Creates an instance of a RegistrarFactory subclass from 'item'.
         
-        For create to work properly, there should be a corresponding classmethod
-        named f'from_{snake-case str name of type}'. If you would prefer a 
-        different naming format, you can subclass TypeFactory and override the 
-        '_get_create_method_name' classmethod.
-
-        Raises:
-            AttributeError: If an appropriate method does not exist for the
-                data type of 'item.'
-
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a RegistrarFactory or a str which matches a key in 
+                'registry'.
+                                
         Returns:
-            TypeFactory: instance of a TypeFactory.
-            
+            RegistrarFactory: a RegistrarFactory subclass instance created based 
+                on 'item' and any passed arguments.
+                
         """
-        suffix = None
-        for name, kind in cls.registry.items():
-            if isinstance(item, kind):
-                suffix = name  
-                break
-        if suffix is None:
-            raise ValueError('Cannot create a class because ')
-        method_name = cls._get_create_method_name(item = suffix)
+        if isinstance(item, str):
+            try:
+                return cls.registry[item](*args, **kwargs)
+            except KeyError:
+                pass
         try:
-            method = getattr(cls, method_name)
-        except AttributeError:
-            raise AttributeError(f'{method_name} does not exist')
-        return method(item, *args, **kwargs)
+            name = get_name(item = item)
+            return cls.registry[name](item, *args, **kwargs)
+        except KeyError:
+            for name, kind in cls.registry.items():
+                if kind.__instancecheck__(instance = item):
+                    method = getattr(cls, f'from_{name}')
+                    return method(item, *args, **kwargs)       
+            raise ValueError(
+                f'Could not create {cls.__name__} from item because it '
+                f'is not one of these supported types: '
+                f'{str(list(cls.registry.keys()))}')

@@ -40,12 +40,13 @@ def test_graph() -> None:
         'tree': {'house', 'yard'},
         'house': set(),
         'yard': set()}
-    another_dag = chrisjen.System.from_adjacency(item = adjacency)
+    another_dag = chrisjen.System.create(item = adjacency)
     dag.append(item = another_dag)
     print('test print dag', dag)
     return
 
 def test_pipeline() -> None:
+    
     return
 
 def test_tree() -> None:

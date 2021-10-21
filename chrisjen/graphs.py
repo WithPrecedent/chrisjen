@@ -43,7 +43,7 @@ import chrisjen
 
     
 @dataclasses.dataclass
-class System(containers.Lexicon, composites.Graph):
+class System(containers.Lexicon, composites.Graph, composites.Adjacency):
     """Directed graph with unweighted edges.
     
     Args:
@@ -121,8 +121,8 @@ class System(containers.Lexicon, composites.Graph):
         return cls(contents = composites.matrix_to_adjacency(item = item))
     
     @classmethod
-    def from_pipeline(cls, item: composites.Pipeline) -> System:
-        """Creates a System instance from a Pipeline."""
+    def from_nodes(cls, item: composites.Nodes) -> System:
+        """Creates a System instance from a Nodes."""
         new_contents = composites.pipeline_to_adjacency(item = item)
         return cls(contents = new_contents)
 

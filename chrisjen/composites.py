@@ -58,70 +58,7 @@ Types = MutableMapping[str, Type[Any]]
 Changer: Type[Any] = Callable[[Hashable], None]
 Finder: Type[Any] = Callable[[Hashable], Optional[Hashable]]
 
-
-@dataclasses.dataclass
-class Adjacency(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_adjacency(item = subclass)
-
-
-@dataclasses.dataclass
-class Connections(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_connections(item = subclass)
-
-
-@dataclasses.dataclass
-class Edge(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_edge(item = subclass)
-
-
-@dataclasses.dataclass
-class Edges(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_edges(item = subclass)
-    
-    
-@dataclasses.dataclass
-class Matrix(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_matrix(item = subclass)
-    
-
-@dataclasses.dataclass
-class Node(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_node(item = subclass)
-
-    
-@dataclasses.dataclass
-class Nodes(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_nodes(item = subclass)
-
-    
-@dataclasses.dataclass
-class Edge(object):
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Any) -> bool:
-        return is_edge(item = subclass)
-
+""" Type-Checking Functions """
     
 def is_adjacency(item: object) -> bool:
     """Returns whether 'item' is an adjacency list.
@@ -340,7 +277,7 @@ def edges_to_adjacency(item: Edges) -> Adjacency:
     Returns:
         Adjacency: [description]
         
-    """    
+    """ 
     adjacency = collections.defaultdict(set)
     for edge_pair in item:
         if edge_pair[0] not in adjacency:
@@ -360,6 +297,7 @@ def matrix_to_adjacency(item: Matrix) -> Adjacency:
 
     Returns:
         Adjacency: [description]
+        
     """    
     matrix = item[0]
     names = item[1]
@@ -386,12 +324,30 @@ def pipeline_to_adjacency(item: Pipeline) -> Adjacency:
     Returns:
         Adjacency: [description]
         
-    """    
+    """ 
+    if not isinstance(item, (Collection)) or isinstance(item, str):
+        item = [item]
     adjacency = collections.defaultdict(set)
-    edges = more_itertools.windowed(item, 2)
-    for edge_pair in edges:
-        adjacency[edge_pair[0]] = {edge_pair[1]}
+    if len(item) == 1:
+        adjacency.update({item: set()})
+    else:
+        edges = more_itertools.windowed(item, 2)
+        for edge_pair in edges:
+            adjacency[edge_pair[0]] = {edge_pair[1]}
     return adjacency
+
+# @to_adjacency.register # type: ignore 
+def nodes_to_adjacency(item: Nodes) -> Adjacency:
+    """Converts a Nodes to an Adjacency.
+
+    Args:
+        item (Nodes): [description]
+
+    Returns:
+        Adjacency: [description]
+        
+    """ 
+    return pipeline_to_adjacency(item = item)
 
 # @amos.dynamic.dispatcher   
 def to_edges(item: Any) -> Edges:
@@ -494,7 +450,7 @@ def matrix_to_tree(item: Matrix) -> Tree:
 """ Composite Data Structure Base Classes """
            
 @dataclasses.dataclass # type: ignore
-class Composite(utilities.Registrar, containers.Bunch, abc.ABC):
+class Composite(utilities.RegistrarFactory, containers.Bunch, abc.ABC):
     """Base class for an graph data 
     
     Args:
@@ -504,48 +460,83 @@ class Composite(utilities.Registrar, containers.Bunch, abc.ABC):
     contents: Collection[Any]
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
-    """ Properties """
+    # """ Properties """
 
-    @classmethod
-    @property
-    def creators(cls) -> dict[str, types.MethodType]:
-        """[summary]
+    # @classmethod
+    # @property
+    # def creators(cls) -> dict[str, types.MethodType]:
+    #     """[summary]
 
-        Returns:
-            dict[str, types.MethodType]: [description]
+    #     Returns:
+    #         dict[str, types.MethodType]: [description]
             
-        """
-        all_methods = utilities.get_methods(item = cls, exclude = ['creators'])
-        creators = [m for m in all_methods if m.__name__.startswith('from_')]
-        sources = [
-            utilities.drop_prefix_from_str(item = c.__name__, prefix = 'from_') 
-            for c in creators]
-        return dict(zip(sources, creators))
-    
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, item: Any, *args: Any, **kwargs: Any) -> Composite:
-        """Creates an instance of a Composite from 'item'.
-        
-        Args:
-            item (Any): any supported data structure which acts as a source for
-                creating a Composite.
-                                
-        Returns:
-            Composite: a Composite instance created based on 'item'.
-                
-        """
-        name = utilities.get_name(item = item)
-        try:
-            creator = dict(cls.creators)[name]
-        except KeyError:
-            raise ValueError(
-                f'Could not create {cls.__name__} from item because it is not '
-                f'one of these supported types: {str(cls.sources)}')
-        return creator(item, *args, **kwargs)
+    #     """
+    #     all_methods = utilities.get_methods(item = cls, exclude = ['creators'])
+    #     print('test all methods', all_methods)
+    #     creators = [m for m in all_methods if m.__name__.startswith('from_')]
+    #     print('test creators in property', creators)
+    #     sources = [
+    #         utilities.drop_prefix_from_str(item = c.__name__, prefix = 'from_') 
+    #         for c in creators]
+    #     return dict(zip(sources, creators))
          
-            
+
+@dataclasses.dataclass
+class Adjacency(Composite):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_adjacency(item = instance)
+
+
+@dataclasses.dataclass
+class Connections(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_connections(item = instance)
+
+
+@dataclasses.dataclass
+class Edge(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_edge(item = instance)
+
+
+@dataclasses.dataclass
+class Edges(Composite):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_edges(item = instance)
+    
+    
+@dataclasses.dataclass
+class Matrix(Composite):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_matrix(item = instance)
+    
+
+@dataclasses.dataclass
+class Node(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_node(item = instance)
+
+    
+@dataclasses.dataclass
+class Nodes(Composite):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_nodes(item = instance)
+
+         
 @dataclasses.dataclass # type: ignore
 class Graph(Composite):
     """Base class for an graph data 
@@ -601,8 +592,8 @@ class Graph(Composite):
         pass
     
     @abc.abstractclassmethod
-    def from_pipeline(cls, item: Pipeline) -> Graph:
-        """Creates a Graph instance from a Pipeline."""
+    def from_nodes(cls, item: Nodes) -> Graph:
+        """Creates a Graph instance from a Nodes."""
         pass
     
     @abc.abstractclassmethod
