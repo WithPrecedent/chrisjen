@@ -20,22 +20,21 @@ Contents:
     
           
 To Do:
-    Fix 'create' method and related properties in Composite
-    Add an Edge class with seamless support for it in Graph to allow for 
+    Add a full Edge class with seamless support for it in Graph to allow for 
         weights, direction, and other edge attributes.
     Integrate ashford Kinds system when it is finished.
+    Add in 'beautify' str representations from amos once those are finished.
+    Add in 'dispatcher' decorators to the converter functions.
     
 """
 from __future__ import annotations
 import abc
 import collections
 from collections.abc import (
-    Collection, Hashable, Mapping, MutableMapping, MutableSequence, Sequence,
-    Set)
+    Collection, Hashable, MutableMapping, MutableSequence, Sequence, Set)
 import dataclasses
 import itertools
 import inspect
-import types
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
 import more_itertools
@@ -73,8 +72,9 @@ def is_adjacency(item: object) -> bool:
     if isinstance(item, MutableMapping):
         connections = list(item.values())
         nodes = list(itertools.chain(item.values()))
-        return (all(isinstance(e, (Set)) for e in connections)
-                and all(isinstance(n, Hashable) for n in nodes))
+        return (
+            all(isinstance(e, (Set)) for e in connections)
+            and all(isinstance(n, (Set, Hashable)) for n in nodes))
     else:
         return False
     
@@ -159,7 +159,8 @@ def is_edges(item: object) -> bool:
     """
         
     return (
-        isinstance(item, MutableSequence) 
+        isinstance(item, Sequence) 
+        and not isinstance(item, str)
         and all(is_edge(item = i) for i in item))
 
 def is_graph(item: object) -> bool:
@@ -447,6 +448,30 @@ def matrix_to_tree(item: Matrix) -> Tree:
     return tree
 
 
+@dataclasses.dataclass
+class Connections(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_connections(item = instance)
+
+
+@dataclasses.dataclass
+class Edge(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_edge(item = instance)
+
+
+@dataclasses.dataclass
+class Node(object):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_node(item = instance)
+
+    
 """ Composite Data Structure Base Classes """
            
 @dataclasses.dataclass # type: ignore
@@ -459,6 +484,35 @@ class Composite(utilities.RegistrarFactory, containers.Bunch, abc.ABC):
     """  
     contents: Collection[Any]
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
+    
+    """ Required Subclass Properties """
+
+    @abc.abstractproperty
+    def nodes(self) -> Nodes:
+        """Returns all stored nodes."""
+        pass
+    
+    """ Required Subclass Methods """
+    
+    @abc.abstractmethod
+    def add(item: Any, *args, **kwargs) -> None:
+        pass
+    
+    @abc.abstractmethod
+    def delete(item: Any, *args, **kwargs) -> None:
+        pass
+    
+    @abc.abstractmethod
+    def merge(item: Any, *args, **kwargs) -> None:
+        pass
+    
+    @abc.abstractmethod
+    def subset(item: Any, *args, **kwargs) -> None:
+        pass
+    
+    @abc.abstractmethod
+    def walk(item: Any, *args, **kwargs) -> None:
+        pass
     
     # """ Properties """
 
@@ -479,10 +533,21 @@ class Composite(utilities.RegistrarFactory, containers.Bunch, abc.ABC):
     #         utilities.drop_prefix_from_str(item = c.__name__, prefix = 'from_') 
     #         for c in creators]
     #     return dict(zip(sources, creators))
+
+    # """ Dunder Methods """
+    
+    # def __str__(self) -> str:
+    #     """Returns prettier str representation of the stored graph.
+
+    #     Returns:
+    #         str: a formatted str of class information and the contained graph.
+            
+    #     """
+    #     return amos.recap.beautify(item = self, package = 'chrisjen')  
          
 
 @dataclasses.dataclass
-class Adjacency(Composite):
+class Adjacency(Composite, abc.ABC):
     
     @classmethod
     def __instancecheck__(cls, instance: object) -> bool:
@@ -490,23 +555,7 @@ class Adjacency(Composite):
 
 
 @dataclasses.dataclass
-class Connections(object):
-    
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        return is_connections(item = instance)
-
-
-@dataclasses.dataclass
-class Edge(object):
-    
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        return is_edge(item = instance)
-
-
-@dataclasses.dataclass
-class Edges(Composite):
+class Edges(Composite, abc.ABC):
     
     @classmethod
     def __instancecheck__(cls, instance: object) -> bool:
@@ -514,31 +563,15 @@ class Edges(Composite):
     
     
 @dataclasses.dataclass
-class Matrix(Composite):
+class Matrix(Composite, abc.ABC):
     
     @classmethod
     def __instancecheck__(cls, instance: object) -> bool:
         return is_matrix(item = instance)
-    
 
-@dataclasses.dataclass
-class Node(object):
-    
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        return is_node(item = instance)
-
-    
-@dataclasses.dataclass
-class Nodes(Composite):
-    
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        return is_nodes(item = instance)
-
-         
+        
 @dataclasses.dataclass # type: ignore
-class Graph(Composite):
+class Graph(Composite, abc.ABC):
     """Base class for an graph data 
     
     Args:
@@ -555,18 +588,13 @@ class Graph(Composite):
         pass
 
     @abc.abstractproperty
-    def edges(self) -> Adjacency:
+    def edges(self) -> Edges:
         """Returns the stored graph as an edge list."""
         pass
 
     @abc.abstractproperty
     def matrix(self) -> Matrix:
         """Returns the stored graph as an adjacency matrix."""
-        pass
-
-    @abc.abstractproperty
-    def nodes(self) -> list[Node]:
-        """Returns all stored nodes in a list."""
         pass
     
     @abc.abstractproperty
@@ -600,41 +628,10 @@ class Graph(Composite):
     def from_tree(cls, item: Tree) -> Graph:
         """Creates a Graph instance from a Tree."""
         pass
-       
-    @abc.abstractmethod
-    def add(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def delete(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def merge(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def subset(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def walk(item: Any, *args, **kwargs) -> None:
-        pass
-     
-    # """ Dunder Methods """
-                 
-    # def __str__(self) -> str:
-    #     """Returns prettier str representation of the stored graph.
 
-    #     Returns:
-    #         str: a formatted str of class information and the contained graph.
-            
-    #     """
-    #     return amos.beautify(item = self, package = 'chrisjen')
-   
    
 @dataclasses.dataclass # type: ignore
-class Pipeline(containers.Hybrid, Composite):
+class Pipeline(containers.Hybrid, Composite, abc.ABC):
     """Base class for pipeline data structures.
     
     Args:
@@ -648,18 +645,13 @@ class Pipeline(containers.Hybrid, Composite):
     """ Required Properties """
 
     @abc.abstractproperty
-    def edges(self) -> Adjacency:
+    def edges(self) -> Edges:
         """Returns the stored graph as an edge list."""
         pass
 
     @abc.abstractproperty
     def graph(self) -> Graph:
         """Returns the stored pipeline as a Graph."""
-        pass
-
-    @abc.abstractproperty
-    def nodes(self) -> list[Node]:
-        """Returns all stored nodes in a list."""
         pass
     
     @abc.abstractproperty
@@ -703,39 +695,10 @@ class Pipeline(containers.Hybrid, Composite):
     def from_tree(cls, item: Tree) -> Pipeline:
         """Creates a Pipeline instance from a Tree."""
         pass   
-    
-    @abc.abstractmethod
-    def add(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def delete(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def merge(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def subset(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def walk(item: Any, *args, **kwargs) -> None:
-        pass
-      
-    # def __str__(self) -> str:
-    #     """Returns prettier str representation of the stored graph.
-
-    #     Returns:
-    #         str: a formatted str of class information and the contained graph.
-            
-    #     """
-    #     return amos.recap.beautify(item = self, package = 'chrisjen')  
 
 
 @dataclasses.dataclass # type: ignore
-class Pipelines(containers.Lexicon, Composite):
+class Pipelines(containers.Lexicon, Composite, abc.ABC):
     """Base class a collection of Pipeline instances.
         
     Args:
@@ -759,11 +722,6 @@ class Pipelines(containers.Lexicon, Composite):
         """Returns the stored pipeline as a Graph."""
         pass
 
-    @abc.abstractproperty
-    def nodes(self) -> list[Node]:
-        """Returns all stored nodes in a list."""
-        pass
-    
     @abc.abstractproperty
     def tree(self) -> Tree:
         """Returns the stored pipeline as a Tree."""
@@ -790,30 +748,10 @@ class Pipelines(containers.Lexicon, Composite):
     def from_tree(cls, item: Matrix) -> Pipelines:
         """Creates a Pipelines instance from a Tree."""
         pass   
-    
-    @abc.abstractmethod
-    def add(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def delete(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def merge(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def subset(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def walk(item: Any, *args, **kwargs) -> None:
-        pass
-        
-    
+
+
 @dataclasses.dataclass # type: ignore
-class Tree(containers.Hybrid, Composite):
+class Tree(containers.Hybrid, Composite, abc.ABC):
     """Base class for an tree data structures.
     
     The Tree class uses a Hybrid instead of a linked list for storing children
@@ -843,8 +781,7 @@ class Tree(containers.Hybrid, Composite):
             hashable and capable of quick comparison. Defaults to None, but it
             should not be left as None when added to a Tree.
         parent (Optional[Tree]): parent Tree, if any. Defaults to None.
-
-                  
+  
     """
     contents: MutableSequence[Node] = dataclasses.field(
         default_factory = list)
@@ -864,11 +801,6 @@ class Tree(containers.Hybrid, Composite):
         pass
 
     @abc.abstractproperty
-    def nodes(self) -> list[Node]:
-        """Returns all stored nodes in a list."""
-        pass
-    
-    @abc.abstractproperty
     def tree(self) -> Tree:
         """Returns the stored pipeline as a Tree."""
         pass
@@ -876,43 +808,23 @@ class Tree(containers.Hybrid, Composite):
     """ Required Subclass Methods """
     
     @abc.abstractclassmethod
-    def from_graph(cls, item: Graph) -> Pipeline:
-        """Creates a Pipeline instance from a Graph."""
+    def from_graph(cls, item: Graph) -> Tree:
+        """Creates a Tree instance from a Graph."""
         pass
     
     @abc.abstractclassmethod
-    def from_list(cls, item: Edges) -> Pipeline:
-        """Creates a Pipeline instance from a list of nodes."""
+    def from_list(cls, item: Edges) -> Tree:
+        """Creates a Tree instance from a list of nodes."""
         pass
     
     @abc.abstractclassmethod
-    def from_pipelines(cls, item: Pipeline) -> Pipeline:
-        """Creates a Pipeline instance from a Pipelines."""
+    def from_pipeline(cls, item: Pipeline) -> Tree:
+        """Creates a Tree instance from a Pipeline."""
         pass
-    
+   
     @abc.abstractclassmethod
-    def from_tree(cls, item: Matrix) -> Pipeline:
-        """Creates a Pipeline instance from a Tree."""
-        pass   
-    
-    @abc.abstractmethod
-    def add(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def delete(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def merge(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def subset(item: Any, *args, **kwargs) -> None:
-        pass
-    
-    @abc.abstractmethod
-    def walk(item: Any, *args, **kwargs) -> None:
+    def from_pipelines(cls, item: Pipelines) -> Tree:
+        """Creates a Tree instance from a Pipelines."""
         pass
 
     """ Dunder Methods """
@@ -983,12 +895,13 @@ class Tree(containers.Hybrid, Composite):
             
         """
         return not self.__eq__(other = other)
-          
-    # def __str__(self) -> str:
-    #     """Returns prettier str representation of the stored tree.
 
-    #     Returns:
-    #         str: a formatted str of class information and the contained tree.
-            
-    #     """
-    #     return amos.recap.beautify(item = self, package = 'chrisjen')
+
+@dataclasses.dataclass
+class Nodes(Composite, abc.ABC):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return is_nodes(item = instance)
+
+ 

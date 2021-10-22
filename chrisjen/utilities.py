@@ -946,11 +946,11 @@ class Registrar(object):
                 method will be used to 
         
         """
-        if abc.ABC not in cls.__bases__:
-            # The default key for storing cls relies on the 'get_name' method, 
-            # which usually will use the snakecase name of 'item'.
-            key = name or get_name(item = cls)
-            cls.registry[key] = item
+        # if abc.ABC not in cls.__bases__:
+        # The default key for storing cls relies on the 'get_name' method, 
+        # which usually will use the snakecase name of 'item'.
+        key = name or get_name(item = cls)
+        cls.registry[key] = item
         return   
 
 
@@ -994,3 +994,4 @@ class RegistrarFactory(Registrar, abc.ABC):
                 f'Could not create {cls.__name__} from item because it '
                 f'is not one of these supported types: '
                 f'{str(list(cls.registry.keys()))}')
+            

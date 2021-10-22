@@ -6,12 +6,10 @@ License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 """
 import dataclasses
 import inspect 
-import sys
 import types
 
 import chrisjen
 
-sys.setrecursionlimit = 5000
 
 @dataclasses.dataclass
 class Something(chrisjen.Node):
@@ -33,13 +31,14 @@ class EvenAnother(chrisjen.Node):
 
 def test_graph() -> None:
     edges = tuple([('a', 'b'), ('c', 'd'), ('a', 'd'), ('d', 'e')])
-    dag = chrisjen.System.from_edges(item = edges)
+    dag = chrisjen.System.create(item = edges)
     dag.add(node = 'cat')
     dag.add(node = 'dog', ancestors = 'e', descendants = ['cat'])
     adjacency = {
         'tree': {'house', 'yard'},
         'house': set(),
         'yard': set()}
+    assert chrisjen.Adjacency.__instancecheck__(adjacency)
     another_dag = chrisjen.System.create(item = adjacency)
     dag.append(item = another_dag)
     print('test print dag', dag)
