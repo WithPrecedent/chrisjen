@@ -53,11 +53,9 @@ __package__ = 'chrisjen'
 
 __author__ = 'Corey Rayburn Yung'
 
-import sys
-
-sys.setrecursionlimit = 5000
 
 from .utilities import *
+from .checks import *
 from .tracking import *
 from .containers import *
 from .composites import *

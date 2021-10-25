@@ -26,79 +26,201 @@ To Do:
     
 """
 from __future__ import annotations
+import abc
+import collections
 from collections.abc import (
-    Hashable, MutableMapping, MutableSequence, Sequence, Set)
-import collections.abc
+    Collection, Hashable, MutableMapping, MutableSequence, Sequence, Set)
 import copy
 import dataclasses
 import itertools
-from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
+from typing import (
+    Any, Callable, ClassVar, Optional, Type, TypeVar, TYPE_CHECKING, Union)
 
-import more_itertools
-
-from . import containers
-from . import composites
 from . import utilities
-import chrisjen
+from . import base
+from . import check
 
+if TYPE_CHECKING:
+    from . import array
+    from . import tree
     
+ 
 @dataclasses.dataclass
-class System(containers.Lexicon, composites.Graph, composites.Adjacency):
-    """Directed graph with unweighted edges.
+class Edge(base.Composite, abc.ABC):
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return check.is_edge(item = instance)
+
+     
+@dataclasses.dataclass # type: ignore
+class Graph(base.Composite, abc.ABC):
+    """Base class for graph data structures.
     
     Args:
         contents (Collection[Any]): stored collection of nodes and/or edges.
-                            
+                                      
     """  
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
+    contents: Collection[Any]
+
+    """ Required Subclass Properties """
+
+    @abc.abstractmethod
+    def connect(self, start: base.Node, stop: base.Node) -> None:
+        """Creates a new edge in the stored graph.
+
+        Args:
+            start (Node): starting node for the new edge.
+            stop (Node): ending node for the new edge.
+        
+        Raises:
+            KeyError: if 'start' or 'stop' are not a nodes in the stored graph.
+
+        """
+        pass  
+    
+    @abc.abstractmethod
+    def disconnect(self, start: base.Node, stop: base.Node) -> None:
+        """Deletes edge from the stored graph.
+
+        Args:
+            start (Node): starting node for the edge to delete.
+            stop (Node): ending node for the edge to delete.
+        
+        Raises:
+            KeyError: if 'start' or 'stop' are not a nodes in the stored graph.
+
+        """
+        pass  
+    
+    """ Dunder Methods """
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return check.is_graph(item = instance)
+
+
+@dataclasses.dataclass
+class Adjacency(MutableMapping, Graph, abc.ABC):
+    """Base class for adjacency-list-based graphs.
+    
+    Args:
+        contents (MutableMapping[base.Node, Set[base.Node]]): keys are nodes and values 
+            are sets of nodes (or hashable representations of nodes). Defaults 
+            to a defaultdict that has a set for its value format.
+                                      
+    """  
+    contents: MutableMapping[base.Node, Set[base.Node]] = dataclasses.field(
+        default_factory = lambda: collections.defaultdict(set))
+    
+    """ Dunder Methods """
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return check.is_adjacency(item = instance)
+
+
+@dataclasses.dataclass
+class Edges(Graph, abc.ABC):
+    """Base class for edges-list-based graphs.
+    
+    Args:
+        contents (tuple[tuple[base.Node, Node], ...]): tuple of tuple of edges. 
+            Defaults to an empty tuple.
+                                      
+    """   
+    contents: tuple[tuple[base.Node, base.Node], ...] = dataclasses.field(
+        default_factory = tuple)
+    
+    """ Dunder Methods """
+           
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return check.is_edges(item = instance)
+    
+    
+@dataclasses.dataclass
+class Matrix(Graph, abc.ABC):
+    """Base class for adjacency-matrix-based graphs.
+    
+    Args:
+        contents (Sequence[Sequence[int]]): a list of list of integers 
+            indicating edges between nodes in the matrix. Defaults to an empty
+            list.
+        labels (Sequence[base.Node]): names of nodes in the matrix. Defaults to an 
+            empty list.
+                                      
+    """  
+    contents: Sequence[Sequence[int]] = dataclasses.field(
+        default_factory = list)
+    labels: Sequence[base.Node] = dataclasses.field(default_factory = list)
+    
+    """ Dunder Methods """
+        
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        return check.is_matrix(item = instance)
+
+    
+@dataclasses.dataclass
+class System(containers.Lexicon, Adjacency):
+    """Directed graph with unweighted edges.
+    
+    Args:
+        contents (MutableMapping[Hashable, Set[Hashable]]): keys are nodes and
+            values are sets of nodes (or hashable representations of nodes).
+            Defaults to an empty dict.    
+                  
+    """  
+    contents: MutableMapping[Hashable, Set[Hashable]] = dataclasses.field(
         default_factory = dict)
     
     """ Properties """
 
     @property
-    def adjacency(self) -> composites.Adjacency:
+    def adjacency(self) -> Adjacency:
         """Returns the stored graph as an adjacency list."""
         return self.contents
 
     @property
-    def edges(self) -> composites.Edges:
+    def edges(self) -> Edges:
         """Returns the stored graph as an edge list."""
         return utilities.adjacency_to_edges(item = self.contents)
 
     @property
-    def endpoints(self) -> set[composites.Node]:
+    def endpoints(self) -> set[base.Node]:
         """Returns endpoint nodes in the stored graph in a list."""
         return {k for k in self.contents.keys() if not self.contents[k]}
 
     @property
-    def matrix(self) -> composites.Matrix:
+    def matrix(self) -> Matrix:
         """Returns the stored graph as an adjacency matrix."""
         return utilities.adjacency_to_matrix(item = self.contents)
                       
     @property
-    def nodes(self) -> set[composites.Node]:
+    def nodes(self) -> set[base.Node]:
         """Returns all stored nodes in a list."""
         return set(self.contents.keys())
 
     @property
-    def paths(self) -> composites.Nodes:
+    def paths(self) -> base.Nodes:
         """Returns all paths through the stored as a list of Nodes."""
         return self._find_all_paths(starts = self.roots, stops = self.endpoints)
     
     @property
-    def pipeline(self) -> composites.Pipeline:
-        """Returns stored graph as a Pipeline."""
+    def pipeline(self) -> arrays.Pipeline:
+        """Returns stored graph as a arrays.Pipeline."""
         raise NotImplementedError
     
     @property
-    def pipelines(self) -> composites.Pipelines:
-        """Returns stored graph as a Pipelines."""
+    def pipelines(self) -> arrays.Pipelines:
+        """Returns stored graph as a arrays.Pipelines."""
         all_paths = self.paths
         instances = [chrisjen.Process(contents = p) for p in all_paths]
         return chrisjen.Processes(contents = instances)
     
     @property
-    def roots(self) -> set[composites.Node]:
+    def roots(self) -> set[base.Node]:
         """Returns root nodes in the stored graph in a list."""
         stops = list(itertools.chain.from_iterable(self.contents.values()))
         return {k for k in self.contents.keys() if k not in stops}
@@ -106,34 +228,34 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
     """ Class Methods """
  
     @classmethod
-    def from_adjacency(cls, item: composites.Adjacency) -> System:
+    def from_adjacency(cls, item: Adjacency) -> System:
         """Creates a System instance from an adjacency list."""
         return cls(contents = item)
     
     @classmethod
-    def from_edges(cls, item: composites.Edges) -> System:
+    def from_edges(cls, item: Edges) -> System:
         """Creates a System instance from an edge list."""
-        return cls(contents = composites.edges_to_adjacency(item = item))
+        return cls(contents = edges_to_adjacency(item = item))
     
     @classmethod
-    def from_matrix(cls, item: composites.Matrix) -> System:
+    def from_matrix(cls, item: Matrix) -> System:
         """Creates a System instance from an adjacency matrix."""
-        return cls(contents = composites.matrix_to_adjacency(item = item))
+        return cls(contents = matrix_to_adjacency(item = item))
     
     @classmethod
-    def from_nodes(cls, item: composites.Nodes) -> System:
+    def from_nodes(cls, item: base.Nodes) -> System:
         """Creates a System instance from a Nodes."""
-        new_contents = composites.pipeline_to_adjacency(item = item)
+        new_contents = pipeline_to_adjacency(item = item)
         return cls(contents = new_contents)
 
     @classmethod
-    def from_pipelines(cls, item: composites.Pipelines) -> System:
-        """Creates a System instance from a Pipeline."""
-        new_contents = composites.pipelines_to_adjacency(item = item)
+    def from_pipelines(cls, item: arrays.Pipelines) -> System:
+        """Creates a System instance from a arrays.Pipeline."""
+        new_contents = pipelines_to_adjacency(item = item)
         return cls(contents = new_contents)
 
     @classmethod
-    def from_tree(cls, item: composites.Tree) -> System:
+    def from_tree(cls, item: Tree) -> System:
         """Creates a System instance from a Tree."""
         raise NotImplementedError
              
@@ -141,16 +263,16 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 
     def add(
         self, 
-        node: composites.Node,
-        ancestors: composites.Nodes = None,
-        descendants: composites.Nodes = None) -> None:
+        node: base.Node,
+        ancestors: base.Nodes = None,
+        descendants: base.Nodes = None) -> None:
         """Adds 'node' to the stored graph.
         
         Args:
-            node (composites.Node): a node to add to the stored graph.
-            ancestors (composites.Nodes): node(s) from which 'node' should be 
+            node (base.Node): a node to add to the stored graph.
+            ancestors (base.Nodes): node(s) from which 'node' should be 
                 connected.
-            descendants (composites.Nodes): node(s) to which 'node' should be 
+            descendants (base.Nodes): node(s) to which 'node' should be 
                 connected.
 
         Raises:
@@ -187,23 +309,23 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
                     self.connect(start = start, stop = node)                 
         return 
 
-    def append(self, item: Union[composites.Composite]) -> None:
+    def append(self, item: Union[base.Composite]) -> None:
         """Appends 'item' to the endpoints of the stored graph.
 
         Appending creates an edge between every endpoint of this instance's
         stored graph and the every root of 'item'.
 
         Args:
-            item (Union[composites.Composite]): another Graph, 
+            item (Union[base.Composite]): another Graph, 
                 an adjacency list, an edge list, an adjacency matrix, or one or
                 more nodes.
             
         Raises:
-            TypeError: if 'item' is neither a Graph, composites.Adjacency, composites.Edges, composites.Matrix,
-                or composites.Nodes type.
+            TypeError: if 'item' is neither a Graph, Adjacency, Edges, Matrix,
+                or base.Nodes type.
                 
         """
-        if isinstance(item, composites.Composite):
+        if isinstance(item, base.Composite):
             current_endpoints = list(self.endpoints)
             new_graph = self.create(item = item)
             self.merge(item = new_graph)
@@ -212,16 +334,16 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
                     self.connect(start = endpoint, stop = root)
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, Pipeline, '
-                'Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
+                'arrays.Pipelines, or Node type')
         return
   
-    def connect(self, start: composites.Node, stop: composites.Node) -> None:
+    def connect(self, start: base.Node, stop: base.Node) -> None:
         """Adds an edge from 'start' to 'stop'.
 
         Args:
-            start (composites.Node): name of node for edge to start.
-            stop (composites.Node): name of node for edge to stop.
+            start (base.Node): name of node for edge to start.
+            stop (base.Node): name of node for edge to stop.
             
         Raises:
             ValueError: if 'start' is the same as 'stop'.
@@ -239,11 +361,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
             self.contents[start].add(utilities.get_name(item = stop))
         return
 
-    def delete(self, node: composites.Node) -> None:
+    def delete(self, node: base.Node) -> None:
         """Deletes node from graph.
         
         Args:
-            node (composites.Node): node to delete from 'contents'.
+            node (base.Node): node to delete from 'contents'.
         
         Raises:
             KeyError: if 'node' is not in 'contents'.
@@ -256,12 +378,12 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
         self.contents = {k: v.discard(node) for k, v in self.contents.items()}
         return
 
-    def disconnect(self, start: composites.Node, stop: composites.Node) -> None:
+    def disconnect(self, start: base.Node, stop: base.Node) -> None:
         """Deletes edge from graph.
 
         Args:
-            start (composites.Node): starting node for the edge to delete.
-            stop (composites.Node): ending node for the edge to delete.
+            start (base.Node): starting node for the edge to delete.
+            stop (base.Node): ending node for the edge to delete.
         
         Raises:
             KeyError: if 'start' is not a node in the stored graph..
@@ -273,7 +395,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
             raise KeyError(f'{start} does not exist in the graph')
         return
 
-    def merge(self, item: Union[composites.Composite]) -> None:
+    def merge(self, item: Union[base.Composite]) -> None:
         """Adds 'item' to this Graph.
 
         This method is roughly equivalent to a dict.update, just adding the
@@ -281,49 +403,49 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
         adjacency list that is then added to the existing 'contents'.
         
         Args:
-            item (Union[composites.Composite]): another Graph, an adjacency 
+            item (Union[base.Composite]): another Graph, an adjacency 
                 list, an edge list, an adjacency matrix, or one or more nodes.
             
         Raises:
-            TypeError: if 'item' is neither a System, composites.Adjacency, 
-                composites.Edges, composites.Matrix, or composites.Nodes type.
+            TypeError: if 'item' is neither a System, Adjacency, 
+                Edges, Matrix, or base.Nodes type.
             
         """
         if isinstance(item, System):
             adjacency = item.adjacency
-        elif isinstance(item, composites.Adjacency):
+        elif isinstance(item, Adjacency):
             adjacency = item
-        elif isinstance(item, composites.Edges):
-            adjacency = composites.edges_to_adjacency(item = item)
-        elif isinstance(item, composites.Matrix):
-            adjacency = composites.matrix_to_adjacency(item = item)
+        elif isinstance(item, Edges):
+            adjacency = edges_to_adjacency(item = item)
+        elif isinstance(item, Matrix):
+            adjacency = matrix_to_adjacency(item = item)
         elif isinstance(item, (list, tuple, set)):
-            adjacency = composites.pipeline_to_adjacency(item = item)
-        elif isinstance(item, composites.Node):
+            adjacency = pipeline_to_adjacency(item = item)
+        elif isinstance(item, base.Node):
             adjacency = {item: set()}
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, Pipeline, '
-                'Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
+                'arrays.Pipelines, or Node type')
         self.contents.update(adjacency)
         return
 
-    def prepend(self, item: Union[composites.Composite]) -> None:
+    def prepend(self, item: Union[base.Composite]) -> None:
         """Prepends 'item' to the roots of the stored graph.
 
         Prepending creates an edge between every endpoint of 'item' and every
         root of this instance;s stored graph.
 
         Args:
-            item (Union[composites.Composite]): another Graph, an adjacency list, an 
+            item (Union[base.Composite]): another Graph, an adjacency list, an 
                 edge list, an adjacency matrix, or one or more nodes.
             
         Raises:
-            TypeError: if 'item' is neither a System, composites.Adjacency, composites.Edges, composites.Matrix, 
-                or composites.Nodes type.
+            TypeError: if 'item' is neither a System, Adjacency, Edges, Matrix, 
+                or base.Nodes type.
                 
         """
-        if isinstance(item, composites.Composite):
+        if isinstance(item, base.Composite):
             current_roots = list(self.roots)
             new_graph = self.create(item = item)
             self.merge(item = new_graph)
@@ -332,8 +454,8 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
                     self.connect(start = endpoint, stop = root)
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, Pipeline, '
-                'Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
+                'arrays.Pipelines, or Node type')
         return
       
     def subset(
@@ -373,21 +495,21 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
     
     def walk(
         self, 
-        start: composites.Node,
-        stop: composites.Node, 
-        path: Optional[composites.Pipeline] = None) -> composites.Pipeline:
+        start: base.Node,
+        stop: base.Node, 
+        path: Optional[arrays.Pipeline] = None) -> arrays.Pipeline:
         """Returns all paths in graph from 'start' to 'stop'.
 
         The code here is adapted from: https://www.python.org/doc/essays/graphs/
         
         Args:
-            start (composites.Node): node to start paths from.
-            stop (composites.Node): node to stop paths.
-            path (composites.Pipeline): a path from 'start' to 'stop'. Defaults 
+            start (base.Node): node to start paths from.
+            stop (base.Node): node to stop paths.
+            path (arrays.Pipeline): a path from 'start' to 'stop'. Defaults 
                 to an empty list. 
 
         Returns:
-            composites.Pipeline: a list of possible paths (each path is a list 
+            arrays.Pipeline: a list of possible paths (each path is a list 
                 nodes) from 'start' to 'stop'.
             
         """
@@ -413,18 +535,18 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 
     def _find_all_paths(
         self, 
-        starts: composites.Nodes, 
-        stops: composites.Nodes) -> composites.Pipeline:
+        starts: base.Nodes, 
+        stops: base.Nodes) -> arrays.Pipeline:
         """Returns all paths between 'starts' and 'stops'.
 
         Args:
-            start (composites.Nodes): starting point(s) for paths through the 
+            start (base.Nodes): starting point(s) for paths through the 
                 System.
-            ends (composites.Nodes): ending point(s) for paths through the 
+            ends (base.Nodes): ending point(s) for paths through the 
                 System.
 
         Returns:
-            composites.Pipeline: list of all paths through the System from all 
+            arrays.Pipeline: list of all paths through the System from all 
                 'starts' to all 'ends'.
             
         """
@@ -433,39 +555,15 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
             for end in utilities.iterify(item = stops):
                 paths = self.walk(start = start, stop = end)
                 if paths:
-                    if all(isinstance(path, composites.Node) for path in paths):
+                    if all(isinstance(path, base.Node) for path in paths):
                         all_paths.append(paths)
                     else:
                         all_paths.extend(paths)
         return all_paths
-    
-    """ Dunder Methods """
-
-    def __add__(self, other: Union[composites.Composite]) -> None:
-        """Adds 'other' to the stored graph using the 'append' method.
-
-        Args:
-            other (Union[composites.Composite]): another Graph, adjacency list, 
-                an edge list, an adjacency matrix, or one or more nodes.
-            
-        """
-        self.append(item = other)     
-        return 
-
-    def __radd__(self, other: Union[composites.Composite]) -> None:
-        """Adds 'other' to the stored graph using the 'prepend' method.
-
-        Args:
-            other (Union[composites.Composite]): another Graph, adjacency list, 
-                an edge list, an adjacency matrix, or one or more nodes.
-            
-        """
-        self.prepend(item = other)     
-        return 
 
 
 # @dataclasses.dataclass
-# class Network(composites.Graph):
+# class Network(Graph):
 #     """Base class for undirected graphs with unweighted edges.
     
 #     Graph stores a directed acyclic graph (DAG) as an adjacency list. Despite 
@@ -481,26 +579,26 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #     defaultdict.
     
 #     Args:
-#         contents (composites.Adjacency): an adjacency list where the keys are nodes and the 
+#         contents (Adjacency): an adjacency list where the keys are nodes and the 
 #             values are nodes which the key is connected to. Defaults to an empty 
 #             dict.
                   
 #     """  
-#     contents: composites.Matrix = dataclasses.field(default_factory = dict)
+#     contents: Matrix = dataclasses.field(default_factory = dict)
     
 #     """ Properties """
 
 #     @property
-#     def adjacency(self) -> composites.Adjacency:
+#     def adjacency(self) -> Adjacency:
 #         """Returns the stored graph as an adjacency list."""
-#         return composites.matrix_to_adjacency(item = self.contents)
+#         return matrix_to_adjacency(item = self.contents)
 
 #     @property
-#     def breadths(self) -> composites.Pipeline:
+#     def breadths(self) -> arrays.Pipeline:
 #         """Returns all paths through the Graph using breadth-first search.
         
 #         Returns:
-#             composites.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
+#             arrays.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
 #                 of lists of nodes.
                 
 #         """
@@ -510,11 +608,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #             depth_first = False)
 
 #     @property
-#     def depths(self) -> composites.Pipeline:
+#     def depths(self) -> arrays.Pipeline:
 #         """Returns all paths through the Graph using depth-first search.
         
 #         Returns:
-#             composites.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
+#             arrays.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
 #                 of lists of nodes.
                 
 #         """
@@ -523,26 +621,26 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                                     depth_first = True)
      
 #     @property
-#     def edges(self) -> composites.Edges:
+#     def edges(self) -> Edges:
 #         """Returns the stored graph as an edge list."""
 #         return adjacency_to_edges(item = self.contents)
 
 #     @property
-#     def endpoints(self) -> list[composites.Node]:
+#     def endpoints(self) -> list[base.Node]:
 #         """Returns a list of endpoint nodes in the stored graph.."""
 #         return [k for k in self.contents.keys() if not self.contents[k]]
 
 #     @property
-#     def matrix(self) -> composites.Matrix:
+#     def matrix(self) -> Matrix:
 #         """Returns the stored graph as an adjacency matrix."""
 #         return adjacency_to_matrix(item = self.contents)
                       
 #     @property
-#     def nodes(self) -> dict[str, composites.Node]:
+#     def nodes(self) -> dict[str, base.Node]:
 #         """Returns a dict of node names as keys and nodes as values.
         
-#         Because Graph allows various composites.Node objects to be used as keys,
-#         including the composites.Nodes class, there isn't an obvious way to access already
+#         Because Graph allows various base.Node objects to be used as keys,
+#         including the base.Nodes class, there isn't an obvious way to access already
 #         stored nodes. This property creates a new dict with str keys derived
 #         from the nodes (looking first for a 'name' attribute) so that a user
 #         can access a node. 
@@ -550,18 +648,18 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         This property is not needed if the stored nodes are all strings.
         
 #         Returns:
-#             Dict[str, composites.Node]: keys are the name or has of nodes and the 
+#             Dict[str, base.Node]: keys are the name or has of nodes and the 
 #                 values are the nodes themselves.
             
 #         """
 #         return {self.utilities.get_name(item = n): n for n in self.contents.keys()}
   
 #     @property
-#     def roots(self) -> list[composites.Node]:
+#     def roots(self) -> list[base.Node]:
 #         """Returns root nodes in the stored graph..
 
 #         Returns:
-#             list[composites.Node]: root nodes.
+#             list[base.Node]: root nodes.
             
 #         """
 #         stops = list(itertools.chain.from_iterable(self.contents.values()))
@@ -570,11 +668,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #     """ Class Methods """
     
 #     @classmethod
-#     def create(cls, item: Union[composites.Adjacency, composites.Edges, composites.Matrix]) -> Graph:
+#     def create(cls, item: Union[Adjacency, Edges, Matrix]) -> Graph:
 #         """Creates an instance of a Graph from 'item'.
         
 #         Args:
-#             item (Union[composites.Adjacency, composites.Edges, composites.Matrix]): an adjacency list, 
+#             item (Union[Adjacency, Edges, Matrix]): an adjacency list, 
 #                 adjacency matrix, or edge list which can used to create the
 #                 stored graph.
                 
@@ -594,14 +692,14 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                 f'matrix, or edge list')
            
 #     @classmethod
-#     def from_adjacency(cls, adjacency: composites.Adjacency) -> Graph:
+#     def from_adjacency(cls, adjacency: Adjacency) -> Graph:
 #         """Creates a Graph instance from an adjacency list.
         
 #         'adjacency' should be formatted with nodes as keys and values as lists
 #         of names of nodes to which the node in the key is connected.
 
 #         Args:
-#             adjacency (composites.Adjacency): adjacency list used to 
+#             adjacency (Adjacency): adjacency list used to 
 #                 create a Graph instance.
 
 #         Returns:
@@ -611,7 +709,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return cls(contents = adjacency)
     
 #     @classmethod
-#     def from_edges(cls, edges: composites.Edges) -> Graph:
+#     def from_edges(cls, edges: Edges) -> Graph:
 #         """Creates a Graph instance from an edge list.
 
 #         'edges' should be a list of tuples, where the first item in the tuple
@@ -619,7 +717,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         the first item is connected.
         
 #         Args:
-#             edges (composites.Edges): Edge list used to create a Graph 
+#             edges (Edges): Edge list used to create a Graph 
 #                 instance.
                 
 #         Returns:
@@ -629,11 +727,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return cls(contents = edges_to_adjacency(item = edges))
     
 #     @classmethod
-#     def from_matrix(cls, matrix: composites.Matrix) -> Graph:
+#     def from_matrix(cls, matrix: Matrix) -> Graph:
 #         """Creates a Graph instance from an adjacency matrix.
 
 #         Args:
-#             matrix (composites.Matrix): adjacency matrix used to create a Graph instance. 
+#             matrix (Matrix): adjacency matrix used to create a Graph instance. 
 #                 The values in the matrix should be 1 (indicating an edge) and 0 
 #                 (indicating no edge).
  
@@ -644,11 +742,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return cls(contents = matrix_to_adjacency(item = matrix))
     
 #     @classmethod
-#     def from_pipeline(cls, pipeline: composites.Pipeline) -> Graph:
-#         """Creates a Graph instance from a composites.Pipeline.
+#     def from_pipeline(cls, pipeline: arrays.Pipeline) -> Graph:
+#         """Creates a Graph instance from a arrays.Pipeline.
 
 #         Args:
-#             pipeline (composites.Pipeline): serial pipeline used to create a Graph
+#             pipeline (arrays.Pipeline): serial pipeline used to create a Graph
 #                 instance.
  
 #         Returns:
@@ -660,15 +758,15 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #     """ Public Methods """
     
 #     def add(self, 
-#             node: composites.Node,
-#             ancestors: composites.Nodes = None,
-#             descendants: composites.Nodes = None) -> None:
+#             node: base.Node,
+#             ancestors: base.Nodes = None,
+#             descendants: base.Nodes = None) -> None:
 #         """Adds 'node' to 'contents' with no corresponding edges.
         
 #         Args:
-#             node (composites.Node): a node to add to the stored graph.
-#             ancestors (composites.Nodes): node(s) from which node should be connected.
-#             descendants (composites.Nodes): node(s) to which node should be connected.
+#             node (base.Node): a node to add to the stored graph.
+#             ancestors (base.Nodes): node(s) from which node should be connected.
+#             descendants (base.Nodes): node(s) to which node should be connected.
 
 #         """
 #         if descendants is None:
@@ -679,9 +777,9 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #             missing = [n for n in descendants if n not in self.contents]
 #             raise KeyError(f'descendants {missing} are not in the stored graph.')
 #         if ancestors is not None:  
-#             if (isinstance(ancestors, composites.Node) and ancestors in self
+#             if (isinstance(ancestors, base.Node) and ancestors in self
 #                     or (isinstance(ancestors, (list, tuple, set)) 
-#                         and all(isinstance(n, composites.Node) for n in ancestors)
+#                         and all(isinstance(n, base.Node) for n in ancestors)
 #                         and all(n in self.contents for n in ancestors))):
 #                 start = ancestors
 #             elif (hasattr(self.__class__, ancestors) 
@@ -696,20 +794,20 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return 
 
 #     def append(self, 
-#                item: Union[Graph, composites.Adjacency, composites.Edges, composites.Matrix, composites.Nodes]) -> None:
+#                item: Union[Graph, Adjacency, Edges, Matrix, base.Nodes]) -> None:
 #         """Adds 'item' to this Graph.
 
 #         Combining creates an edge between every endpoint of this instance's
 #         Graph and the every root of 'item'.
 
 #         Args:
-#             item (Union[Graph, composites.Adjacency, composites.Edges, composites.Matrix, composites.Nodes]): another 
+#             item (Union[Graph, Adjacency, Edges, Matrix, base.Nodes]): another 
 #                 Graph to join with this one, an adjacency list, an edge list, an
-#                 adjacency matrix, or composites.Nodes.
+#                 adjacency matrix, or base.Nodes.
             
 #         Raises:
-#             TypeError: if 'item' is neither a Graph, composites.Adjacency, composites.Edges, composites.Matrix,
-#                 or composites.Nodes type.
+#             TypeError: if 'item' is neither a Graph, Adjacency, Edges, Matrix,
+#                 or base.Nodes type.
             
 #         """
 #         if isinstance(item, Graph):
@@ -721,13 +819,13 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                         self.connect(start = endpoint, stop = root)
 #             else:
 #                 self.contents = item.contents
-#         elif isinstance(item, composites.Adjacency):
+#         elif isinstance(item, Adjacency):
 #             self.append(item = self.from_adjacency(adjacecny = item))
-#         elif isinstance(item, composites.Edges):
+#         elif isinstance(item, Edges):
 #             self.append(item = self.from_edges(edges = item))
-#         elif isinstance(item, composites.Matrix):
+#         elif isinstance(item, Matrix):
 #             self.append(item = self.from_matrix(matrix = item))
-#         elif isinstance(item, composites.Nodes):
+#         elif isinstance(item, base.Nodes):
 #             if isinstance(item, (list, tuple, set)):
 #                 new_graph = Graph()
 #                 edges = more_itertools.windowed(item, 2)
@@ -738,16 +836,16 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                 self.add(node = item)
 #         else:
 #             raise TypeError(
-#                 'item must be a Graph, composites.Adjacency, composites.Edges, composites.Matrix, or composites.Nodes '
+#                 'item must be a Graph, Adjacency, Edges, Matrix, or base.Nodes '
 #                 'type')
 #         return
   
-#     def connect(self, start: composites.Node, stop: composites.Node) -> None:
+#     def connect(self, start: base.Node, stop: base.Node) -> None:
 #         """Adds an edge from 'start' to 'stop'.
 
 #         Args:
-#             start (composites.Node): name of node for edge to start.
-#             stop (composites.Node): name of node for edge to stop.
+#             start (base.Node): name of node for edge to start.
+#             stop (base.Node): name of node for edge to stop.
             
 #         Raises:
 #             ValueError: if 'start' is the same as 'stop'.
@@ -765,11 +863,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                 self.contents[start].append(self.utilities.get_name(item = stop))
 #         return
 
-#     def delete(self, node: composites.Node) -> None:
+#     def delete(self, node: base.Node) -> None:
 #         """Deletes node from graph.
         
 #         Args:
-#             node (composites.Node): node to delete from 'contents'.
+#             node (base.Node): node to delete from 'contents'.
         
 #         Raises:
 #             KeyError: if 'node' is not in 'contents'.
@@ -783,12 +881,12 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #             k: v.remove(node) for k, v in self.contents.items() if node in v}
 #         return
 
-#     def disconnect(self, start: composites.Node, stop: composites.Node) -> None:
+#     def disconnect(self, start: base.Node, stop: base.Node) -> None:
 #         """Deletes edge from graph.
 
 #         Args:
-#             start (composites.Node): starting node for the edge to delete.
-#             stop (composites.Node): ending node for the edge to delete.
+#             start (base.Node): starting node for the edge to delete.
+#             stop (base.Node): ending node for the edge to delete.
         
 #         Raises:
 #             KeyError: if 'start' is not a node in the stored graph..
@@ -803,7 +901,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #             raise ValueError(f'{stop} is not connected to {start}')
 #         return
 
-#     def merge(self, item: Union[Graph, composites.Adjacency, composites.Edges, composites.Matrix]) -> None:
+#     def merge(self, item: Union[Graph, Adjacency, Edges, Matrix]) -> None:
 #         """Adds 'item' to this Graph.
 
 #         This method is roughly equivalent to a dict.update, just adding the
@@ -812,26 +910,26 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         'contents'.
         
 #         Args:
-#             item (Union[Graph, composites.Adjacency, composites.Edges, composites.Matrix]): another Graph to 
+#             item (Union[Graph, Adjacency, Edges, Matrix]): another Graph to 
 #                 add to this one, an adjacency list, an edge list, or an
 #                 adjacency matrix.
             
 #         Raises:
-#             TypeError: if 'item' is neither a Graph, composites.Adjacency, composites.Edges, or 
-#                 composites.Matrix type.
+#             TypeError: if 'item' is neither a Graph, Adjacency, Edges, or 
+#                 Matrix type.
             
 #         """
 #         if isinstance(item, Graph):
 #             item = item.contents
-#         elif isinstance(item, composites.Adjacency):
+#         elif isinstance(item, Adjacency):
 #             pass
-#         elif isinstance(item, composites.Edges):
+#         elif isinstance(item, Edges):
 #             item = self.from_edges(edges = item).contents
-#         elif isinstance(item, composites.Matrix):
+#         elif isinstance(item, Matrix):
 #             item = self.from_matrix(matrix = item).contents
 #         else:
 #             raise TypeError(
-#                 'item must be a Graph, composites.Adjacency, composites.Edges, or composites.Matrix type to '
+#                 'item must be a Graph, Adjacency, Edges, or Matrix type to '
 #                 'update')
 #         self.contents.update(item)
 #         return
@@ -871,22 +969,22 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return new_graph
 
 #     def walk(self, 
-#              start: composites.Node, 
-#              stop: composites.Node, 
-#              path: composites.Pipeline = None,
-#              depth_first: bool = True) -> composites.Pipeline:
+#              start: base.Node, 
+#              stop: base.Node, 
+#              path: arrays.Pipeline = None,
+#              depth_first: bool = True) -> arrays.Pipeline:
 #         """Returns all paths in graph from 'start' to 'stop'.
 
 #         The code here is adapted from: https://www.python.org/doc/essays/graphs/
         
 #         Args:
-#             start (composites.Node): node to start paths from.
-#             stop (composites.Node): node to stop paths.
-#             path (composites.Pipeline): a path from 'start' to 'stop'. Defaults to an 
+#             start (base.Node): node to start paths from.
+#             stop (base.Node): node to stop paths.
+#             path (arrays.Pipeline): a path from 'start' to 'stop'. Defaults to an 
 #                 empty list. 
 
 #         Returns:
-#             composites.Pipeline: a list of possible paths (each path is a list 
+#             arrays.Pipeline: a list of possible paths (each path is a list 
 #                 nodes) from 'start' to 'stop'.
             
 #         """
@@ -933,14 +1031,14 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                 visited.add(connected)   
 #         return []
 
-#     def _breadth_first_search(self, node: composites.Node) -> composites.Pipeline:
+#     def _breadth_first_search(self, node: base.Node) -> arrays.Pipeline:
 #         """Returns a breadth first search path through the Graph.
 
 #         Args:
-#             node (composites.Node): node to start the search from.
+#             node (base.Node): node to start the search from.
 
 #         Returns:
-#             composites.Pipeline: nodes in a path through the Graph.
+#             arrays.Pipeline: nodes in a path through the Graph.
             
 #         """        
 #         visited = set()
@@ -953,16 +1051,16 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return list(visited)
        
 #     def _depth_first_search(self, 
-#         node: composites.Node, 
-#         visited: list[composites.Node]) -> composites.Pipeline:
+#         node: base.Node, 
+#         visited: list[base.Node]) -> arrays.Pipeline:
 #         """Returns a depth first search path through the Graph.
 
 #         Args:
-#             node (composites.Node): node to start the search from.
-#             visited (list[composites.Node]): list of visited nodes.
+#             node (base.Node): node to start the search from.
+#             visited (list[base.Node]): list of visited nodes.
 
 #         Returns:
-#             composites.Pipeline: nodes in a path through the Graph.
+#             arrays.Pipeline: nodes in a path through the Graph.
             
 #         """  
 #         if node not in visited:
@@ -972,19 +1070,19 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         return visited
   
 #     def _find_all_paths(self, 
-#         starts: Union[composites.Node, Sequence[composites.Node]],
-#         stops: Union[composites.Node, Sequence[composites.Node]],
-#         depth_first: bool = True) -> composites.Pipeline:
+#         starts: Union[base.Node, Sequence[base.Node]],
+#         stops: Union[base.Node, Sequence[base.Node]],
+#         depth_first: bool = True) -> arrays.Pipeline:
 #         """[summary]
 
 #         Args:
-#             start (Union[composites.Node, Sequence[composites.Node]]): starting points for 
+#             start (Union[base.Node, Sequence[base.Node]]): starting points for 
 #                 paths through the Graph.
-#             ends (Union[composites.Node, Sequence[composites.Node]]): endpoints for paths 
+#             ends (Union[base.Node, Sequence[base.Node]]): endpoints for paths 
 #                 through the Graph.
 
 #         Returns:
-#             composites.Pipeline: list of all paths through the Graph from all
+#             arrays.Pipeline: list of all paths through the Graph from all
 #                 'starts' to all 'ends'.
             
 #         """
@@ -996,7 +1094,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #                     stop = end,
 #                     depth_first = depth_first)
 #                 if paths:
-#                     if all(isinstance(path, composites.Node) for path in paths):
+#                     if all(isinstance(path, base.Node) for path in paths):
 #                         all_paths.append(paths)
 #                     else:
 #                         all_paths.extend(paths)
@@ -1004,7 +1102,7 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
             
 #     """ Dunder Methods """
 
-#     def __add__(self, other: composites.Graph) -> None:
+#     def __add__(self, other: Graph) -> None:
 #         """Adds 'other' Graph to this Graph.
 
 #         Adding another graph uses the 'merge' method. Read that method's 
@@ -1032,11 +1130,11 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         self.merge(graph = other)        
 #         return
 
-#     def __contains__(self, nodes: composites.Nodes) -> bool:
+#     def __contains__(self, nodes: base.Nodes) -> bool:
 #         """[summary]
 
 #         Args:
-#             nodes (composites.Nodes): [description]
+#             nodes (base.Nodes): [description]
 
 #         Returns:
 #             bool: [description]
@@ -1044,16 +1142,16 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         """
 #         if isinstance(nodes, (list, tuple, set)):
 #             return all(n in self.contents for n in nodes)
-#         elif isinstance(nodes, composites.Node):
+#         elif isinstance(nodes, base.Node):
 #             return nodes in self.contents
 #         else:
 #             return False   
         
-#     def __getitem__(self, key: composites.Node) -> Any:
+#     def __getitem__(self, key: base.Node) -> Any:
 #         """Returns value for 'key' in 'contents'.
 
 #         Args:
-#             key (composites.Node): key in 'contents' for which a value is sought.
+#             key (base.Node): key in 'contents' for which a value is sought.
 
 #         Returns:
 #             Any: value stored in 'contents'.
@@ -1061,22 +1159,22 @@ class System(containers.Lexicon, composites.Graph, composites.Adjacency):
 #         """
 #         return self.contents[key]
 
-#     def __setitem__(self, key: composites.Node, value: Any) -> None:
+#     def __setitem__(self, key: base.Node, value: Any) -> None:
 #         """sets 'key' in 'contents' to 'value'.
 
 #         Args:
-#             key (composites.Node): key to set in 'contents'.
+#             key (base.Node): key to set in 'contents'.
 #             value (Any): value to be paired with 'key' in 'contents'.
 
 #         """
 #         self.contents[key] = value
 #         return
 
-#     def __delitem__(self, key: composites.Node) -> None:
+#     def __delitem__(self, key: base.Node) -> None:
 #         """Deletes 'key' in 'contents'.
 
 #         Args:
-#             key (composites.Node): key in 'contents' to delete the key/value pair.
+#             key (base.Node): key in 'contents' to delete the key/value pair.
 
 #         """
 #         del self.contents[key]

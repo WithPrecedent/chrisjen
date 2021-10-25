@@ -24,13 +24,16 @@ To Do:
    
 """
 from __future__ import annotations
+import abc
 from collections.abc import MutableSequence, Sequence
 import dataclasses
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
+from . import base
 from . import containers
 from . import composites
 from . import utilities
+
 
 """ Type Aliases """
 
@@ -38,10 +41,132 @@ Changer: Type[Any] = Callable[[composites.Node], None]
 Finder: Type[Any] = Callable[[composites.Node], Optional[composites.Node]]
 
 
-""" Tree Structures """
+@dataclasses.dataclass # type: ignore
+class Tree(containers.Hybrid, base.Composite, abc.ABC):
+    """Base class for an tree data structures.
+    
+    The Tree class uses a Hybrid instead of a linked list for storing children
+    nodes to allow easier access of nodes further away from the root. For
+    example, a user might use 'a_tree["big_branch"]["small_branch"]["a_leaf"]' 
+    to access a desired node instead of 'a_tree[2][0][3]' (although the latter
+    access technique is also supported).
+    
+    There are several differences between a Tree and a Graph in chrisjen:
+        1) Graphs are more flexible. Trees must have 1 root, are directed, and
+            each node can have only 1 parent node.
+        2) Edges are only implicit in a Tree whereas they are explicit in a 
+            Graph. This allows for certain methods and functions surrounding
+            iteration and traversal to be faster.
+        3) As the size of the data structure increases, a Tree should use less
+            memory because the data about relationships between nodes is not
+            centrally maintained (as with an adjacency matrix). This decreases
+            access time to non-consecutive nodes, but is more efficient for 
+            larger data structures.
+        
+    Args:
+        contents (MutableSequence[Node]): list of stored Tree or other 
+            Node instances. Defaults to an empty list.
+        name (Optional[str]): name of Tree node which should match a parent 
+            tree's key name corresponding to this Tree node. All nodes in a Tree
+            must have unique names. The name is used to make all Tree nodes 
+            hashable and capable of quick comparison. Defaults to None, but it
+            should not be left as None when added to a Tree.
+        parent (Optional[Tree]): parent Tree, if any. Defaults to None.
+  
+    """
+    contents: MutableSequence[base.Node] = dataclasses.field(
+        default_factory = list)
+    name: Optional[str] = None
+    parent: Optional[Tree] = None 
+    
+    """ Properties """
+    
+    @property
+    def children(self) -> MutableSequence[base.Node]:
+        return self.contents
+    
+    @children.setter
+    def children(self, value: MutableSequence[base.Node]) -> None:
+        self.contents = value
+        return
+    
+    @children.deleter
+    def children(self, key: base.Node) -> None:
+        self.delete(key)
+        return
+           
+    """ Dunder Methods """
+
+    def __add__(self, other: Union[base.Composite]) -> None:
+        """Adds 'other' to the stored tree using the 'append' method.
+
+        Args:
+            other (Union[base.Composite]): another Tree, an adjacency list, an 
+                edge list, an adjacency matrix, or one or more nodes.
+            
+        """
+        self.append(item = other)     
+        return 
+
+    def __radd__(self, other: Union[base.Composite]) -> None:
+        """Adds 'other' to the stored tree using the 'prepend' method.
+
+        Args:
+            other (Union[base.Composite]): another Tree, an adjacency list, an 
+                edge list, an adjacency matrix, or one or more nodes.
+            
+        """
+        self.prepend(item = other)     
+        return 
+
+    def __missing__(self) -> dict[str, Tree]:
+        """[summary]
+
+        Returns:
+            dict[str, Tree]: [description]
+            
+        """
+        return self.__class__()
+    
+    def __hash__(self) -> int:
+        """[summary]
+
+        Returns:
+            int: [description]
+            
+        """
+        return hash(self.name)
+
+    def __eq__(self, other: Any) -> bool:
+        """[summary]
+
+        Args:
+            other (Any): [description]
+
+        Returns:
+            bool: [description]
+            
+        """
+        if hasattr(other, 'name'):
+            return other.name == self.name
+        else:
+            return False
+        
+    def __ne__(self, other: Any) -> bool:
+        """[summary]
+
+        Args:
+            other (Any): [description]
+
+        Returns:
+            bool: [description]
+            
+        """
+        return not self.__eq__(other = other)
+
 
 @dataclasses.dataclass # type: ignore
-class Categorizer(composites.Tree):
+class Categorizer(Tree):
     """Base class for an tree data structures.
         
     Args:
@@ -58,13 +183,13 @@ class Categorizer(composites.Tree):
     contents: MutableSequence[composites.Node] = dataclasses.field(
         default_factory = list)
     name: Optional[str] = None
-    parent: Optional[composites.Tree] = None 
+    parent: Optional[Tree] = None 
     
     """ Properties """
         
     @property
-    def branches(self) -> list[composites.Tree]:
-        """Returns all stored composites.Tree nodes in a list."""
+    def branches(self) -> list[Tree]:
+        """Returns all stored Tree nodes in a list."""
         return self.nodes - self.leaves
     
     @property
@@ -109,7 +234,7 @@ class Categorizer(composites.Tree):
         return depth_first_search(tree = self.contents)
 
     @property
-    def root(self) -> composites.Tree:
+    def root(self) -> Tree:
         """
         """
         base = [n.is_root for n in self.nodes]
@@ -129,7 +254,7 @@ class Categorizer(composites.Tree):
         """Adds node(s) in item to 'contents'.
         
         In adding the node(s) to the stored tree, the 'parent' attribute for the
-        node(s) is set to this composites.Tree instance.
+        node(s) is set to this Tree instance.
 
         Args:
             item (Union[composites.Node, Sequence[composites.Node]]): node(s) to 
@@ -160,7 +285,7 @@ class Categorizer(composites.Tree):
         return
     
     def find(self, finder: Finder, **kwargs: Any) -> Optional[composites.Node]:
-        """Finds first matching node in composites.Tree using 'finder'.
+        """Finds first matching node in Tree using 'finder'.
 
         Args:
             finder (Callable[[composites.Node], Optional[composites.Node]]): 
@@ -185,7 +310,7 @@ class Categorizer(composites.Tree):
         finder: Finder, 
         item: composites.Node, 
         **kwargs: Any) -> None:
-        """Finds first matching node in composites.Tree using 'finder'.
+        """Finds first matching node in Tree using 'finder'.
 
         Args:
             finder (Callable[[composites.Node], Optional[composites.Node]]): 
@@ -214,7 +339,7 @@ class Categorizer(composites.Tree):
         return
     
     def find_all(self, finder: Finder, **kwargs: Any) -> list[composites.Node]:
-        """Finds all matching nodes in composites.Tree using 'finder'.
+        """Finds all matching nodes in Tree using 'finder'.
 
         Args:
             finder (Callable[[composites.Node], Optional[composites.Node]]): 
@@ -240,7 +365,7 @@ class Categorizer(composites.Tree):
         finder: Finder, 
         changer: Changer, 
         **kwargs: Any) -> None:
-        """Finds matching nodes in composites.Tree using 'finder' and applies 'changer'.
+        """Finds matching nodes in Tree using 'finder' and applies 'changer'.
 
         Args:
             finder (Callable[[composites.Node], Optional[composites.Node]]): 
@@ -266,7 +391,7 @@ class Categorizer(composites.Tree):
         return
     
     def get(self, item: str) -> Optional[composites.Node]:
-        """Finds first matching node in composites.Tree match 'item'.
+        """Finds first matching node in Tree match 'item'.
 
         Args:
             item (str): 
@@ -320,11 +445,11 @@ class Categorizer(composites.Tree):
         self.prepend(item = other)     
         return 
 
-    def __missing__(self) -> dict[str, composites.Tree]:
+    def __missing__(self) -> dict[str, Tree]:
         """[summary]
 
         Returns:
-            dict[str, composites.Tree]: [description]
+            dict[str, Tree]: [description]
             
         """
         return {}
@@ -367,13 +492,13 @@ class Categorizer(composites.Tree):
 
 
 # def breadth_first_search(
-#     tree: composites.Tree, 
-#     visited: Optional[list[composites.Tree]] = None) -> composites.Pipeline:
+#     tree: Tree, 
+#     visited: Optional[list[Tree]] = None) -> composites.Pipeline:
 #     """Returns a breadth first search path through 'tree'.
 
 #     Args:
-#         tree (composites.Tree): tree to search.
-#         visited (Optional[list[composites.Tree]]): list of visited nodes. Defaults to None.
+#         tree (Tree): tree to search.
+#         visited (Optional[list[Tree]]): list of visited nodes. Defaults to None.
 
 #     Returns:
 #         composites.Pipeline: nodes in a path through 'tree'.
@@ -390,13 +515,13 @@ class Categorizer(composites.Tree):
                 
                      
 def depth_first_search(
-    tree: composites.Tree, 
-    visited: Optional[list[composites.Tree]] = None) -> composites.Pipeline:
+    tree: Tree, 
+    visited: Optional[list[Tree]] = None) -> composites.Pipeline:
     """Returns a depth first search path through 'tree'.
 
     Args:
-        tree (composites.Tree): tree to search.
-        visited (Optional[list[composites.Tree]]): list of visited nodes. Defaults to None.
+        tree (Tree): tree to search.
+        visited (Optional[list[Tree]]): list of visited nodes. Defaults to None.
 
     Returns:
         composites.Pipeline: nodes in a path through 'tree'.

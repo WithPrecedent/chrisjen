@@ -914,7 +914,14 @@ def drop_prefix_from_str(item: str, prefix: str, divider: str = '') -> str:
 
 @dataclasses.dataclass
 class Registrar(object):
+    """Mixin which automatically registers subclasses.
     
+    Args:
+        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
+            names of a subclass (snake_case by default) and values are the 
+            subclasses. Defaults to an empty dict.  
+            
+    """
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
     """ Initialization Methods """
@@ -956,8 +963,13 @@ class Registrar(object):
 
 @dataclasses.dataclass
 class RegistrarFactory(Registrar, abc.ABC):
-    """
+    """Mixin which automatically registers subclasses for use by a factory.
     
+    Args:
+        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
+            names of a subclass (snake_case by default) and values are the 
+            subclasses. Defaults to an empty dict.  
+            
     """
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
@@ -994,4 +1006,24 @@ class RegistrarFactory(Registrar, abc.ABC):
                 f'Could not create {cls.__name__} from item because it '
                 f'is not one of these supported types: '
                 f'{str(list(cls.registry.keys()))}')
+  
+    # """ Properties """
+
+    # @classmethod
+    # @property
+    # def creators(cls) -> dict[str, types.MethodType]:
+    #     """[summary]
+
+    #     Returns:
+    #         dict[str, types.MethodType]: [description]
             
+    #     """
+    #     all_methods = utilities.get_methods(item = cls, exclude = ['creators'])
+    #     print('test all methods', all_methods)
+    #     creators = [m for m in all_methods if m.__name__.startswith('from_')]
+    #     print('test creators in property', creators)
+    #     sources = [
+    #         utilities.drop_prefix_from_str(item = c.__name__, prefix = 'from_') 
+    #         for c in creators]
+    #     return dict(zip(sources, creators))
+           

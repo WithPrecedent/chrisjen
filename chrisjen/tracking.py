@@ -271,7 +271,14 @@ class registered(object):
 
 @dataclasses.dataclass
 class Registrar(object):
+    """Mixin which automatically registers subclasses.
     
+    Args:
+        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
+            names of a subclass (snake_case by default) and values are the 
+            subclasses. Defaults to an empty dict.  
+            
+    """
     registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
     
     """ Initialization Methods """
@@ -303,8 +310,56 @@ class Registrar(object):
                 method will be used to 
         
         """
-        # The default key for storing cls relies on the 'get_name' method, which
-        # usually will use the snakecase name of 'item'.
-        key = name or utilities.get_name(item = cls)
+        # if abc.ABC not in cls.__bases__:
+        # The default key for storing cls relies on the 'get_name' method, 
+        # which usually will use the snakecase name of 'item'.
+        key = name or get_name(item = cls)
         cls.registry[key] = item
-        return
+        return   
+
+
+@dataclasses.dataclass
+class RegistrarFactory(Registrar, abc.ABC):
+    """Mixin which automatically registers subclasses for use by a factory.
+    
+    Args:
+        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
+            names of a subclass (snake_case by default) and values are the 
+            subclasses. Defaults to an empty dict.  
+            
+    """
+    registry: ClassVar[MutableMapping[str, Type[Any]]] = {}
+    
+    """ Public Methods """
+
+    @classmethod
+    def create(cls, item: Any, *args: Any, **kwargs: Any) -> RegistrarFactory:
+        """Creates an instance of a RegistrarFactory subclass from 'item'.
+        
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a RegistrarFactory or a str which matches a key in 
+                'registry'.
+                                
+        Returns:
+            RegistrarFactory: a RegistrarFactory subclass instance created based 
+                on 'item' and any passed arguments.
+                
+        """
+        if isinstance(item, str):
+            try:
+                return cls.registry[item](*args, **kwargs)
+            except KeyError:
+                pass
+        try:
+            name = get_name(item = item)
+            return cls.registry[name](item, *args, **kwargs)
+        except KeyError:
+            for name, kind in cls.registry.items():
+                if kind.__instancecheck__(instance = item):
+                    method = getattr(cls, f'from_{name}')
+                    return method(item, *args, **kwargs)       
+            raise ValueError(
+                f'Could not create {cls.__name__} from item because it '
+                f'is not one of these supported types: '
+                f'{str(list(cls.registry.keys()))}')
