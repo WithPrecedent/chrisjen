@@ -32,8 +32,8 @@ from __future__ import annotations
 import abc
 import collections
 from collections.abc import (
-    Collection, Hashable, Iterator, MutableMapping, MutableSequence, Sequence, 
-    Set)
+    Collection, Container, Hashable, Iterator, MutableMapping, MutableSequence, 
+    Sequence, Set)
 import dataclasses
 from typing import (
     Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING, TypeVar, Union)
@@ -286,7 +286,7 @@ class Bunch(Collection, abc.ABC): # type: ignore
 
            
 @dataclasses.dataclass
-class Composite(tracking.RegistrarFactory, Bunch, abc.ABC):
+class Composite(tracking.RegistrarFactory, abc.ABC):
     """Base class for composite data structures.
     
     Args:
@@ -312,37 +312,37 @@ class Composite(tracking.RegistrarFactory, Bunch, abc.ABC):
         pass
 
     @abc.abstractproperty
-    def to_adjacency(self) -> graph.Adjacency:
+    def adjacency(self) -> graph.Adjacency:
         """Returns the stored composite object as an graph.Adjacency."""
         pass
 
     @abc.abstractproperty
-    def to_edges(self) -> graph.Edges:
+    def edges(self) -> graph.Edges:
         """Returns the stored composite object as an graph.Edges."""
         pass
        
     @abc.abstractproperty
-    def to_matrix(self) -> graph.Matrix:
+    def matrix(self) -> graph.Matrix:
         """Returns the stored composite object as a graph.Matrix."""
         pass
        
     @abc.abstractproperty
-    def to_nodes(self) -> proxy.Nodes:
+    def nodes(self) -> proxy.Nodes:
         """Returns the stored composite object as a proxy.Nodes."""
         pass
         
     @abc.abstractproperty
-    def to_pipeline(self) -> manifest.Pipeline:
+    def pipeline(self) -> manifest.Pipeline:
         """Returns the stored composite object as a manifest.Pipeline."""
         pass
         
     @abc.abstractproperty
-    def to_pipelines(self) -> manifest.Pipelines:
+    def pipelines(self) -> manifest.Pipelines:
         """Returns the stored composite object as a manifest.Pipelines."""
         pass
             
     @abc.abstractproperty
-    def to_tree(self) -> tree.Tree:
+    def tree(self) -> tree.Tree:
         """Returns the stored composite object as a tree.Tree."""
         pass
                  

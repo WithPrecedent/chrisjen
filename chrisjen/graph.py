@@ -38,7 +38,10 @@ from typing import (
 
 from . import utilities
 from . import base
+from . import bunch
 from . import check
+from . import convert
+from . import manifest
 
 if TYPE_CHECKING:
     from . import array
@@ -101,7 +104,7 @@ class Graph(base.Composite, abc.ABC):
 
 
 @dataclasses.dataclass
-class Adjacency(MutableMapping, Graph, abc.ABC):
+class Adjacency(bunch.Lexicon, Graph):
     """Base class for adjacency-list-based graphs.
     
     Args:
@@ -121,7 +124,7 @@ class Adjacency(MutableMapping, Graph, abc.ABC):
 
 
 @dataclasses.dataclass
-class Edges(Graph, abc.ABC):
+class Edges(Graph):
     """Base class for edges-list-based graphs.
     
     Args:
@@ -140,7 +143,7 @@ class Edges(Graph, abc.ABC):
     
     
 @dataclasses.dataclass
-class Matrix(Graph, abc.ABC):
+class Matrix(Graph):
     """Base class for adjacency-matrix-based graphs.
     
     Args:
@@ -163,7 +166,7 @@ class Matrix(Graph, abc.ABC):
 
     
 @dataclasses.dataclass
-class System(containers.Lexicon, Adjacency):
+class System(Adjacency):
     """Directed graph with unweighted edges.
     
     Args:
@@ -178,6 +181,17 @@ class System(containers.Lexicon, Adjacency):
     """ Properties """
 
     @property
+    def endpoint(self) -> set[base.Node]:
+        """Returns endpoint nodes in the stored graph in a list."""
+        return {k for k in self.contents.keys() if not self.contents[k]}
+                    
+    @property
+    def root(self) -> set[base.Node]:
+        """Returns root nodes in the stored graph in a list."""
+        stops = list(itertools.chain.from_iterable(self.contents.values()))
+        return {k for k in self.contents.keys() if k not in stops}
+
+    @property
     def adjacency(self) -> Adjacency:
         """Returns the stored graph as an adjacency list."""
         return self.contents
@@ -186,12 +200,7 @@ class System(containers.Lexicon, Adjacency):
     def edges(self) -> Edges:
         """Returns the stored graph as an edge list."""
         return utilities.adjacency_to_edges(item = self.contents)
-
-    @property
-    def endpoints(self) -> set[base.Node]:
-        """Returns endpoint nodes in the stored graph in a list."""
-        return {k for k in self.contents.keys() if not self.contents[k]}
-
+    
     @property
     def matrix(self) -> Matrix:
         """Returns the stored graph as an adjacency matrix."""
@@ -205,26 +214,25 @@ class System(containers.Lexicon, Adjacency):
     @property
     def paths(self) -> base.Nodes:
         """Returns all paths through the stored as a list of Nodes."""
-        return self._find_all_paths(starts = self.roots, stops = self.endpoints)
+        return self._find_all_paths(starts = self.root, stops = self.endpoint)
     
     @property
-    def pipeline(self) -> arrays.Pipeline:
-        """Returns stored graph as a arrays.Pipeline."""
+    def pipeline(self) -> manifest.Pipeline:
+        """Returns stored graph as a manifest.Pipeline."""
         raise NotImplementedError
     
     @property
-    def pipelines(self) -> arrays.Pipelines:
-        """Returns stored graph as a arrays.Pipelines."""
+    def pipelines(self) -> manifest.Pipelines:
+        """Returns stored graph as a manifest.Pipelines."""
         all_paths = self.paths
-        instances = [chrisjen.Process(contents = p) for p in all_paths]
-        return chrisjen.Processes(contents = instances)
-    
+        instances = [manifest.Process(contents = p) for p in all_paths]
+        return manifest.Processes(contents = instances)
+            
     @property
-    def roots(self) -> set[base.Node]:
-        """Returns root nodes in the stored graph in a list."""
-        stops = list(itertools.chain.from_iterable(self.contents.values()))
-        return {k for k in self.contents.keys() if k not in stops}
-    
+    def tree(self) -> tree.Tree:
+        """Returns the stored composite object as a tree.Tree."""
+        raise NotImplementedError
+
     """ Class Methods """
  
     @classmethod
@@ -235,27 +243,33 @@ class System(containers.Lexicon, Adjacency):
     @classmethod
     def from_edges(cls, item: Edges) -> System:
         """Creates a System instance from an edge list."""
-        return cls(contents = edges_to_adjacency(item = item))
+        return cls(contents = convert.edges_to_adjacency(item = item))
     
     @classmethod
     def from_matrix(cls, item: Matrix) -> System:
         """Creates a System instance from an adjacency matrix."""
-        return cls(contents = matrix_to_adjacency(item = item))
+        return cls(contents = convert.matrix_to_adjacency(item = item))
     
     @classmethod
     def from_nodes(cls, item: base.Nodes) -> System:
         """Creates a System instance from a Nodes."""
-        new_contents = pipeline_to_adjacency(item = item)
+        new_contents = convert.pipeline_to_adjacency(item = item)
         return cls(contents = new_contents)
 
     @classmethod
-    def from_pipelines(cls, item: arrays.Pipelines) -> System:
-        """Creates a System instance from a arrays.Pipeline."""
-        new_contents = pipelines_to_adjacency(item = item)
+    def from_pipeline(cls, item: manifest.Pipeline) -> System:
+        """Creates a System instance from a manifest.Pipeline."""
+        new_contents = convert.pipeline_to_adjacency(item = item)
+        return cls(contents = new_contents)
+    
+    @classmethod
+    def from_pipelines(cls, item: manifest.Pipelines) -> System:
+        """Creates a System instance from a manifest.Pipeline."""
+        new_contents = convert.pipelines_to_adjacency(item = item)
         return cls(contents = new_contents)
 
     @classmethod
-    def from_tree(cls, item: Tree) -> System:
+    def from_tree(cls, item: tree.Tree) -> System:
         """Creates a System instance from a Tree."""
         raise NotImplementedError
              
@@ -326,16 +340,16 @@ class System(containers.Lexicon, Adjacency):
                 
         """
         if isinstance(item, base.Composite):
-            current_endpoints = list(self.endpoints)
+            current_endpoints = list(self.endpoint)
             new_graph = self.create(item = item)
             self.merge(item = new_graph)
             for endpoint in current_endpoints:
-                for root in new_graph.roots:
+                for root in new_graph.root:
                     self.connect(start = endpoint, stop = root)
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
-                'arrays.Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, manifest.Pipeline, '
+                'manifest.Pipelines, or Node type')
         return
   
     def connect(self, start: base.Node, stop: base.Node) -> None:
@@ -425,8 +439,8 @@ class System(containers.Lexicon, Adjacency):
             adjacency = {item: set()}
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
-                'arrays.Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, manifest.Pipeline, '
+                'manifest.Pipelines, or Node type')
         self.contents.update(adjacency)
         return
 
@@ -446,7 +460,7 @@ class System(containers.Lexicon, Adjacency):
                 
         """
         if isinstance(item, base.Composite):
-            current_roots = list(self.roots)
+            current_roots = list(self.root)
             new_graph = self.create(item = item)
             self.merge(item = new_graph)
             for root in current_roots:
@@ -454,8 +468,8 @@ class System(containers.Lexicon, Adjacency):
                     self.connect(start = endpoint, stop = root)
         else:
             raise TypeError(
-                'item must be a System, Adjacency, Edges, Matrix, arrays.Pipeline, '
-                'arrays.Pipelines, or Node type')
+                'item must be a System, Adjacency, Edges, Matrix, manifest.Pipeline, '
+                'manifest.Pipelines, or Node type')
         return
       
     def subset(
@@ -497,7 +511,7 @@ class System(containers.Lexicon, Adjacency):
         self, 
         start: base.Node,
         stop: base.Node, 
-        path: Optional[arrays.Pipeline] = None) -> arrays.Pipeline:
+        path: Optional[manifest.Pipeline] = None) -> manifest.Pipeline:
         """Returns all paths in graph from 'start' to 'stop'.
 
         The code here is adapted from: https://www.python.org/doc/essays/graphs/
@@ -505,11 +519,11 @@ class System(containers.Lexicon, Adjacency):
         Args:
             start (base.Node): node to start paths from.
             stop (base.Node): node to stop paths.
-            path (arrays.Pipeline): a path from 'start' to 'stop'. Defaults 
+            path (manifest.Pipeline): a path from 'start' to 'stop'. Defaults 
                 to an empty list. 
 
         Returns:
-            arrays.Pipeline: a list of possible paths (each path is a list 
+            manifest.Pipeline: a list of possible paths (each path is a list 
                 nodes) from 'start' to 'stop'.
             
         """
@@ -536,7 +550,7 @@ class System(containers.Lexicon, Adjacency):
     def _find_all_paths(
         self, 
         starts: base.Nodes, 
-        stops: base.Nodes) -> arrays.Pipeline:
+        stops: base.Nodes) -> manifest.Pipeline:
         """Returns all paths between 'starts' and 'stops'.
 
         Args:
@@ -546,7 +560,7 @@ class System(containers.Lexicon, Adjacency):
                 System.
 
         Returns:
-            arrays.Pipeline: list of all paths through the System from all 
+            manifest.Pipeline: list of all paths through the System from all 
                 'starts' to all 'ends'.
             
         """
@@ -594,30 +608,30 @@ class System(containers.Lexicon, Adjacency):
 #         return matrix_to_adjacency(item = self.contents)
 
 #     @property
-#     def breadths(self) -> arrays.Pipeline:
+#     def breadths(self) -> manifest.Pipeline:
 #         """Returns all paths through the Graph using breadth-first search.
         
 #         Returns:
-#             arrays.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
+#             manifest.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
 #                 of lists of nodes.
                 
 #         """
 #         return self._find_all_paths(
-#             starts = self.roots, 
-#             ends = self.endpoints,
+#             starts = self.root, 
+#             ends = self.endpoint,
 #             depth_first = False)
 
 #     @property
-#     def depths(self) -> arrays.Pipeline:
+#     def depths(self) -> manifest.Pipeline:
 #         """Returns all paths through the Graph using depth-first search.
         
 #         Returns:
-#             arrays.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
+#             manifest.Pipeline: returns all paths from 'roots' to 'endpoints' in a list 
 #                 of lists of nodes.
                 
 #         """
-#         return self._find_all_paths(starts = self.roots, 
-#                                     ends = self.endpoints,
+#         return self._find_all_paths(starts = self.root, 
+#                                     ends = self.endpoint,
 #                                     depth_first = True)
      
 #     @property
@@ -742,11 +756,11 @@ class System(containers.Lexicon, Adjacency):
 #         return cls(contents = matrix_to_adjacency(item = matrix))
     
 #     @classmethod
-#     def from_pipeline(cls, pipeline: arrays.Pipeline) -> Graph:
-#         """Creates a Graph instance from a arrays.Pipeline.
+#     def from_pipeline(cls, pipeline: manifest.Pipeline) -> Graph:
+#         """Creates a Graph instance from a manifest.Pipeline.
 
 #         Args:
-#             pipeline (arrays.Pipeline): serial pipeline used to create a Graph
+#             pipeline (manifest.Pipeline): serial pipeline used to create a Graph
 #                 instance.
  
 #         Returns:
@@ -812,10 +826,10 @@ class System(containers.Lexicon, Adjacency):
 #         """
 #         if isinstance(item, Graph):
 #             if self.contents:
-#                 current_endpoints = self.endpoints
+#                 current_endpoints = self.endpoint
 #                 self.contents.update(item.contents)
 #                 for endpoint in current_endpoints:
-#                     for root in item.roots:
+#                     for root in item.root:
 #                         self.connect(start = endpoint, stop = root)
 #             else:
 #                 self.contents = item.contents
@@ -971,8 +985,8 @@ class System(containers.Lexicon, Adjacency):
 #     def walk(self, 
 #              start: base.Node, 
 #              stop: base.Node, 
-#              path: arrays.Pipeline = None,
-#              depth_first: bool = True) -> arrays.Pipeline:
+#              path: manifest.Pipeline = None,
+#              depth_first: bool = True) -> manifest.Pipeline:
 #         """Returns all paths in graph from 'start' to 'stop'.
 
 #         The code here is adapted from: https://www.python.org/doc/essays/graphs/
@@ -980,11 +994,11 @@ class System(containers.Lexicon, Adjacency):
 #         Args:
 #             start (base.Node): node to start paths from.
 #             stop (base.Node): node to stop paths.
-#             path (arrays.Pipeline): a path from 'start' to 'stop'. Defaults to an 
+#             path (manifest.Pipeline): a path from 'start' to 'stop'. Defaults to an 
 #                 empty list. 
 
 #         Returns:
-#             arrays.Pipeline: a list of possible paths (each path is a list 
+#             manifest.Pipeline: a list of possible paths (each path is a list 
 #                 nodes) from 'start' to 'stop'.
             
 #         """
@@ -1031,14 +1045,14 @@ class System(containers.Lexicon, Adjacency):
 #                 visited.add(connected)   
 #         return []
 
-#     def _breadth_first_search(self, node: base.Node) -> arrays.Pipeline:
+#     def _breadth_first_search(self, node: base.Node) -> manifest.Pipeline:
 #         """Returns a breadth first search path through the Graph.
 
 #         Args:
 #             node (base.Node): node to start the search from.
 
 #         Returns:
-#             arrays.Pipeline: nodes in a path through the Graph.
+#             manifest.Pipeline: nodes in a path through the Graph.
             
 #         """        
 #         visited = set()
@@ -1052,7 +1066,7 @@ class System(containers.Lexicon, Adjacency):
        
 #     def _depth_first_search(self, 
 #         node: base.Node, 
-#         visited: list[base.Node]) -> arrays.Pipeline:
+#         visited: list[base.Node]) -> manifest.Pipeline:
 #         """Returns a depth first search path through the Graph.
 
 #         Args:
@@ -1060,7 +1074,7 @@ class System(containers.Lexicon, Adjacency):
 #             visited (list[base.Node]): list of visited nodes.
 
 #         Returns:
-#             arrays.Pipeline: nodes in a path through the Graph.
+#             manifest.Pipeline: nodes in a path through the Graph.
             
 #         """  
 #         if node not in visited:
@@ -1072,7 +1086,7 @@ class System(containers.Lexicon, Adjacency):
 #     def _find_all_paths(self, 
 #         starts: Union[base.Node, Sequence[base.Node]],
 #         stops: Union[base.Node, Sequence[base.Node]],
-#         depth_first: bool = True) -> arrays.Pipeline:
+#         depth_first: bool = True) -> manifest.Pipeline:
 #         """[summary]
 
 #         Args:
@@ -1082,7 +1096,7 @@ class System(containers.Lexicon, Adjacency):
 #                 through the Graph.
 
 #         Returns:
-#             arrays.Pipeline: list of all paths through the Graph from all
+#             manifest.Pipeline: list of all paths through the Graph from all
 #                 'starts' to all 'ends'.
             
 #         """

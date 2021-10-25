@@ -36,8 +36,6 @@ from typing import (
 import more_itertools
 
 from . import check
-from . import containers
-from . import utilities
    
 if TYPE_CHECKING:
     from . import graph

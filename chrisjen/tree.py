@@ -30,19 +30,19 @@ import dataclasses
 from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
 from . import base
-from . import containers
-from . import composites
+from . import bunch
+from . import proxy
 from . import utilities
 
 
 """ Type Aliases """
 
-Changer: Type[Any] = Callable[[composites.Node], None]
-Finder: Type[Any] = Callable[[composites.Node], Optional[composites.Node]]
+Changer: Type[Any] = Callable[[proxy.Node], None]
+Finder: Type[Any] = Callable[[proxy.Node], Optional[proxy.Node]]
 
 
 @dataclasses.dataclass # type: ignore
-class Tree(containers.Hybrid, base.Composite, abc.ABC):
+class Tree(bunch.Hybrid, base.Composite, abc.ABC):
     """Base class for an tree data structures.
     
     The Tree class uses a Hybrid instead of a linked list for storing children
@@ -170,7 +170,7 @@ class Categorizer(Tree):
     """Base class for an tree data structures.
         
     Args:
-        contents (MutableSequence[composites.Node]): list of stored Node 
+        contents (MutableSequence[proxy.Node]): list of stored Node 
             instances (including other Trees). Defaults to an empty list.
         name (Optional[str]): name of Tree node which should match a parent 
             tree's key name corresponding to this Tree node. All nodes in a Tree
@@ -180,7 +180,7 @@ class Categorizer(Tree):
         parent (Optional[Tree]): parent Tree, if any. Defaults to None.
         
     """
-    contents: MutableSequence[composites.Node] = dataclasses.field(
+    contents: MutableSequence[proxy.Node] = dataclasses.field(
         default_factory = list)
     name: Optional[str] = None
     parent: Optional[Tree] = None 
@@ -193,11 +193,11 @@ class Categorizer(Tree):
         return self.nodes - self.leaves
     
     @property
-    def children(self) -> dict[str, composites.Node]:
+    def children(self) -> dict[str, proxy.Node]:
         """[summary]
 
         Returns:
-            dict[str, composites.Node]: [description]
+            dict[str, proxy.Node]: [description]
         """
         return self.contents
     
@@ -220,7 +220,7 @@ class Categorizer(Tree):
         return self.parent is None
     
     @property
-    def leaves(self) -> list[composites.Node]:
+    def leaves(self) -> list[proxy.Node]:
         """Returns all stored leaf nodes in a list."""
         matches = []
         for node in self.nodes:
@@ -229,7 +229,7 @@ class Categorizer(Tree):
         return matches
      
     @property
-    def nodes(self) -> list[composites.Node]:
+    def nodes(self) -> list[proxy.Node]:
         """Returns all stored nodes in a list."""
         return depth_first_search(tree = self.contents)
 
@@ -249,7 +249,7 @@ class Categorizer(Tree):
     
     def add(
         self, 
-        item: Union[composites.Node, Sequence[composites.Node]],
+        item: Union[proxy.Node, Sequence[proxy.Node]],
         parent: Optional[str] = None) -> None:
         """Adds node(s) in item to 'contents'.
         
@@ -257,7 +257,7 @@ class Categorizer(Tree):
         node(s) is set to this Tree instance.
 
         Args:
-            item (Union[composites.Node, Sequence[composites.Node]]): node(s) to 
+            item (Union[proxy.Node, Sequence[proxy.Node]]): node(s) to 
                 add to the 'contents' attribute.
 
         Raises:
@@ -284,18 +284,18 @@ class Categorizer(Tree):
             parent_node.contents.append(item)
         return
     
-    def find(self, finder: Finder, **kwargs: Any) -> Optional[composites.Node]:
+    def find(self, finder: Finder, **kwargs: Any) -> Optional[proxy.Node]:
         """Finds first matching node in Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+            finder (Callable[[proxy.Node], Optional[proxy.Node]]): 
                 function or other callable that returns a node if it meets 
                 certain criteria or otherwise returns None.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node 
+            Optional[proxy.Node]: matching Node or None if no matching node 
                 is found.
             
         """                  
@@ -308,15 +308,15 @@ class Categorizer(Tree):
     def find_add(
         self, 
         finder: Finder, 
-        item: composites.Node, 
+        item: proxy.Node, 
         **kwargs: Any) -> None:
         """Finds first matching node in Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+            finder (Callable[[proxy.Node], Optional[proxy.Node]]): 
                 function or other callable that returns a node if it meets 
                 certain criteria or otherwise returns None.
-            item (composites.Node): node to add to the 'contents' attribute of 
+            item (proxy.Node): node to add to the 'contents' attribute of 
                 the first node that meets criteria in 'finder'.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
@@ -325,7 +325,7 @@ class Categorizer(Tree):
             ValueError: if no matching node is found by 'finder'.
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node 
+            Optional[proxy.Node]: matching Node or None if no matching node 
                 is found.
             
         """  
@@ -338,18 +338,18 @@ class Categorizer(Tree):
                 'finder')
         return
     
-    def find_all(self, finder: Finder, **kwargs: Any) -> list[composites.Node]:
+    def find_all(self, finder: Finder, **kwargs: Any) -> list[proxy.Node]:
         """Finds all matching nodes in Tree using 'finder'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+            finder (Callable[[proxy.Node], Optional[proxy.Node]]): 
                 function or other callable that returns a node if it meets 
                 certain criteria or otherwise returns None.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
 
         Returns:
-            list[composites.Node]: matching nodes or an empty list if no 
+            list[proxy.Node]: matching nodes or an empty list if no 
                 matching node is found.
             
         """              
@@ -368,10 +368,10 @@ class Categorizer(Tree):
         """Finds matching nodes in Tree using 'finder' and applies 'changer'.
 
         Args:
-            finder (Callable[[composites.Node], Optional[composites.Node]]): 
+            finder (Callable[[proxy.Node], Optional[proxy.Node]]): 
                 function or other callable that returns a node if it meets 
                 certain criteria or otherwise returns None.
-            changer (Callable[[composites.Node], None]): function or other 
+            changer (Callable[[proxy.Node], None]): function or other 
                 callable that modifies the found node.
             kwargs: keyword arguments to pass to 'finder' when examing each
                 node.
@@ -390,14 +390,14 @@ class Categorizer(Tree):
                 'found by finder')
         return
     
-    def get(self, item: str) -> Optional[composites.Node]:
+    def get(self, item: str) -> Optional[proxy.Node]:
         """Finds first matching node in Tree match 'item'.
 
         Args:
             item (str): 
 
         Returns:
-            Optional[composites.Node]: matching Node or None if no matching node 
+            Optional[proxy.Node]: matching Node or None if no matching node 
                 is found.
             
         """                  

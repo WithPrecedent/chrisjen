@@ -32,12 +32,10 @@ from typing import Any, Callable, ClassVar, Optional, Type, TypeVar, Union
 
 from . import base
 from . import check
-from . import composites
-from . import utilities
-
+from . import bunch
  
 @dataclasses.dataclass # type: ignore
-class Pipeline(containers.Hybrid, base.Composite, abc.ABC):
+class Pipeline(bunch.Hybrid, base.Composite, abc.ABC):
     """Base class for pipeline data structures.
     
     Args:
@@ -56,7 +54,7 @@ class Pipeline(containers.Hybrid, base.Composite, abc.ABC):
      
  
 @dataclasses.dataclass # type: ignore
-class Pipelines(containers.Lexicon, base.Composite, abc.ABC):
+class Pipelines(bunch.Lexicon, base.Composite, abc.ABC):
     """Base class a collection of Pipeline instances.
         
     Args:
