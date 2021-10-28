@@ -1,12 +1,11 @@
 [tool.poetry]
 name = "chrisjen"
 version = "0.1.0"
-description = "flexible, extensible python data structures"
+description = "Python data science projects made easy"
 authors = ["Corey Rayburn Yung <coreyrayburnyung@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-more-itertools = "^8.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
