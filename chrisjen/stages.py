@@ -1,5 +1,5 @@
 """
-stages: classes related to the different stages of an chrisjen project
+stages: classes related to the different stages of a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,7 +17,6 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Stage
     Outline
     Workflow
     Results
@@ -30,6 +29,8 @@ import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
+import amos
+
 from . import bases
 from . import workshop
 
@@ -38,22 +39,7 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Stage(workshop.LibraryFactory):
-    """Base classes for project 
-
-    Args:
-        contents (Optional[Collection]): collection of data at a project stage.
-        library (ClassVar[WorkshopLibrary]): project library of classes, 
-            instances, and base classes of stages. 
-            
-    """
-    contents: Optional[Collection] = None
-    library: ClassVar[workshop.ProjectLibrary] = dataclasses.field(
-        default_factory = workshop.ProjectLibrary)
-    
-
-@dataclasses.dataclass
-class Outline(amos.Dictionary, Stage):
+class Outline(amos.Dictionary, bases.ProjectStage):
     """Organized chrisjen project settings with convenient accessors.
 
     Args:
@@ -169,7 +155,7 @@ class Outline(amos.Dictionary, Stage):
 
 
 @dataclasses.dataclass
-class Workflow(amos.System, Stage):
+class Workflow(amos.System, bases.ProjectStage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -211,7 +197,7 @@ class Workflow(amos.System, Stage):
 
 
 @dataclasses.dataclass
-class Results(amos.System, Stage):
+class Results(amos.System, bases.ProjectStage):
     """Project workflow after it has been implemented.
     
     Args:

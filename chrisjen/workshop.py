@@ -31,212 +31,18 @@ import pathlib
 import types
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
+import amos
+
 from . import bases
 
 if TYPE_CHECKING:
     from . import interface
 
 
-@dataclasses.dataclass
-class ProjectSettings(amos.Settings):
-    """Loads and stores project configuration settings.
-
-    To create settings instance, a user can pass as the 'contents' parameter a:
-        1) pathlib file path of a compatible file type;
-        2) string containing a a file path to a compatible file type;
-                                or,
-        3) 2-level nested dict.
-
-    If 'contents' is imported from a file, settings creates a dict and can 
-    convert the dict values to appropriate datatypes. Currently, supported file 
-    types are: ini, json, toml, yaml, and python. If you want to use toml, yaml, 
-    or json, the identically named packages must be available in your python
-    environment.
-
-    If 'infer_types' is set to True (the default option), str dict values are 
-    automatically converted to appropriate datatypes (str, list, float, bool, 
-    and int are currently supported). Type conversion is automatically disabled
-    if the source file is a python module (assuming the user has properly set
-    the types of the stored python dict).
-
-    Because settings uses ConfigParser for .ini files, by default it stores 
-    a 2-level dict. The desire for accessibility and simplicity chrisjented this 
-    limitation. A greater number of levels can be achieved by having separate
-    sections with names corresponding to the strings in the values of items in 
-    other sections. 
-
-    Args:
-        contents (MutableMapping[Hashable, Any]): a dict for storing 
-            configuration bases. Defaults to en empty dict.
-        default (Any): default value to return when the 'get' method is used.
-            Defaults to an empty dict.
-        default (Mapping[str, Mapping[str]]): any default options that should
-            be used when a user does not provide the corresponding options in 
-            their configuration settings. Defaults to an empty dict.
-        infer_types (bool): whether values in 'contents' are converted to other 
-            datatypes (True) or left alone (False). If 'contents' was imported 
-            from an .ini file, all values will be strings. Defaults to True.
-
-    """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    default_factory: Optional[Any] = dict
-    default: Mapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    infer_types: bool = True
-    project: Optional[interface.Project] = None
-
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        if self.project is not None:
-            # Converts sections in 'contents' to Section types.
-            self._sectionify()
-   
-    """ Public Methods """
-   
-    def link(self, project: interface.Project) -> None:
-        """
-        """
-        self.project = project
-        self._sectionify()
-        return self
-        
-    """" Private Methods """
-    
-    def _sectionify(self) -> None:
-        """Converts all subsections with node information into Sections."""
-        new_contents = {}
-        suffixes = self.project.nodes.suffixes
-        for key, value in self.contents.items():
-            if any(k.endswith(suffixes) for k in value.keys()):
-                section = Section(contents = value, name = key, settings = self)
-                new_contents[key] = section
-            else:
-                new_contents[key] = value
-        self.contents = new_contents
-        return
-
-
-@dataclasses.dataclass
-class Section(amos.Dictionary):
-    """Section of Outline with connections.
-
-    Args:
-        contents (MutableMapping[Hashable, Any]]): stored dictionary. Defaults 
-            to an empty dict.
-        default_factory (Any): default value to return when the 'get' method is 
-            used. Defaults to None.
-                          
-    """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    name: Optional[str] = None
-    settings: Optional[ProjectSettings] = None
-    
-    """ Properties """
-    
-    @property
-    def suffixes(self) -> list[str]:
-        """[summary]
-
-        Raises:
-            ValueError: [description]
-
-        Returns:
-            list[str]: [description]
-            
-        """
-        if self.project.settings is None:
-            raise ValueError(
-                'suffixes requires the ProjectSettings to be linked to a '
-                'Project instance')
-        else:
-            return self.settings.project.nodes.suffixes
-    
-    @property
-    def bases(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return get_bases(section = self)
-    
-    @property
-    def connections(self) -> dict[str, list[str]]:
-        """[summary]
-
-        Returns:
-            dict[str, list[str]]: [description]
-            
-        """
-        return get_connections(section = self)
-
-    @property
-    def designs(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return get_designs(section = self)
-
-    @property
-    def nodes(self) -> list[str]:
-        """[summary]
-
-        Returns:
-            list[str]: [description]
-            
-        """
-        key_nodes = list(self.connections.keys())
-        value_nodes = list(
-            itertools.chain.from_iterable(self.connections.values()))
-        return amos.deduplicate(item = key_nodes + value_nodes) 
-
-    @property
-    def other(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        design_keys = [k for k in self.keys() if k.endswith('design')]
-        connection_keys = [k for k in self.keys() if k.endswith(self.suffixes)]
-        exclude = design_keys + connection_keys
-        return {k: v for k, v in self.contents.items() if k not in exclude}
-
-    """ Public Methods """
-
-    @classmethod
-    def from_settings(
-        cls, 
-        settings: amos.Settings,
-        name: str,
-        **kwargs) -> Section:
-        """[summary]
-
-        Args:
-            settings (chrisjen.shared.bases.settings): [description]
-            name (str):
-
-        Returns:
-            Section: derived from 'settings'.
-            
-        """        
-        return cls(contents = settings[name], name = name, **kwargs)    
-
-def get_bases(section: Section) -> dict[str, str]:
+def get_kinds(
+    settings: amos.Settings, 
+    name: Optional[str] = None,
+    project: Optional[interface.Project] = None) -> dict[str, str]:
     """[summary]
 
     Args:
@@ -244,19 +50,67 @@ def get_bases(section: Section) -> dict[str, str]:
 
     Returns:
         dict[str, str]: [description]
-    """    
-    bases = {}
+    """
+    if name is None and project is not None:
+        kinds = {}
+        suffixes = project.nodes.suffixes
+        for key, section in settings.items():
+            if any(k.endswith(suffixes) for k in section.keys()):
+                new_kinds = get_section_kinds(section = settings[key])
+                for inner_key, inner_value in new_kinds.items():
+                    if inner_key in kinds:
+                        kinds[inner_key].append(inner_value)
+                    else:
+                        kinds[inner_key] = inner_value  
+        return kinds
+    else:
+        try:
+            return get_section_kinds(section = settings[name])
+        except KeyError:
+            return get_kinds(settings = settings, name = None)
+
+def get_section_kinds(section: MutableMapping[Hashable, Any]) -> dict[str, str]: 
+    """
+    """       
+    kinds = {}
     for key in section.connections.keys():
         _, suffix = amos.cleave_str(key)
         values = amos.iterify(section[key])
         if suffix.endswith('s'):
-            base = suffix[:-1]
+            kind = suffix[:-1]
         else:
-            base = suffix            
-        bases.update(dict.fromkeys(values, base))
-    return bases   
-    
-def get_connections(section: Section) -> dict[str, list[str]]:
+            kind = suffix            
+        kinds.update(dict.fromkeys(values, kind))
+    return kinds   
+
+def get_connections(
+    settings: amos.Settings, 
+    name: Optional[str] = None,
+    project: Optional[interface.Project] = None) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        section (Section): [description]
+
+    Returns:
+        dict[str, str]: [description]
+    """
+    if name is None and project is not None:
+        connections = {}
+        suffixes = project.nodes.suffixes
+        for key, section in settings.items():
+            if any(k.endswith(suffixes) for k in section.keys()):
+                connections.update(
+                    get_section_connections(section = settings[key]))
+        return connections
+    else:
+        try:
+            return get_section_connections(section = settings[name])
+        except KeyError:
+            return get_connections(settings = settings, name = None)
+            
+def get_section_connections(
+    section: MutableMapping[Hashable, Any]) -> dict[str, list[str]]:
     """[summary]
 
     Args:
@@ -283,7 +137,34 @@ def get_connections(section: Section) -> dict[str, list[str]]:
                 connections[prefix] = values
     return connections
 
-def get_designs(section: Section) -> dict[str, str]:
+def get_designs(
+    settings: amos.Settings, 
+    name: Optional[str] = None,
+    project: Optional[interface.Project] = None) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        section (Section): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """
+    if name is None and project is not None:
+        designs = {}
+        suffixes = project.nodes.suffixes
+        for key, section in settings.items():
+            if any(k.endswith(suffixes) for k in section.keys()):
+                designs.update(get_section_designs(section = settings[key]))
+        return designs
+    else:
+        try:
+            return get_section_designs(section = settings[name])
+        except KeyError:
+            return get_designs(settings = settings, name = None)
+            
+def get_section_designs(
+    section: MutableMapping[Hashable, Any]) -> dict[str, str]:
     """[summary]
 
     Returns:
@@ -300,243 +181,18 @@ def get_designs(section: Section) -> dict[str, str]:
             designs[prefix] = section[key]
     return designs
       
-
-@dataclasses.dataclass
-class Director(Iterator):
-    """Iterator for chrisjen Project instances.
-    
-    
-    """
-    project: interface.Project = None
-    converters: types.ModuleType = bases.CONVERTERS
-    
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        # Sets index for iteration.
-        self.index = 0
-        # Validate stages
-        self._validate_stages()
-        
-    """ Properties """
-    
-    @property
-    def current(self) -> str:
-        return list(self.stages.keys())[self.index]
-    
-    @property
-    def previous(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index -1]
-        except IndexError:
-            return None
-          
-    @property
-    def stages(self) -> (
-        Sequence[Union[str, Type[bases.STAGE], bases.STAGE]]):
-        return self.project.stages
-    
-    @property
-    def subsequent(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index + 1]
-        except IndexError:
-            return None
-       
-    """ Public Methods """
-    
-    def advance(self) -> None:
-        """Iterates through next stage."""
-        return self.__next__()
-
-    def complete(self) -> None:
-        """Iterates through all stages."""
-        for stage in self.stages:
-            self.advance()
-        return self    
-
-    """ Private Methods """
-    
-    def _validate_stages(self) -> None:
-        new_stages = []
-        for stage in self.project.stages:
-            new_stages.append(self._validate_stage(stage = stage))
-        self.project.stages = new_stages
-        return
-
-    def _validate_stage(self, stage: Any) -> object:
-        if isinstance(stage, str):
-            try:
-                stage = bases.STAGE.create(stage)
-            except KeyError:
-                raise KeyError(f'{stage} was not found in Stage registry')
-        if inspect.isclass(stage):
-            stage = stage()
-        return stage
-            
-        
-    """ Dunder Methods """
-    
-    def __iter__(self) -> Iterable:
-        """Returns iterable of 'stages'.
-        
-        Returns:
-            Iterable: of 'stages'.
-            
-        """
-        return self
- 
-    def __next__(self) -> None:
-        """Completes a Stage instance."""
-        if self.index < len(self.stages):
-            source = self.previous or 'settings'
-            product = self.stages[self.current]
-            converter = getattr(self.converters, f'create_{product}')
-            if self.project.settings['general']['verbose']:
-                print(f'Creating {product} from {source}')
-            kwargs = {'project': self.project}
-            setattr(self.project, product, converter(**kwargs))
-            self.index += 1
-            if self.project.settings['general']['verbose']:
-                print(f'Completed {product}')
-        else:
-            raise StopIteration
-        return self
-
-
-@dataclasses.dataclass
-class ProjectLibrary(amos.Library):
-    """Stores project classes and class instances.
-    
-    When searching for matches, instances are prioritized over classes.
-    
-    Args:
-        classes (Catalog): a catalog of stored classes. Defaults to any empty
-            Catalog.
-        instances (Catalog): a catalog of stored class instances. Defaults to an
-            empty Catalog.
-        bases (Catalog): base types of nodes. Defaults to an empty Catalog.
-                 
-    """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-    bases: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-
-    """ Public Methods """
-    
-    def classify(
-        self,
-        item: Union[str, Type[bases.NODE], bases.NODE]) -> str:
-        """[summary]
-
-        Args:
-            item (str): [description]
-
-        Returns:
-            str: [description]
-            
-        """
-        for name, _ in self.bases.items():
-            if self.is_base(item = item, base = name):
-                return name
-        raise KeyError('item was not found in the project library')
-
-    def instance(
-        self, 
-        name: Union[str, Sequence[str]], 
-        *args, 
-        **kwargs) -> object:
-        """Returns instance of first match of 'name' in stored catalogs.
-        
-        The method prioritizes the 'instances' catalog over 'classes' and any
-        passed names in the order they are listed.
-        
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-            
-        Raises:
-            KeyError: [description]
-            
-        Returns:
-            object: [description]
-            
-        """
-        names = amos.iterify(name)
-        primary = names[0]
-        item = None
-        for key in names:
-            for catalog in ['instances', 'classes']:
-                try:
-                    item = getattr(self, catalog)[key]
-                    break
-                except KeyError:
-                    pass
-            if item is not None:
-                break
-        if item is None:
-            raise KeyError(f'No matching item for {name} was found') 
-        elif inspect.isclass(item):
-            instance = item(primary, *args, **kwargs)
-        else:
-            instance = copy.deepcopy(item)
-            for key, value in kwargs.items():
-                setattr(instance, key, value)  
-        return instance 
-
-    def is_base(
-        self, 
-        item: Union[str, Type[bases.NODE], bases.NODE],
-        base: str) -> bool:
-        """[summary]
-
-        Args:
-            item (Union[str, Type[bases.NODE], bases.NODE]): [description]
-            base (str): [description]
-
-        Returns:
-            bool: [description]
-            
-        """
-        if isinstance(item, str):
-            item = self[item]
-        elif isinstance(item, bases.NODE):
-            item = item.__class__
-        return issubclass(item, self.bases[base])        
-        
-    def parameterify(self, name: Union[str, Sequence[str]]) -> list[str]:
-        """[summary]
-
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-
-        Returns:
-            list[str]: [description]
-            
-        """        
-        item = self.select(name = name)
-        return list(item.__annotations__.keys())  
-
-
+      
 @dataclasses.dataclass
 class LibraryFactory(abc.ABC):
-    """Mixin which registers subclasses, instances, and bases.
+    """Mixin which registers subclasses, instances, and kinds.
     
     Args:
         library (ClassVar[ProjectLibrary]): project library of classes, 
             instances, and base classes. 
             
     """
-    library: ClassVar[ProjectLibrary] = dataclasses.field(
-        default_factory = ProjectLibrary)
+    library: ClassVar[bases.ProjectLibrary] = dataclasses.field(
+        default_factory = bases.ProjectLibrary)
     
     """ Initialization Methods """
     

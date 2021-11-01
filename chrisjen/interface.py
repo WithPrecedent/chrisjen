@@ -1,5 +1,5 @@
 """
-interface: primary access point and interface for an chrisjen project
+interface: primary access point and interface for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -33,11 +33,11 @@ from . import bases
 
 @dataclasses.dataclass
 class Project(amos.Node):
-    """Interface for an chrisjen project.
+    """Interface for a chrisjen project.
     
     Args:
         name (str): designates the name of a class instance that is used for 
-            internal referencing throughout chrisjen. For example, if an chrisjen 
+            internal referencing throughout chrisjen. For example, if a chrisjen 
             instance needs outline from an Outline instance, 'name' should 
             match the appropriate section name in an Outline instance. Defaults 
             to None. 
@@ -57,7 +57,7 @@ class Project(amos.Node):
         data (object): any data object for the project to be applied. If it is 
             None, an instance will still execute its workflow, but it won't
             apply it to any external data. Defaults to None.
-        identification (str): a unique identification name for an chrisjen Project. 
+        identification (str): a unique identification name for a chrisjen Project. 
             The name is used for creating file folders related to the project. 
             If it is None, a str will be created from 'name' and the date and 
             time. Defaults to None.   

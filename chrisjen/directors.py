@@ -36,53 +36,16 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Director(Iterator):
-    """Iterator for chrisjen Project instances.
+class OutlineWorkflowResults(Director):
+    """Project Director for an Outline, Workflow, Results process.
     
     
     """
     project: interface.Project = None
-    options: types.ModuleType = options
-    
-    """ Initialization Methods """
+    options: types.ModuleType = bases
 
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        # Sets index for iteration.
-        self.index = 0
-        # Validate stages
-        self._validate_stages()
-        
     """ Properties """
-    
-    @property
-    def current(self) -> str:
-        return list(self.stages.keys())[self.index]
-    
-    @property
-    def previous(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index -1]
-        except IndexError:
-            return None
-          
-    @property
-    def stages(self) -> (
-        Sequence[Union[str, Type[bases.STAGE], bases.STAGE]]):
-        return self.project.stages
-    
-    @property
-    def subsequent(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index + 1]
-        except IndexError:
-            return None
-    
+        
     @property
     def clerk(self) -> Type[Any]:
         """Returns base class for a filing clerk.
@@ -98,7 +61,7 @@ class Director(Iterator):
         """Sets the base class for a filing clerk.
 
         Args:
-            value (Type[Any]): an chrisjen-compatible base class.
+            value (Type[Any]): a chrisjen-compatible base class.
 
         Raises:
             ValueError: if 'value' is not compatible with chrisjen.
@@ -119,12 +82,12 @@ class Director(Iterator):
         """
         return self.bases.CONVERTERS
     
-    @converters.setter
+    @library.setter
     def converters(self, value: Type[Any]) -> None:
         """Sets the base class for a filing clerk.
 
         Args:
-            value (Type[Any]): an chrisjen-compatible base class.
+            value (Type[Any]): a chrisjen-compatible base class.
 
         Raises:
             ValueError: if 'value' is not compatible with chrisjen.
@@ -142,70 +105,3 @@ class Director(Iterator):
     PARAMETERS: Type[Any] = nodes.Parameters
     SETTINGS: Type[Any] = workshop.ProjectSettings
     STAGE: Type[Any] = stages.Stage
-    """ Public Methods """
-    
-    def advance(self) -> None:
-        """Iterates through next stage."""
-        return self.__next__()
-
-    def complete(self) -> None:
-        """Iterates through all stages."""
-        for stage in self.stages:
-            self.advance()
-        return self    
-
-    def get_base(self, base_type: str) -> None:
-        return getattr(self.options, base_type.upper())
-
-    def set_base(self, base_type: str, base: Type[Any]) -> None:
-        setattr(self.options, base_type, base)
-        return
-    
-    """ Private Methods """
-    
-    def _validate_stages(self) -> None:
-        new_stages = []
-        for stage in self.project.stages:
-            new_stages.append(self._validate_stage(stage = stage))
-        self.project.stages = new_stages
-        return
-
-    def _validate_stage(self, stage: Any) -> object:
-        if isinstance(stage, str):
-            try:
-                stage = bases.STAGE.create(stage)
-            except KeyError:
-                raise KeyError(f'{stage} was not found in Stage registry')
-        if inspect.isclass(stage):
-            stage = stage()
-        return stage
-            
-        
-    """ Dunder Methods """
-    
-    def __iter__(self) -> Iterable:
-        """Returns iterable of 'stages'.
-        
-        Returns:
-            Iterable: of 'stages'.
-            
-        """
-        return self
- 
-    def __next__(self) -> None:
-        """Completes a Stage instance."""
-        if self.index < len(self.stages):
-            source = self.previous or 'settings'
-            product = self.stages[self.current]
-            converter = getattr(self.converters, f'create_{product}')
-            if self.project.settings['general']['verbose']:
-                print(f'Creating {product} from {source}')
-            kwargs = {'project': self.project}
-            setattr(self.project, product, converter(**kwargs))
-            self.index += 1
-            if self.project.settings['general']['verbose']:
-                print(f'Completed {product}')
-        else:
-            raise StopIteration
-        return self
-
