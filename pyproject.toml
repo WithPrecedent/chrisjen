@@ -3,6 +3,10 @@ name = "chrisjen"
 version = "0.1.0"
 description = "Python data science projects made easy"
 authors = ["Corey Rayburn Yung <coreyrayburnyung@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/WithPrecedent/chrisjen"
+repository = "https://github.com/WithPrecedent/chrisjen"
 
 [tool.poetry.dependencies]
 python = "^3.9"
