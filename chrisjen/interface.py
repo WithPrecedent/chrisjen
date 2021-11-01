@@ -28,7 +28,7 @@ import warnings
 
 import amos
 
-from . import options
+from . import bases
 
 
 @dataclasses.dataclass
@@ -74,13 +74,13 @@ class Project(amos.Node):
             
     """
     name: Optional[str] = None
-    settings: options.SETTINGS = dataclasses.field(
-        default_factory = options.SETTINGS)
-    clerk: options.CLERK = dataclasses.field(
-        default_factory = options.CLERK)
-    director: options.DIRECTOR = dataclasses.field(
-        default_factory = options.DIRECTOR)
-    stages: Sequence[Union[str, Type[options.STAGE], options.STAGE]] = (
+    settings: bases.SETTINGS = dataclasses.field(
+        default_factory = bases.SETTINGS)
+    clerk: bases.CLERK = dataclasses.field(
+        default_factory = bases.CLERK)
+    director: bases.DIRECTOR = dataclasses.field(
+        default_factory = bases.DIRECTOR)
+    stages: Sequence[Union[str, Type[bases.STAGE], bases.STAGE]] = (
         dataclasses.field(default_factory = list))
     data: Optional[object] = None
     identification: Optional[str] = None
@@ -124,7 +124,7 @@ class Project(amos.Node):
 
     def _validate_settings(self) -> None:
         """Creates or validates 'settings'."""
-        self.settings = options.SETTINGS.create(
+        self.settings = bases.SETTINGS.create(
             item = self.settings,
             project = self)
         return self
@@ -145,12 +145,12 @@ class Project(amos.Node):
           
     def _validate_clerk(self) -> None:
         """Creates or validates 'clerk'."""
-        options.CLERK.create(item = self.clerk, settings = self.settings)
+        bases.CLERK.create(item = self.clerk, settings = self.settings)
         return self
 
     def _validate_director(self) -> None:
         """Creates or validates 'director'."""
-        options.DIRECTOR.create(project = self)
+        bases.DIRECTOR.create(project = self)
         return self
     
     def _validate_director(self) -> None:

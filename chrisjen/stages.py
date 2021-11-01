@@ -30,7 +30,7 @@ import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-from . import options
+from . import bases
 from . import workshop
 
 if TYPE_CHECKING:
@@ -156,7 +156,7 @@ class Outline(amos.Dictionary, Stage):
     """ Public Methods """
 
     @classmethod
-    def from_settings(cls, item: options.SETTINGS, **kwargs) -> Outline:
+    def from_settings(cls, item: bases.SETTINGS, **kwargs) -> Outline:
         """[summary]
 
         Args:
@@ -246,14 +246,14 @@ def create_outline(project: interface.Project) -> Outline:
         library = project.library)
 
 def settings_to_outline(
-    settings: options.SETTINGS, 
-    library: options.LIBRARY, 
+    settings: bases.SETTINGS, 
+    library: bases.LIBRARY, 
     base: Optional[Type[Any]] = None,
     **kwargs) -> Outline:
     """[summary]
 
     Args:
-        settings (options.Settings): [description]
+        settings (bases.Settings): [description]
 
     Returns:
         Outline: derived from 'settings'.
@@ -285,14 +285,14 @@ def create_workflow(project: interface.Project, **kwargs) -> Workflow:
 
 def outline_to_workflow(
     outline: Outline, 
-    library: options.LIBRARY, 
+    library: bases.LIBRARY, 
     base: Optional[Type[Any]] = None,
     **kwargs) -> Workflow:
     """[summary]
 
     Args:
         outline (Outline): [description]
-        library (options.LIBRARY): [description]
+        library (bases.LIBRARY): [description]
 
     Returns:
         Workflow: [description]
@@ -314,14 +314,14 @@ def outline_to_workflow(
 def outline_to_component(
     name: str, 
     outline: Outline,
-    library: options.LIBRARY, 
-    **kwargs) -> options.NODE:
+    library: bases.LIBRARY, 
+    **kwargs) -> bases.NODE:
     """[summary]
 
     Args:
 
     Returns:
-        Options.NODE: [description]
+        bases.NODE: [description]
     
     """
     design = outline.designs[name] or None
@@ -341,8 +341,8 @@ def outline_to_component(
 def outline_to_initialization(
     name: str, 
     outline: Outline,
-    library: options.LIBRARY, 
-    **kwargs) -> options.NODE:
+    library: bases.LIBRARY, 
+    **kwargs) -> bases.NODE:
     """Gets parameters for a specific Component from 'outline'.
 
     Args:
@@ -365,9 +365,9 @@ def outline_to_initialization(
 def outline_to_parameters(
     name: str, 
     outline: Outline,
-    library: options.LIBRARY, 
+    library: bases.LIBRARY, 
     base: Optional[Type[Any]] = None,
-    **kwargs) -> options.PARAMETERS:
+    **kwargs) -> bases.PARAMETERS:
     """Gets parameters for a specific Component from 'outline'.
 
     Args:
@@ -377,7 +377,7 @@ def outline_to_parameters(
         dict[Hashable, Any]: [description]
         
     """
-    base = base or options.PARAMETERS
+    base = base or bases.PARAMETERS
 
     parameters = base(name = name)
     suboutline = outline[section]

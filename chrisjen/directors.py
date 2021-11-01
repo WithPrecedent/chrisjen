@@ -28,7 +28,7 @@ import inspect
 import types
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-from . import options
+from . import bases
 from . import validate
 
 if TYPE_CHECKING:
@@ -73,7 +73,7 @@ class Director(Iterator):
           
     @property
     def stages(self) -> (
-        Sequence[Union[str, Type[options.STAGE], options.STAGE]]):
+        Sequence[Union[str, Type[bases.STAGE], bases.STAGE]]):
         return self.project.stages
     
     @property
@@ -91,7 +91,7 @@ class Director(Iterator):
             Type[Any]: appropriate base class.
         
         """
-        return self.options.CLERK
+        return self.bases.CLERK
     
     @clerk.setter
     def clerk(self, value: Type[Any]) -> None:
@@ -105,7 +105,7 @@ class Director(Iterator):
             
         """
         if validate.is_clerk(item = value):
-            self.options.CLERK = value
+            self.bases.CLERK = value
         else:
             raise ValueError(f'{__name__} is not compatiable with chrisjen')
     
@@ -117,7 +117,7 @@ class Director(Iterator):
             Type[Any]: appropriate base class.
         
         """
-        return self.options.CONVERTERS
+        return self.bases.CONVERTERS
     
     @converters.setter
     def converters(self, value: Type[Any]) -> None:
@@ -131,7 +131,7 @@ class Director(Iterator):
             
         """
         if validate.is_clerk(item = value):
-            self.options.CLERK = value
+            self.bases.CLERK = value
         else:
             raise ValueError(f'{__name__} is not compatiable with chrisjen')
            
@@ -173,7 +173,7 @@ class Director(Iterator):
     def _validate_stage(self, stage: Any) -> object:
         if isinstance(stage, str):
             try:
-                stage = options.STAGE.create(stage)
+                stage = bases.STAGE.create(stage)
             except KeyError:
                 raise KeyError(f'{stage} was not found in Stage registry')
         if inspect.isclass(stage):

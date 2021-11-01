@@ -31,7 +31,7 @@ import pathlib
 import types
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-from . import options
+from . import bases
 
 if TYPE_CHECKING:
     from . import interface
@@ -67,7 +67,7 @@ class ProjectSettings(amos.Settings):
 
     Args:
         contents (MutableMapping[Hashable, Any]): a dict for storing 
-            configuration options. Defaults to en empty dict.
+            configuration bases. Defaults to en empty dict.
         default (Any): default value to return when the 'get' method is used.
             Defaults to an empty dict.
         default (Mapping[str, Mapping[str]]): any default options that should
@@ -308,7 +308,7 @@ class Director(Iterator):
     
     """
     project: interface.Project = None
-    converters: types.ModuleType = options.CONVERTERS
+    converters: types.ModuleType = bases.CONVERTERS
     
     """ Initialization Methods """
 
@@ -339,7 +339,7 @@ class Director(Iterator):
           
     @property
     def stages(self) -> (
-        Sequence[Union[str, Type[options.STAGE], options.STAGE]]):
+        Sequence[Union[str, Type[bases.STAGE], bases.STAGE]]):
         return self.project.stages
     
     @property
@@ -373,7 +373,7 @@ class Director(Iterator):
     def _validate_stage(self, stage: Any) -> object:
         if isinstance(stage, str):
             try:
-                stage = options.STAGE.create(stage)
+                stage = bases.STAGE.create(stage)
             except KeyError:
                 raise KeyError(f'{stage} was not found in Stage registry')
         if inspect.isclass(stage):
@@ -435,7 +435,7 @@ class ProjectLibrary(amos.Library):
     
     def classify(
         self,
-        item: Union[str, Type[options.NODE], options.NODE]) -> str:
+        item: Union[str, Type[bases.NODE], bases.NODE]) -> str:
         """[summary]
 
         Args:
@@ -494,12 +494,12 @@ class ProjectLibrary(amos.Library):
 
     def is_base(
         self, 
-        item: Union[str, Type[options.NODE], options.NODE],
+        item: Union[str, Type[bases.NODE], bases.NODE],
         base: str) -> bool:
         """[summary]
 
         Args:
-            item (Union[str, Type[options.NODE], options.NODE]): [description]
+            item (Union[str, Type[bases.NODE], bases.NODE]): [description]
             base (str): [description]
 
         Returns:
@@ -508,7 +508,7 @@ class ProjectLibrary(amos.Library):
         """
         if isinstance(item, str):
             item = self[item]
-        elif isinstance(item, options.NODE):
+        elif isinstance(item, bases.NODE):
             item = item.__class__
         return issubclass(item, self.bases[base])        
         

@@ -43,7 +43,7 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import more_itertools
 
-from . import options
+from . import bases
 from . import stages
 from . import workshop
 
@@ -126,7 +126,7 @@ class NodeLibrary(workshop.ProjectLibrary):
     
     def classify(
         self,
-        component: Union[str, Type[options.NODE], options.NODE]) -> str:
+        component: Union[str, Type[bases.NODE], bases.NODE]) -> str:
         """[summary]
 
         Args:
@@ -143,12 +143,12 @@ class NodeLibrary(workshop.ProjectLibrary):
 
     def is_base(
         self, 
-        component: Union[str, Type[options.NODE], options.NODE],
+        component: Union[str, Type[bases.NODE], bases.NODE],
         base: str) -> bool:
         """[summary]
 
         Args:
-            component (Union[str, Type[options.NODE], options.NODE]): [description]
+            component (Union[str, Type[bases.NODE], bases.NODE]): [description]
             base (str): [description]
 
         Returns:
@@ -157,7 +157,7 @@ class NodeLibrary(workshop.ProjectLibrary):
         """
         if isinstance(component, str):
             component = self[component]
-        elif isinstance(component, options.NODE):
+        elif isinstance(component, bases.NODE):
             component = component.__class__
         return issubclass(component, self.bases[base])        
         

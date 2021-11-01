@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
     
 ToDo:
-   Add support for exporting all composite classes to graphvix.
+    Integrate Kinds system for type-checking when it is complete.
    
 """
 
@@ -54,10 +54,10 @@ __package__ = 'chrisjen'
 __author__ = 'Corey Rayburn Yung'
 
 
+from .bases import *
 from .directors import *
 from .filing import *
 from .interface import *
 from .nodes import *
-from .options import *
 from .stages import *
 from .workshop import *
