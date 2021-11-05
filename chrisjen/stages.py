@@ -1,5 +1,5 @@
 """
-stages: classes related to the different stages of a chrisjen project
+stages: classes and functions related to stages of a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -24,12 +24,15 @@ Contents:
 """
 from __future__ import annotations
 import collections
-from collections.abc import Collection, Hashable, MutableMapping, Set
+from collections.abc import Collection, Hashable, MutableMapping, Sequence, Set
 import dataclasses
+import functools
 import itertools
+import types
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
+import more_itertools
 
 from . import bases
 from . import workshop
@@ -39,123 +42,19 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Outline(amos.Dictionary, bases.ProjectStage):
-    """Organized chrisjen project settings with convenient accessors.
-
-    Args:
-        contents (MutableMapping[Hashable, Any]): stored dictionary. Defaults 
-            to an empty dict.
-        default_factory (Optional[Any]): default value to return or default 
-            function to call when the 'get' method is used. Defaults to None. 
-
+class WorkflowResults(bases.ProjectDirector):
+    """Project Director for an Outline, Workflow, Results process.
+    
+    
     """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    default_factory: Optional[Any] = None
-    
-    """ Properties """
-    
-    @property
-    def bases(self) -> dict[str, str]:
-        """[summary]
+    project: interface.Project = None
+    options: types.ModuleType = bases
+    stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
+        default_factory = lambda: ['workflow', 'results'])
 
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        bases = dict(zip(self.nodes, self.nodes))
-        for section in self.values():
-            bases.update(section.bases)
-        return bases
-    
-    @property
-    def connections(self) -> dict[str, list[str]]:
-        """[summary]
-
-        Returns:
-            dict[str, list[str]]: [description]
-            
-        """
-        connections = {}
-        for section in self.values():
-            for key, links in section.connections.items():
-                if key in connections:
-                    connections[key].extend(links)
-                else:
-                    connections[key] = links
-        return connections
-
-    @property
-    def designs(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        designs = {}
-        for section in self.values():
-            designs.update(section.designs)
-        return designs
-
-    @property 
-    def initialization(self) -> dict[str, Any]:
-        """[summary]
-
-        Returns:
-            dict[str, dict[str, Any]]: [description]
-            
-        """
-        initialization = collections.defaultdict(dict)
-        keys = [k.endswith('_parameters') for k in self.keys]
-        for key in keys:
-            prefix, _ = amos.cleave_str(key)
-            initialization[prefix] = self[key]
-        return initialization
-
-    @property
-    def nodes(self) -> list[str]:
-        """[summary]
-
-        Returns:
-            list[str]: [description]
-            
-        """
-        key_nodes = list(self.connections.keys())
-        value_nodes = list(
-            itertools.chain.from_iterable(self.connections.values()))
-        return amos.deduplicate(item = key_nodes + value_nodes) 
-
-    @property
-    def other(self) -> dict[str, Any]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        other = {}
-        for section in self.values():
-            other.update(section.other)
-        return other
-    
-    """ Public Methods """
-
-    @classmethod
-    def from_settings(cls, item: bases.SETTINGS, **kwargs) -> Outline:
-        """[summary]
-
-        Args:
-
-        Returns:
-            Outline: derived from 'settings'.
-            
-        """
-        return settings_to_outline(item = item, **kwargs)
-
-
+ 
 @dataclasses.dataclass
-class Workflow(amos.System, bases.ProjectStage):
+class ProjectWorkflow(amos.System, bases.ProjectStage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -180,24 +79,10 @@ class Workflow(amos.System, bases.ProjectStage):
     def cookbook(self) -> amos.Pipelines:
         """Returns stored graph as pipelines."""
         return self.pipelines
-    
-    """ Public Methods """
-
-    @classmethod
-    def from_outline(cls, item: Outline, **kwargs) -> Workflow:
-        """[summary]
-
-        Args:
-
-        Returns:
-            Workflow: derived from 'item'.
-            
-        """
-        return outline_to_workflow(item = item, **kwargs)
 
 
 @dataclasses.dataclass
-class Results(amos.System, bases.ProjectStage):
+class ProjectResults(amos.System, bases.ProjectStage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -214,7 +99,7 @@ class Results(amos.System, bases.ProjectStage):
     """ Public Methods """
 
     @classmethod
-    def from_workflow(cls, item: Workflow, **kwargs) -> Results:
+    def from_workflow(cls, item: ProjectWorkflow, **kwargs) -> ProjectResults:
         """[summary]
 
         Args:
@@ -223,36 +108,9 @@ class Results(amos.System, bases.ProjectStage):
             Results: derived from 'item'.
             
         """
-        return workflow_to_results(item = item, **kwargs)
+        return workshop.create_results(item = item, **kwargs)
     
-
-def create_outline(project: interface.Project) -> Outline:
-    return settings_to_outline(
-        settings = project.settings,
-        library = project.library)
-
-def settings_to_outline(
-    settings: bases.SETTINGS, 
-    library: bases.LIBRARY, 
-    base: Optional[Type[Any]] = None,
-    **kwargs) -> Outline:
-    """[summary]
-
-    Args:
-        settings (bases.Settings): [description]
-
-    Returns:
-        Outline: derived from 'settings'.
-        
-    """
-    base = base or Outline
-    suffixes = library.suffixes
-    outline = base(**kwargs)
-    for name, section in settings.items():
-        if any(k.endswith(suffixes) for k in section.keys()):
-            outline[name] = section
-    return outline
-    
+       
 def create_workflow(project: interface.Project, **kwargs) -> Workflow:
     """[summary]
 
@@ -343,7 +201,7 @@ def outline_to_initialization(
     parameter_keys = [k for k in suboutline.keys() if k.endswith(possible)]
     kwargs = {}
     for key in parameter_keys:
-        prefix, suffix = chrisjen.tools.divide_string(key)
+        prefix, suffix = amos.divide_string(key)
         if key.startswith(name) or (name == section and prefix == suffix):
             kwargs[suffix] = suboutline[key]
     return kwargs  
@@ -372,7 +230,7 @@ def outline_to_parameters(
     parameter_keys = [k for k in suboutline.keys() if k.endswith(possible)]
     kwargs = {}
     for key in parameter_keys:
-        prefix, suffix = chrisjen.tools.divide_string(key)
+        prefix, suffix = amos.divide_string(key)
         if key.startswith(name) or (name == section and prefix == suffix):
             kwargs[suffix] = suboutline[key]
     return kwargs  
@@ -429,7 +287,7 @@ def outline_to_initialization(
     parameter_keys = [k for k in suboutline.keys() if k.endswith(possible)]
     kwargs = {}
     for key in parameter_keys:
-        prefix, suffix = chrisjen.tools.divide_string(key)
+        prefix, suffix = amos.divide_string(key)
         if key.startswith(name) or (name == section and prefix == suffix):
             kwargs[suffix] = suboutline[key]
     return kwargs  
@@ -462,7 +320,7 @@ def finalize_serial(
     node: str,
     connections: dict[str, list[str]],
     library: nodes.Library,
-    graph: chrisjen.structures.Graph) -> chrisjen.structures.Graph:
+    graph: amos.Graph) -> amos.Graph:
     """[summary]
 
     Args:
@@ -573,3 +431,220 @@ def workflow_to_result(
         except (KeyError, AttributeError):
             pass
     return result
+           
+           
+@dataclasses.dataclass
+class Outline(amos.Settings, bases.ProjectStage):
+    """Organized chrisjen project settings with convenient accessors.
+
+    Args:
+        project (Optional[interface.Project]): linked Project which contains
+            'settings' and 'nodes' attributes. Defaults to None.
+
+    """
+    project: Optional[interface.Project] = None
+    
+    """ Properties """
+
+    @functools.cached_property
+    def attributes(self) -> dict[str, Any]:
+        """[summary]
+
+        Returns:
+            dict[str, str]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            other = {}
+            for section in self.values():
+                other.update(section.other)
+            return other
+        
+    @functools.cached_property
+    def connections(self) -> dict[str, list[str]]:
+        """[summary]
+
+        Returns:
+            dict[str, list[str]]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            return workshop.get_connections(project = self.project)
+
+    @functools.cached_property
+    def designs(self) -> dict[str, str]:
+        """[summary]
+
+        Returns:
+            dict[str, str]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            designs = {}
+            for section in self.values():
+                designs.update(section.designs)
+            return designs
+
+    @functools.cached_property 
+    def initialization(self) -> dict[str, Any]:
+        """[summary]
+
+        Returns:
+            dict[str, dict[str, Any]]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            initialization = collections.defaultdict(dict)
+            keys = [k.endswith('_parameters') for k in self.keys]
+            for key in keys:
+                prefix, _ = amos.cleave_str(key)
+                initialization[prefix] = self[key]
+            return initialization
+    
+    @functools.cached_property
+    def kinds(self) -> dict[str, str]:
+        """[summary]
+
+        Returns:
+            dict[str, str]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            kinds = dict(zip(self.nodes, self.nodes))
+            for section in self.values():
+                bases.update(section.bases)
+            return bases
+    
+    @functools.cached_property
+    def nodes(self) -> list[str]:
+        """[summary]
+
+        Returns:
+            list[str]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            key_nodes = list(self.connections.keys())
+            value_nodes = list(
+                itertools.chain.from_iterable(self.connections.values()))
+            return amos.deduplicate(item = key_nodes + value_nodes) 
+
+    @functools.cached_property
+    def runtime(self) -> dict[str, Any]:
+        """[summary]
+
+        Returns:
+            dict[str, dict[str, Any]]: [description]
+            
+        """
+        if self.project is None:
+            raise ValueError(
+                'Outline must be linked to a project before values can be '
+                'returned')
+        else:
+            return
+            
+    """ Public Methods """
+
+    def link(self, project: interface.Project) -> None:
+        """
+        """
+        self.project = project
+        return self
+
+
+@dataclasses.dataclass
+class Workflow(amos.System, bases.ProjectStage):
+    """Project workflow implementation as a directed acyclic graph (DAG).
+    
+    Workflow stores its graph as an adjacency list. Despite being called an 
+    "adjacency list," the typical and most efficient way to create one in python
+    is using a dict. The keys of the dict are the nodes and the values are sets
+    of the hashable summarys of other nodes.
+    
+    Args:
+        contents (MutableMapping[amos.Node, Set[amos.Node]]): keys 
+            are nodes and values are sets of nodes (or hashable representations 
+            of nodes). Defaults to a defaultdict that has a set for its value 
+            format.
+                  
+    """  
+    contents: MutableMapping[amos.Node, Set[amos.Node]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+    
+    """ Properties """
+    
+    @property
+    def cookbook(self) -> amos.Pipelines:
+        """Returns stored graph as pipelines."""
+        return self.pipelines
+    
+    """ Public Methods """
+
+    @classmethod
+    def from_outline(cls, item: Outline, **kwargs) -> Workflow:
+        """[summary]
+
+        Args:
+
+        Returns:
+            Workflow: derived from 'item'.
+            
+        """
+        return create_workflow(item = item, **kwargs)
+
+
+@dataclasses.dataclass
+class Results(amos.System, bases.ProjectStage):
+    """Project workflow after it has been implemented.
+    
+    Args:
+        contents (MutableMapping[amos.Node, Set[amos.Node]]): keys 
+            are nodes and values are sets of nodes (or hashable representations 
+            of nodes). Defaults to a defaultdict that has a set for its value 
+            format.
+                  
+    """  
+    contents: MutableMapping[amos.Node, Set[amos.Node]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+
+    """ Public Methods """
+
+    @classmethod
+    def from_workflow(cls, item: Workflow, **kwargs) -> Results:
+        """[summary]
+
+        Args:
+
+        Returns:
+            Results: derived from 'item'.
+            
+        """
+        return create_results(item = item, **kwargs)
+    

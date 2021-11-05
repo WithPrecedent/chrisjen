@@ -21,8 +21,10 @@ Contents:
 """
 from __future__ import annotations
 import abc
+import collections
 from collections.abc import (
-    Collection, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence)
+    Collection, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence, 
+    Set)
 import copy
 import dataclasses
 import inspect
@@ -39,13 +41,13 @@ if TYPE_CHECKING:
     from . import interface
 
 
-CLERK: Type[Any] = globals()['Clerk']
-DIRECTOR: Type[Any] = globals()['Director']
+CLERK: Type[Any] = amos.Clerk
+DIRECTOR: Type[Any] = globals()['ProjectDirector']
 LIBRARY: Type[Any] = globals()['ProjectLibrary']
-NODE: Type[Any] = globals()['Component']
+NODE: Type[Any] = globals()['ProjectComponent']
 PARAMETERS: Type[Any] = globals()['ProjectParameters']
-SETTINGS: Type[Any] = globals()['ProjectSettings']
-STAGE: Type[Any] = globals()['Stage']
+SETTINGS: Type[Any] = amos.Settings
+STAGE: Type[Any] = globals()['ProjectStage']
 
 def get_base(base_type: str) -> None:
     return globals()[base_type.upper()]
@@ -53,134 +55,6 @@ def get_base(base_type: str) -> None:
 def set_base(base_type: str, base: Type[Any]) -> None:
     globals()[base_type.upper()] = base
     return
-
-    
-@dataclasses.dataclass    
-class ProjectParameters(amos.Dictionary):
-    """Creates and stores parameters for a Component.
-    
-    The use of ProjectParameters is entirely optional, but it provides a handy 
-    tool for aggregating data from an array of sources, including those which 
-    only become apparent during execution of a chrisjen project, to create a 
-    unified set of implementation parameters.
-    
-    ProjectParameters can be unpacked with '**', which will turn the 'contents' 
-    attribute an ordinary set of kwargs. In this way, it can serve as a drop-in
-    replacement for a dict that would ordinarily be used for accumulating 
-    keyword arguments.
-    
-    If a chrisjen class uses a ProjectParameters instance, the 'finalize' method 
-    should be called before that instance's 'implement' method in order for each 
-    of the parameter types to be incorporated.
-    
-    Args:
-        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
-            classes' 'implement' method. The 'finalize' method should be called
-            for 'contents' to be fully populated from all sources. Defaults to
-            an empty dict.
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout chrisjen. To properly match 
-            parameters in a Settings instance, 'name' should be the prefix to 
-            "_parameters" as a section name in a Settings instance. Defaults to 
-            None. 
-        default (Mapping[str, Any]): default parameters that will be used if 
-            they are not overridden. Defaults to an empty dict.
-        implementation (Mapping[str, str]): parameters with values that can only 
-            be determined at runtime due to dynamic nature of chrisjen and its 
-            workflows. The keys should be the names of the parameters and the 
-            values should be attributes or items in 'contents' of 'project' 
-            passed to the 'finalize' method. Defaults to an emtpy dict.
-        selected (Sequence[str]): an exclusive list of parameters that are 
-            allowed. If 'selected' is empty, all possible parameters are 
-            allowed. However, if any are listed, all other parameters that are
-            included are removed. This is can be useful when including 
-            parameters in an Outline instance for an entire step, only some of
-            which might apply to certain techniques. Defaults to an empty list.
-
-    """
-    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    name: Optional[str] = None
-    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    implementation: Mapping[str, str] = dataclasses.field(
-        default_factory = dict)
-    selected: Sequence[str] = dataclasses.field(default_factory = list)
-      
-    """ Public Methods """
-
-    def finalize(self, project: interface.Project, **kwargs) -> None:
-        """Combines and selects final parameters into 'contents'.
-
-        Args:
-            project (interface.Project): instance from which implementation and 
-                settings parameters can be derived.
-            
-        """
-        # Uses kwargs and 'default' parameters as a starting amos.
-        parameters = self.default
-        parameters.update(kwargs)
-        # Adds any parameters from 'settings'.
-        try:
-            parameters.update(self._from_settings(settings = project.settings))
-        except AttributeError:
-            pass
-        # Adds any implementation parameters.
-        if self.implementation:
-            parameters.update(self._at_runtime(project = project))
-        # Adds any parameters already stored in 'contents'.
-        parameters.update(self.contents)
-        # Limits parameters to those in 'selected'.
-        if self.selected:
-            self.contents = {k: self.contents[k] for k in self.selected}
-        self.contents = parameters
-        return self
-
-    """ Private Methods """
-     
-    def _from_settings(self, settings: ProjectSettings) -> dict[str, Any]: 
-        """Returns any applicable parameters from 'settings'.
-
-        Args:
-            settings (ProjectSettings): instance with possible 
-                parameters.
-
-        Returns:
-            dict[str, Any]: any applicable settings parameters or an empty dict.
-            
-        """
-        try:
-            parameters = settings[f'{self.name}_parameters']
-        except KeyError:
-            suffix = self.name.split('_')[-1]
-            prefix = self.name[:-len(suffix) - 1]
-            try:
-                parameters = settings[f'{prefix}_parameters']
-            except KeyError:
-                try:
-                    parameters = settings[f'{suffix}_parameters']
-                except KeyError:
-                    parameters = {}
-        return parameters
-   
-    def _at_runtime(self, project: interface.Project) -> dict[str, Any]:
-        """Adds implementation parameters to 'contents'.
-
-        Args:
-            project (interface.Project): instance from which implementation 
-                parameters can be derived.
-
-        Returns:
-            dict[str, Any]: any applicable settings parameters or an empty dict.
-                   
-        """    
-        for parameter, attribute in self.implementation.items():
-            try:
-                self.contents[parameter] = getattr(project, attribute)
-            except AttributeError:
-                try:
-                    self.contents[parameter] = project.contents[attribute]
-                except (KeyError, AttributeError):
-                    pass
-        return self
 
 
 @dataclasses.dataclass
@@ -298,7 +172,192 @@ class ProjectLibrary(amos.Library):
         item = self.select(name = name)
         return list(item.__annotations__.keys())  
 
-           
+      
+@dataclasses.dataclass
+class LibraryFactory(abc.ABC):
+    """Mixin which registers subclasses, instances, and kinds.
+    
+    Args:
+        library (ClassVar[ProjectLibrary]): project library of classes, 
+            instances, and base classes. 
+            
+    """
+    library: ClassVar[ProjectLibrary] = dataclasses.field(
+        default_factory = ProjectLibrary)
+    
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass."""
+        # Because LibraryFactory is used as a mixin, it is important to
+        # call other base class '__init_subclass__' methods, if they exist.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        key = amos.get_name(item = cls)
+        cls.library.classes[key] = cls
+            
+    def __post_init__(self) -> None:
+        try:
+            super().__post_init__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        key = amos.get_name(item = self)
+        self.__class__.library[key] = self 
+    
+    """ Public Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        item: Union[str, Sequence[str]], 
+        *args: Any, 
+        **kwargs: Any) -> LibraryFactory:
+        """Creates an instance of a LibraryFactory subclass from 'item'.
+        
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a LibraryFactory or a str which matches a key in 
+                'library'.
+                                
+        Returns:
+            LibraryFactory: a LibraryFactory subclass instance created based 
+                on 'item' and any passed arguments.
+                
+        """
+        return cls.library.instance(item, *args, **kwargs)
+
+    
+@dataclasses.dataclass    
+class ProjectParameters(amos.Dictionary):
+    """Creates and stores parameters for a Component.
+    
+    The use of ProjectParameters is entirely optional, but it provides a handy 
+    tool for aggregating data from an array of sources, including those which 
+    only become apparent during execution of a chrisjen project, to create a 
+    unified set of implementation parameters.
+    
+    ProjectParameters can be unpacked with '**', which will turn the 'contents' 
+    attribute an ordinary set of kwargs. In this way, it can serve as a drop-in
+    replacement for a dict that would ordinarily be used for accumulating 
+    keyword arguments.
+    
+    If a chrisjen class uses a ProjectParameters instance, the 'finalize' method 
+    should be called before that instance's 'implement' method in order for each 
+    of the parameter types to be incorporated.
+    
+    Args:
+        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
+            classes' 'implement' method. The 'finalize' method should be called
+            for 'contents' to be fully populated from all sources. Defaults to
+            an empty dict.
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout chrisjen. To properly match 
+            parameters in a Settings instance, 'name' should be the prefix to 
+            "_parameters" as a section name in a Settings instance. Defaults to 
+            None. 
+        default (Mapping[str, Any]): default parameters that will be used if 
+            they are not overridden. Defaults to an empty dict.
+        implementation (Mapping[str, str]): parameters with values that can only 
+            be determined at runtime due to dynamic nature of chrisjen and its 
+            workflows. The keys should be the names of the parameters and the 
+            values should be attributes or items in 'contents' of 'project' 
+            passed to the 'finalize' method. Defaults to an emtpy dict.
+        selected (Sequence[str]): an exclusive list of parameters that are 
+            allowed. If 'selected' is empty, all possible parameters are 
+            allowed. However, if any are listed, all other parameters that are
+            included are removed. This is can be useful when including 
+            parameters in an Outline instance for an entire step, only some of
+            which might apply to certain techniques. Defaults to an empty list.
+
+    """
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    name: Optional[str] = None
+    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    implementation: Mapping[str, str] = dataclasses.field(
+        default_factory = dict)
+    selected: Sequence[str] = dataclasses.field(default_factory = list)
+      
+    """ Public Methods """
+
+    def finalize(self, project: interface.Project, **kwargs) -> None:
+        """Combines and selects final parameters into 'contents'.
+
+        Args:
+            project (interface.Project): instance from which implementation and 
+                settings parameters can be derived.
+            
+        """
+        # Uses kwargs and 'default' parameters as a starting amos.
+        parameters = self.default
+        parameters.update(kwargs)
+        # Adds any parameters from 'settings'.
+        try:
+            parameters.update(self._from_settings(settings = project.settings))
+        except AttributeError:
+            pass
+        # Adds any implementation parameters.
+        if self.implementation:
+            parameters.update(self._at_runtime(project = project))
+        # Adds any parameters already stored in 'contents'.
+        parameters.update(self.contents)
+        # Limits parameters to those in 'selected'.
+        if self.selected:
+            self.contents = {k: self.contents[k] for k in self.selected}
+        self.contents = parameters
+        return self
+
+    """ Private Methods """
+     
+    def _from_settings(self, settings: amos.Settings) -> dict[str, Any]: 
+        """Returns any applicable parameters from 'settings'.
+
+        Args:
+            settings (amos.Settings): instance with possible 
+                parameters.
+
+        Returns:
+            dict[str, Any]: any applicable settings parameters or an empty dict.
+            
+        """
+        try:
+            parameters = settings[f'{self.name}_parameters']
+        except KeyError:
+            suffix = self.name.split('_')[-1]
+            prefix = self.name[:-len(suffix) - 1]
+            try:
+                parameters = settings[f'{prefix}_parameters']
+            except KeyError:
+                try:
+                    parameters = settings[f'{suffix}_parameters']
+                except KeyError:
+                    parameters = {}
+        return parameters
+   
+    def _at_runtime(self, project: interface.Project) -> dict[str, Any]:
+        """Adds implementation parameters to 'contents'.
+
+        Args:
+            project (interface.Project): instance from which implementation 
+                parameters can be derived.
+
+        Returns:
+            dict[str, Any]: any applicable settings parameters or an empty dict.
+                   
+        """    
+        for parameter, attribute in self.implementation.items():
+            try:
+                self.contents[parameter] = getattr(project, attribute)
+            except AttributeError:
+                try:
+                    self.contents[parameter] = project.contents[attribute]
+                except (KeyError, AttributeError):
+                    pass
+        return self
+
+         
 @dataclasses.dataclass
 class ProjectComponent(amos.Node, workshop.LibraryFactory):
     """Base class for nodes in a project workflow.
@@ -323,7 +382,9 @@ class ProjectComponent(amos.Node, workshop.LibraryFactory):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = ProjectParameters)
     iterations: Union[int, str] = 1
-  
+    library: ClassVar[ProjectLibrary] = dataclasses.field(
+        default_factory = ProjectLibrary)
+      
     """ Required Subclass Methods """
 
     @abc.abstractmethod
@@ -380,15 +441,32 @@ class ProjectComponent(amos.Node, workshop.LibraryFactory):
 
 
 @dataclasses.dataclass
-class Director(Iterator, abc.ABC):
+class ProjectStage(object):
+    """Base classes for project stages.
+    
+    Args:
+        contents (Optional[Collection]): collection of data at a project stage.
+            
+    """
+    contents: Optional[Collection] = None
+    name: Optional[str] = None
+    library: ClassVar[ProjectLibrary] = dataclasses.field(
+        default_factory = ProjectLibrary)
+     
+    
+@dataclasses.dataclass
+class ProjectDirector(Iterator, abc.ABC):
     """Iterator for chrisjen Project instances.
     
     
     """
     project: interface.Project
-    bases: types.ModuleType = dir(sys.modules[__name__])
-    stages: Sequence[Type[str]] = dataclasses.field(default_factory = list)
-    
+    options: types.ModuleType = dir(sys.modules[__name__])
+    stages: Sequence[Union[str, Type[ProjectStage]]] = dataclasses.field(
+        default_factory = lambda: ['workflow', 'results'])
+    library: ClassVar[ProjectLibrary] = dataclasses.field(
+        default_factory = ProjectLibrary)
+       
     """ Initialization Methods """
 
     def __post_init__(self) -> None:
@@ -488,250 +566,3 @@ class Director(Iterator, abc.ABC):
         else:
             raise StopIteration
         return self
-
-
-@dataclasses.dataclass
-class ProjectSettings(amos.Settings):
-    """Loads and stores project configuration settings.
-
-    To create settings instance, a user can pass as the 'contents' parameter a:
-        1) pathlib file path of a compatible file type;
-        2) string containing a a file path to a compatible file type;
-                                or,
-        3) 2-level nested dict.
-
-    If 'contents' is imported from a file, settings creates a dict and can 
-    convert the dict values to appropriate datatypes. Currently, supported file 
-    types are: ini, json, toml, yaml, and python. If you want to use toml, yaml, 
-    or json, the identically named packages must be available in your python
-    environment.
-
-    If 'infer_types' is set to True (the default option), str dict values are 
-    automatically converted to appropriate datatypes (str, list, float, bool, 
-    and int are currently supported). Type conversion is automatically disabled
-    if the source file is a python module (assuming the user has properly set
-    the types of the stored python dict).
-
-    Because settings uses ConfigParser for .ini files, by default it stores 
-    a 2-level dict. The desire for accessibility and simplicity chrisjented this 
-    limitation. A greater number of levels can be achieved by having separate
-    sections with names corresponding to the strings in the values of items in 
-    other sections. 
-
-    Args:
-        contents (MutableMapping[Hashable, Any]): a dict for storing 
-            configuration  Defaults to en empty dict.
-        default (Any): default value to return when the 'get' method is used.
-            Defaults to an empty dict.
-        default (Mapping[str, Mapping[str]]): any default options that should
-            be used when a user does not provide the corresponding options in 
-            their configuration settings. Defaults to an empty dict.
-        infer_types (bool): whether values in 'contents' are converted to other 
-            datatypes (True) or left alone (False). If 'contents' was imported 
-            from an .ini file, all values will be strings. Defaults to True.
-
-    """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    default_factory: Optional[Any] = dict
-    default: Mapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    infer_types: bool = True
-    project: Optional[interface.Project] = None
-
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        if self.project is not None:
-            # Converts sections in 'contents' to ProjectSettingsSection types.
-            self._sectionify()
-    
-    """ Properties """
-    
-    @property
-    def kinds(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return workshop.get_kinds(section = self, project = self.project)
-    
-    @property
-    def connections(self) -> dict[str, list[str]]:
-        """[summary]
-
-        Returns:
-            dict[str, list[str]]: [description]
-            
-        """
-        return workshop.get_connections(section = self, project = self.project)
-
-    @property
-    def designs(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return workshop.get_designs(section = self, project = self.project)
-   
-    """ Public Methods """
-   
-    def link(self, project: interface.Project) -> None:
-        """
-        """
-        self.project = project
-        self._sectionify()
-        return self
-        
-    """" Private Methods """
-    
-    def _sectionify(self) -> None:
-        """Converts node-related subsections into ProjectSettingsSections."""
-        new_contents = {}
-        suffixes = self.project.nodes.suffixes
-        for key, value in self.contents.items():
-            if any(k.endswith(suffixes) for k in value.keys()):
-                section = ProjectSettingsSection(
-                    contents = value, 
-                    name = key, 
-                    settings = self)
-                new_contents[key] = section
-            else:
-                new_contents[key] = value
-        self.contents = new_contents
-        return
-
-
-@dataclasses.dataclass
-class ProjectSettingsSection(amos.Dictionary):
-    """Section of Outline with connections.
-
-    Args:
-        contents (MutableMapping[Hashable, Any]]): stored dictionary. Defaults 
-            to an empty dict.
-        default_factory (Any): default value to return when the 'get' method is 
-            used. Defaults to None.
-                          
-    """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    name: Optional[str] = None
-    settings: Optional[ProjectSettings] = None
-    
-    """ Properties """
-    
-    @property
-    def suffixes(self) -> list[str]:
-        """[summary]
-
-        Raises:
-            ValueError: [description]
-
-        Returns:
-            list[str]: [description]
-            
-        """
-        if self.project.settings is None:
-            raise ValueError(
-                'suffixes requires the ProjectSettings to be linked to a '
-                'Project instance')
-        else:
-            return self.settings.project.nodes.suffixes
-    
-    @property
-    def kinds(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return workshop.get_section_kinds(section = self)
-    
-    @property
-    def connections(self) -> dict[str, list[str]]:
-        """[summary]
-
-        Returns:
-            dict[str, list[str]]: [description]
-            
-        """
-        return workshop.get_section_connections(section = self)
-
-    @property
-    def designs(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        return workshop.get_section_designs(section = self)
-
-    @property
-    def names(self) -> list[str]:
-        """[summary]
-
-        Returns:
-            list[str]: [description]
-            
-        """
-        key_nodes = list(self.connections.keys())
-        value_nodes = list(
-            itertools.chain.from_iterable(self.connections.values()))
-        return amos.deduplicate(item = key_nodes + value_nodes) 
-
-    @property
-    def other(self) -> dict[str, str]:
-        """[summary]
-
-        Returns:
-            dict[str, str]: [description]
-            
-        """
-        design_keys = [k for k in self.keys() if k.endswith('design')]
-        connection_keys = [k for k in self.keys() if k.endswith(self.suffixes)]
-        exclude = design_keys + connection_keys
-        return {k: v for k, v in self.contents.items() if k not in exclude}
-
-    """ Public Methods """
-
-    @classmethod
-    def from_settings(
-        cls, 
-        settings: amos.Settings,
-        name: str,
-        **kwargs) -> ProjectSettingsSection:
-        """[summary]
-
-        Args:
-            settings (chrisjen.shared.settings): [description]
-            name (str):
-
-        Returns:
-            ProjectSettingsSection: derived from 'settings'.
-            
-        """        
-        return cls(contents = settings[name], name = name, **kwargs)    
-    
-
-@dataclasses.dataclass
-class ProjectStage(object):
-    """Base classes for project 
-
-    Args:
-        contents (Optional[Collection]): collection of data at a project stage.
-            
-    """
-    contents: Optional[Collection] = None
-    name: Optional[str] = None
