@@ -17,13 +17,14 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Project
+    Project (amos.Node): primary interface for chrisjen projects.
 
 """
 from __future__ import annotations
 from collections.abc import Iterable, Sequence
 import dataclasses
 import functools
+import inspect
 from typing import Any, ClassVar, Optional, Type, Union
 import warnings
 
@@ -64,14 +65,11 @@ class Project(amos.Node):
             
     """
     name: Optional[str] = None
-    settings: bases.SETTINGS = dataclasses.field(
-        default_factory = bases.SETTINGS)
-    clerk: bases.CLERK = dataclasses.field(
-        default_factory = bases.CLERK)
-    director: bases.DIRECTOR = dataclasses.field(
-        default_factory = bases.DIRECTOR)
-    nodes: bases.LIBRARY = dataclasses.field(
-        default_factory = bases.LIBRARY)
+    settings: Optional[amos.Settings] = None
+    clerk: Optional[amos.Clerk] = None
+    stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
+        default_factory = lambda: ['workflow', 'results'])
+    bases: bases.ProjectBases = bases.ProjectBases()
     data: Optional[object] = None
     identification: Optional[str] = None
     automatic: bool = True
@@ -88,19 +86,57 @@ class Project(amos.Node):
         except AttributeError:
             pass
         # Validates core attributes.
+        self._validate_bases()
         self._validate_settings()
         self._validate_clerk()
         self._validate_identification()
-        self._validate_director()
+        self._validate_stages()
         self._validate_data()
         # Sets multiprocessing technique, if necessary.
         self._set_parallelization()
+        # Sets index for iteration.
+        self.index = 0
         # Calls 'complete' if 'automatic' is True.
         if self.automatic:
             self.complete()
     
     """ Properties """
-        
+    
+    @property
+    def current(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+        """        
+        return self.stages[self.index].name
+    
+    @property
+    def previous(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """        
+        try:
+            return self.stages[self.index - 1].name
+        except IndexError:
+            return None
+    
+    @property
+    def subsequent(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """        
+        try:
+            return self.stages[self.index + 1].name
+        except IndexError:
+            return None
+               
     @functools.cached_property
     def connections(self) -> dict[str, list[str]]:
         """Returns raw connections between nodes from 'settings'.
@@ -177,10 +213,33 @@ class Project(amos.Node):
 
     def complete(self) -> None:
         """Iterates through all stages."""
-        for _ in self.director.stages:
+        for _ in self.stages:
             self.advance()
         return self
-                     
+
+    def get_base(self, base_type: str) -> None:
+        """[summary]
+
+        Args:
+            base_type (str): [description]
+
+        Returns:
+            [type]: [description]
+            
+        """        
+        return getattr(self.bases, base_type)
+
+    def set_base(self, base_type: str, base: Type[Any]) -> None:
+        """[summary]
+
+        Args:
+            base_type (str): [description]
+            base (Type[Any]): [description]
+            
+        """        
+        setattr(self.bases, base_type, base)
+        return
+                        
     """ Private Methods """
 
     def _validate_settings(self) -> None:
@@ -213,15 +272,38 @@ class Project(amos.Node):
             raise TypeError('identification must be a str or None type')
         return self
           
-    def _validate_director(self) -> None:
-        """Creates or validates 'director'."""
-        if not isinstance(self.director, bases.DIRECTOR):
-            self.director = bases.DIRECTOR.create(
-                item = self.director, 
-                project = self)
-        else:
-            self.director.project = self
-        return self
+    
+    def _validate_stages(self) -> None:
+        """Validates and/or converts 'stages' attribute."""
+        new_stages = []
+        for stage in self.stages:
+            new_stages.append(self._validate_stage(stage = stage))
+        self.stages = new_stages
+        return
+
+    def _validate_stage(self, stage: Any) -> object:
+        """[summary]
+
+        Args:
+            stage (Any): [description]
+
+        Raises:
+            KeyError: [description]
+
+        Returns:
+            object: [description]
+            
+        """        
+        if isinstance(stage, str):
+            try:
+                stage = self.bases.stage.library.instance(
+                    item = stage, 
+                    project = self)
+            except KeyError:
+                raise KeyError(f'{stage} was not found in the stage library')
+        elif inspect.isclass(stage):
+            stage = stage(project = self)
+        return stage
 
     def _validate_data(self) -> None:
         """Creates or validates 'datar'."""
@@ -238,18 +320,27 @@ class Project(amos.Node):
     """ Dunder Methods """
       
     def __iter__(self) -> Iterable:
-        """Returns iterable of a Project's Director instance.
+        """Returns iterable of 'stages'.
         
         Returns:
-            Iterable: of a Project's Director instance.
+            Iterable: of 'stages'.
             
         """
-        return iter(self.director)
+        return self
  
     def __next__(self) -> None:
-        """Completes a stage in 'director'."""
-        try:
-            next(self.director)
-        except StopIteration:
-            pass
+        """Completes a Stage instance."""
+        if self.index < len(self.stages):
+            source = self.previous or 'settings'
+            product = self.current
+            stage = self.stages[self.index]
+            if self.settings['general']['verbose']:
+                print(f'Creating {product} from {source}')
+            kwargs = {'project': self}
+            setattr(self, product, stage.create(**kwargs))
+            self.index += 1
+            if self.settings['general']['verbose']:
+                print(f'Completed {product}')
+        else:
+            raise StopIteration
         return self

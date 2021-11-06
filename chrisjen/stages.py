@@ -47,7 +47,7 @@ class WorkflowResults(bases.ProjectDirector):
     
     
     """
-    project: interface.Project = None
+    project: interface.Project
     options: types.ModuleType = bases
     stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
         default_factory = lambda: ['workflow', 'results'])
@@ -72,13 +72,6 @@ class ProjectWorkflow(amos.System, bases.ProjectStage):
     contents: MutableMapping[amos.Node, Set[amos.Node]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
-    
-    """ Properties """
-    
-    @property
-    def cookbook(self) -> amos.Pipelines:
-        """Returns stored graph as pipelines."""
-        return self.pipelines
 
 
 @dataclasses.dataclass

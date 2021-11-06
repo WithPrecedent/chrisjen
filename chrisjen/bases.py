@@ -1,5 +1,5 @@
 """
-options: base classes for a project
+bases: base classes for a project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -441,7 +441,7 @@ class ProjectComponent(amos.Node, workshop.LibraryFactory):
 
 
 @dataclasses.dataclass
-class ProjectStage(object):
+class ProjectStage(LibraryFactory):
     """Base classes for project stages.
     
     Args:
@@ -452,117 +452,18 @@ class ProjectStage(object):
     name: Optional[str] = None
     library: ClassVar[ProjectLibrary] = dataclasses.field(
         default_factory = ProjectLibrary)
-     
-    
+
+
 @dataclasses.dataclass
-class ProjectDirector(Iterator, abc.ABC):
-    """Iterator for chrisjen Project instances.
+class ProjectBases(object):
+    """Base classes for a project.
     
-    
+    Args:
+            
     """
-    project: interface.Project
-    options: types.ModuleType = dir(sys.modules[__name__])
-    stages: Sequence[Union[str, Type[ProjectStage]]] = dataclasses.field(
-        default_factory = lambda: ['workflow', 'results'])
-    library: ClassVar[ProjectLibrary] = dataclasses.field(
-        default_factory = ProjectLibrary)
-       
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        # Sets index for iteration.
-        self.index = 0
-        # Validate stages
-        self._validate_stages()
-        
-    """ Properties """
+    clerk: Type[Any] = amos.Clerk
+    component: Type[ProjectLibrary] = ProjectComponent
+    parameters: Type[Any] = ProjectParameters
+    settings: Type[Any] = amos.Settings
+    stage: Type[ProjectLibrary] = ProjectStage
     
-    @property
-    def current(self) -> str:
-        return list(self.stages.keys())[self.index]
-    
-    @property
-    def previous(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index -1]
-        except IndexError:
-            return None
-    
-    @property
-    def subsequent(self) -> str:
-        try:
-            return list(self.stages.keys())[self.index + 1]
-        except IndexError:
-            return None
- 
-    """ Public Methods """
-    
-    def advance(self) -> None:
-        """Iterates through next stage."""
-        return self.__next__()
-
-    def complete(self) -> None:
-        """Iterates through all stages."""
-        for stage in self.stages:
-            self.advance()
-        return self    
-
-    def get_base(self, base_type: str) -> None:
-        return getattr(self.options, base_type.upper())
-
-    def set_base(self, base_type: str, base: Type[Any]) -> None:
-        setattr(self.options, base_type, base)
-        return
-    
-    """ Private Methods """
-    
-    def _validate_stages(self) -> None:
-        new_stages = []
-        for stage in self.project.stages:
-            new_stages.append(self._validate_stage(stage = stage))
-        self.project.stages = new_stages
-        return
-
-    def _validate_stage(self, stage: Any) -> object:
-        if isinstance(stage, str):
-            try:
-                stage = STAGE.create(stage)
-            except KeyError:
-                raise KeyError(f'{stage} was not found in Stage registry')
-        if inspect.isclass(stage):
-            stage = stage()
-        return stage
-            
-    """ Dunder Methods """
-    
-    def __iter__(self) -> Iterable:
-        """Returns iterable of 'stages'.
-        
-        Returns:
-            Iterable: of 'stages'.
-            
-        """
-        return self
- 
-    def __next__(self) -> None:
-        """Completes a Stage instance."""
-        if self.index < len(self.stages):
-            source = self.previous or 'settings'
-            product = self.stages[self.current]
-            converter = getattr(self.converters, f'create_{product}')
-            if self.project.settings['general']['verbose']:
-                print(f'Creating {product} from {source}')
-            kwargs = {'project': self.project}
-            setattr(self.project, product, converter(**kwargs))
-            self.index += 1
-            if self.project.settings['general']['verbose']:
-                print(f'Completed {product}')
-        else:
-            raise StopIteration
-        return self
