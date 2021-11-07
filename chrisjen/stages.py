@@ -40,21 +40,9 @@ from . import workshop
 if TYPE_CHECKING:
     from . import interface
 
-
-@dataclasses.dataclass
-class WorkflowResults(bases.ProjectDirector):
-    """Project Director for an Outline, Workflow, Results process.
-    
-    
-    """
-    project: interface.Project
-    options: types.ModuleType = bases
-    stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
-        default_factory = lambda: ['workflow', 'results'])
-
  
 @dataclasses.dataclass
-class ProjectWorkflow(amos.System, bases.ProjectStage):
+class Workflow(amos.System, bases.ProjectStage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -75,7 +63,7 @@ class ProjectWorkflow(amos.System, bases.ProjectStage):
 
 
 @dataclasses.dataclass
-class ProjectResults(amos.System, bases.ProjectStage):
+class Results(amos.System, bases.ProjectStage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -92,7 +80,7 @@ class ProjectResults(amos.System, bases.ProjectStage):
     """ Public Methods """
 
     @classmethod
-    def from_workflow(cls, item: ProjectWorkflow, **kwargs) -> ProjectResults:
+    def from_workflow(cls, item: Workflow, **kwargs) -> Results:
         """[summary]
 
         Args:
@@ -195,7 +183,7 @@ def outline_to_initialization(
     kwargs = {}
     for key in parameter_keys:
         prefix, suffix = amos.divide_string(key)
-        if key.startswith(name) or (name == section and prefix == suffix):
+        if key.startswith(name) or (name == name and prefix == suffix):
             kwargs[suffix] = suboutline[key]
     return kwargs  
        

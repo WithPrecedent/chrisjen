@@ -17,11 +17,11 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Project (amos.Node): primary interface for chrisjen projects.
+    Project (amos.Node, Iterator): primary interface for chrisjen projects.
 
 """
 from __future__ import annotations
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 import dataclasses
 import functools
 import inspect
@@ -35,7 +35,7 @@ from . import workshop
 
 
 @dataclasses.dataclass
-class Project(amos.Node):
+class Project(amos.Node, Iterator):
     """Interface for a chrisjen project.
     
     Args:
@@ -50,8 +50,8 @@ class Project(amos.Node):
             for file input and output. A 'clerk' must contain all file path and 
             import/export methods for use throughout chrisjen. Defaults to the 
             default Clerk instance. 
-        director   
-        nodes
+        stages  
+        bases
         data (object): any data object for the project to be applied. If it is 
             None, an instance will still execute its workflow, but it won't
             apply it to any external data. Defaults to None.
@@ -66,10 +66,10 @@ class Project(amos.Node):
     """
     name: Optional[str] = None
     settings: Optional[amos.Settings] = None
-    clerk: Optional[amos.Clerk] = None
     stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
         default_factory = lambda: ['workflow', 'results'])
     bases: bases.ProjectBases = bases.ProjectBases()
+    clerk: Optional[amos.Clerk] = None
     data: Optional[object] = None
     identification: Optional[str] = None
     automatic: bool = True
@@ -86,10 +86,11 @@ class Project(amos.Node):
         except AttributeError:
             pass
         # Validates core attributes.
+        self._validate_name()
+        self._validate_identification()
         self._validate_bases()
         self._validate_settings()
         self._validate_clerk()
-        self._validate_identification()
         self._validate_stages()
         self._validate_data()
         # Sets multiprocessing technique, if necessary.
@@ -108,8 +109,12 @@ class Project(amos.Node):
 
         Returns:
             str: [description]
-        """        
-        return self.stages[self.index].name
+            
+        """    
+        try:    
+            return amos.get_name(item = self.stages[self.index])
+        except IndexError:
+            return 'settings'
     
     @property
     def previous(self) -> str:
@@ -120,12 +125,12 @@ class Project(amos.Node):
             
         """        
         try:
-            return self.stages[self.index - 1].name
+            return amos.get_name(item = self.stages[self.index - 1])
         except IndexError:
-            return None
+            return 'settings'
     
     @property
-    def subsequent(self) -> str:
+    def subsequent(self) -> Optional[str]:
         """[summary]
 
         Returns:
@@ -133,7 +138,7 @@ class Project(amos.Node):
             
         """        
         try:
-            return self.stages[self.index + 1].name
+            return amos.get_name(item = self.stages[self.index + 1])
         except IndexError:
             return None
                
@@ -238,26 +243,15 @@ class Project(amos.Node):
             
         """        
         setattr(self.bases, base_type, base)
-        return
+        return self
                         
     """ Private Methods """
-
-    def _validate_settings(self) -> None:
-        """Creates or validates 'settings'."""
-        if not isinstance(self.settings, bases.SETTINGS):
-            self.settings = bases.SETTINGS.create(item = self.settings)
-        return self
-          
-    def _validate_clerk(self) -> None:
-        """Creates or validates 'clerk'."""
-        if not isinstance(self.clerk, bases.CLERK):
-            self.clerk = bases.CLERK.create(
-                item = self.clerk, 
-                settings = self.settings)
-        else:
-            self.clerk.settings = self.settings
-        return self
-        
+    
+    def _validate_name(self) -> None:
+        """Creates or validates 'name'."""
+        self.name = self.name or amos.get_name(item = self)
+        return self  
+         
     def _validate_identification(self) -> None:
         """Creates unique 'identification' if one doesn't exist.
         
@@ -271,15 +265,43 @@ class Project(amos.Node):
         elif not isinstance(self.identification, str):
             raise TypeError('identification must be a str or None type')
         return self
+         
+    def _validate_bases(self) -> None:
+        """Creates or validates 'bases'."""
+        if inspect.isclass(self.bases):
+            self.bases = self.bases()
+        if (
+            not isinstance(self.bases, bases.ProjectBases)
+            or not amos.has_attributes(
+                item = self,
+                attributes = [
+                    'clerk', 'component', 'parameters', 'settings', 'stage'])):
+            self.bases = bases.ProjectBases()
+        return self
+            
+    def _validate_settings(self) -> None:
+        """Creates or validates 'settings'."""
+        if not isinstance(self.settings, self.bases.settings):
+            self.settings = self.bases.settings.create(item = self.settings)
+        return self
           
-    
+    def _validate_clerk(self) -> None:
+        """Creates or validates 'clerk'."""
+        if not isinstance(self.clerk, self.bases.clerk):
+            self.clerk = self.bases.clerk.create(
+                item = self.clerk, 
+                settings = self.settings)
+        else:
+            self.clerk.settings = self.settings
+        return self
+          
     def _validate_stages(self) -> None:
         """Validates and/or converts 'stages' attribute."""
-        new_stages = []
+        new_stages = [self.settings]
         for stage in self.stages:
             new_stages.append(self._validate_stage(stage = stage))
         self.stages = new_stages
-        return
+        return self
 
     def _validate_stage(self, stage: Any) -> object:
         """[summary]
@@ -296,9 +318,7 @@ class Project(amos.Node):
         """        
         if isinstance(stage, str):
             try:
-                stage = self.bases.stage.library.instance(
-                    item = stage, 
-                    project = self)
+                stage = self.bases.stage.create(item = stage, project = self)
             except KeyError:
                 raise KeyError(f'{stage} was not found in the stage library')
         elif inspect.isclass(stage):
@@ -306,7 +326,7 @@ class Project(amos.Node):
         return stage
 
     def _validate_data(self) -> None:
-        """Creates or validates 'datar'."""
+        """Creates or validates 'data'."""
         return self
     
     def _set_parallelization(self) -> None:

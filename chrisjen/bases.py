@@ -41,20 +41,20 @@ if TYPE_CHECKING:
     from . import interface
 
 
-CLERK: Type[Any] = amos.Clerk
-DIRECTOR: Type[Any] = globals()['ProjectDirector']
-LIBRARY: Type[Any] = globals()['ProjectLibrary']
-NODE: Type[Any] = globals()['ProjectComponent']
-PARAMETERS: Type[Any] = globals()['ProjectParameters']
-SETTINGS: Type[Any] = amos.Settings
-STAGE: Type[Any] = globals()['ProjectStage']
+# CLERK: Type[Any] = amos.Clerk
+# DIRECTOR: Type[Any] = globals()['ProjectDirector']
+# LIBRARY: Type[Any] = globals()['ProjectLibrary']
+# NODE: Type[Any] = globals()['ProjectComponent']
+# PARAMETERS: Type[Any] = globals()['ProjectParameters']
+# SETTINGS: Type[Any] = amos.Settings
+# STAGE: Type[Any] = globals()['ProjectStage']
 
-def get_base(base_type: str) -> None:
-    return globals()[base_type.upper()]
+# def get_base(base_type: str) -> None:
+#     return globals()[base_type.upper()]
 
-def set_base(base_type: str, base: Type[Any]) -> None:
-    globals()[base_type.upper()] = base
-    return
+# def set_base(base_type: str, base: Type[Any]) -> None:
+#     globals()[base_type.upper()] = base
+#     return
 
 
 @dataclasses.dataclass
@@ -82,7 +82,7 @@ class ProjectLibrary(amos.Library):
     
     def classify(
         self,
-        item: Union[str, Type[NODE], NODE]) -> str:
+        item: Union[str, Type[Any], Any]) -> str:
         """[summary]
 
         Args:
@@ -141,7 +141,7 @@ class ProjectLibrary(amos.Library):
 
     def is_kind(
         self, 
-        item: Union[str, Type[NODE], NODE],
+        item: Union[str, Type[Any], Any],
         kind: str) -> bool:
         """[summary]
 
@@ -155,7 +155,7 @@ class ProjectLibrary(amos.Library):
         """
         if isinstance(item, str):
             item = self[item]
-        elif isinstance(item, NODE):
+        elif not inspect.isclass(item):
             item = item.__class__
         return issubclass(item, self.kinds[kind])        
         
