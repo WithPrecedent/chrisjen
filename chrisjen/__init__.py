@@ -55,7 +55,6 @@ __author__ = 'Corey Rayburn Yung'
 
 
 from .bases import *
-from .directors import *
 from .filing import *
 from .interface import *
 from .nodes import *

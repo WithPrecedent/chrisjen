@@ -35,6 +35,7 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
+from . import filing
 from . import workshop
 
 if TYPE_CHECKING:
@@ -100,7 +101,6 @@ class ProjectLibrary(amos.Library):
     def instance(
         self, 
         name: Union[str, Sequence[str]], 
-        *args, 
         **kwargs) -> object:
         """Returns instance of first match of 'name' in stored catalogs.
         
@@ -117,7 +117,7 @@ class ProjectLibrary(amos.Library):
             object: [description]
             
         """
-        names = amos.iterify(name)
+        names = list(amos.iterify(name))
         primary = names[0]
         item = None
         for key in names:
@@ -132,7 +132,7 @@ class ProjectLibrary(amos.Library):
         if item is None:
             raise KeyError(f'No matching item for {name} was found') 
         elif inspect.isclass(item):
-            instance = item(primary, *args, **kwargs)
+            instance = item(primary, **kwargs)
         else:
             instance = copy.deepcopy(item)
             for key, value in kwargs.items():
@@ -174,7 +174,7 @@ class ProjectLibrary(amos.Library):
 
       
 @dataclasses.dataclass
-class LibraryFactory(abc.ABC):
+class LibraryFactory(object):
     """Mixin which registers subclasses, instances, and kinds.
     
     Args:
@@ -182,8 +182,7 @@ class LibraryFactory(abc.ABC):
             instances, and base classes. 
             
     """
-    library: ClassVar[ProjectLibrary] = dataclasses.field(
-        default_factory = ProjectLibrary)
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
     
     """ Initialization Methods """
     
@@ -196,8 +195,8 @@ class LibraryFactory(abc.ABC):
             super().__init_subclass__(*args, **kwargs) # type: ignore
         except AttributeError:
             pass
-        key = amos.get_name(item = cls)
-        cls.library.classes[key] = cls
+        name = amos.get_name(item = cls)
+        cls.library.deposit(item = cls, name = name)
             
     def __post_init__(self) -> None:
         try:
@@ -205,7 +204,7 @@ class LibraryFactory(abc.ABC):
         except AttributeError:
             pass
         key = amos.get_name(item = self)
-        self.__class__.library[key] = self 
+        self.__class__.library.deposit(item = self, name = key)
     
     """ Public Methods """
 
@@ -359,7 +358,7 @@ class ProjectParameters(amos.Dictionary):
 
          
 @dataclasses.dataclass
-class ProjectComponent(amos.Node, workshop.LibraryFactory):
+class ProjectComponent(amos.Node, LibraryFactory):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -382,8 +381,7 @@ class ProjectComponent(amos.Node, workshop.LibraryFactory):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = ProjectParameters)
     iterations: Union[int, str] = 1
-    library: ClassVar[ProjectLibrary] = dataclasses.field(
-        default_factory = ProjectLibrary)
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
       
     """ Required Subclass Methods """
 
@@ -450,8 +448,7 @@ class ProjectStage(LibraryFactory):
     """
     contents: Optional[Collection] = None
     name: Optional[str] = None
-    library: ClassVar[ProjectLibrary] = dataclasses.field(
-        default_factory = ProjectLibrary)
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
 
 
 @dataclasses.dataclass
@@ -461,7 +458,7 @@ class ProjectBases(object):
     Args:
             
     """
-    clerk: Type[Any] = amos.Clerk
+    clerk: Type[Any] = filing.Clerk
     component: Type[ProjectLibrary] = ProjectComponent
     parameters: Type[Any] = ProjectParameters
     settings: Type[Any] = amos.Settings

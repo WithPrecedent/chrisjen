@@ -52,7 +52,7 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class NodeLibrary(workshop.ProjectLibrary):
+class NodeLibrary(bases.ProjectLibrary):
     """Stores project classes and class instances.
     
     When searching for matches, instances are prioritized over classes.
@@ -341,9 +341,10 @@ class Component(bases.ProjectComponent, bases.LibraryFactory):
     contents: Optional[Any] = None
     name: Optional[str] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     library: ClassVar[NodeLibrary] = NodeLibrary()
+    
     
 @dataclasses.dataclass
 class Worker(Component, abc.ABC):
@@ -376,7 +377,7 @@ class Worker(Component, abc.ABC):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
 
     """ Public Methods """  
@@ -494,7 +495,7 @@ class Laborer(amos.Graph, Worker):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
    
@@ -612,7 +613,7 @@ class Manager(Worker, abc.ABC):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Union[Callable, str] = None
@@ -712,7 +713,7 @@ class Contest(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -755,7 +756,7 @@ class Study(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -798,7 +799,7 @@ class Survey(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -821,7 +822,7 @@ class Task(Component):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = lambda: Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     step: Union[str, Callable] = None
     technique: Callable = None
@@ -885,7 +886,7 @@ class Step(Task):
     name: Optional[str] = None
     contents: Optional[Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
                     
     """ Properties """
@@ -951,7 +952,7 @@ class Technique(Task):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = bases.ProjectParameters)
     iterations: Union[int, str] = 1
     step: str = None
         

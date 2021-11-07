@@ -35,7 +35,7 @@ from . import workshop
 
 
 @dataclasses.dataclass
-class Project(amos.Node, Iterator):
+class Project(Iterator):
     """Interface for a chrisjen project.
     
     Args:
@@ -288,9 +288,7 @@ class Project(amos.Node, Iterator):
     def _validate_clerk(self) -> None:
         """Creates or validates 'clerk'."""
         if not isinstance(self.clerk, self.bases.clerk):
-            self.clerk = self.bases.clerk.create(
-                item = self.clerk, 
-                settings = self.settings)
+            self.clerk = self.bases.clerk(settings = self.settings)
         else:
             self.clerk.settings = self.settings
         return self
@@ -318,11 +316,11 @@ class Project(amos.Node, Iterator):
         """        
         if isinstance(stage, str):
             try:
-                stage = self.bases.stage.create(item = stage, project = self)
+                stage = self.bases.stage.create(item = stage)
             except KeyError:
                 raise KeyError(f'{stage} was not found in the stage library')
         elif inspect.isclass(stage):
-            stage = stage(project = self)
+            stage = stage()
         return stage
 
     def _validate_data(self) -> None:
@@ -350,17 +348,21 @@ class Project(amos.Node, Iterator):
  
     def __next__(self) -> None:
         """Completes a Stage instance."""
+        print('test stages', self.index, self.stages)
+        print('test previous', self.previous)
         if self.index < len(self.stages):
-            source = self.previous or 'settings'
+            source = self.previous
             product = self.current
-            stage = self.stages[self.index]
-            if self.settings['general']['verbose']:
-                print(f'Creating {product} from {source}')
-            kwargs = {'project': self}
-            setattr(self, product, stage.create(**kwargs))
-            self.index += 1
+            print('test source, product', source, product)
+            if source != product:
+                stage = self.stages[self.index]
+                if self.settings['general']['verbose']:
+                    print(f'Creating {product} from {source}')
+                kwargs = {'project': self}
+                setattr(self, product, stage.create(item = self, **kwargs))
             if self.settings['general']['verbose']:
                 print(f'Completed {product}')
+            self.index += 1
         else:
             raise StopIteration
         return self

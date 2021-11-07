@@ -33,6 +33,7 @@ import pathlib
 import types
 from typing import Any, Optional, Union
 
+import amos
         
 @dataclasses.dataclass
 class FileFormat(object):
@@ -342,11 +343,11 @@ class Clerk(object):
             validated = path
         else:
             raise TypeError(f'path must be a str or Path type')
-        if test and not validated.exists():
-            if create:
-                self._write_folder(folder = validated)
-            else:
-                raise FileNotFoundError(f'{validated} does not exist')
+        # if test and not validated.exists():
+        #     if create:
+        #         self._write_folder(folder = validated)
+        #     else:
+        #         raise FileNotFoundError(f'{validated} does not exist')
         return validated
       
     """ Private Methods """
@@ -364,7 +365,7 @@ class Clerk(object):
             
         """
         try:
-            return self.validate(path = path, create = False)
+            return self.validate(path = path)
         except FileNotFoundError:
             return self.validate(path = self.root_folder / path)
 
@@ -372,7 +373,7 @@ class Clerk(object):
         """Returns default parameters for file transfers from 'settings'."""
         # Gets default parameters for file transfers from 'settings'.
         base = copy.deepcopy(default_parameters)
-        amos.update(self.parameters)
+        self.settings.update(self.parameters)
         self.parameters = base
         for section in ['files', 'filer', 'clerk']:
             if section in self.settings:

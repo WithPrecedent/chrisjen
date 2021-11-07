@@ -13,19 +13,19 @@ import chrisjen
 
 
 @dataclasses.dataclass
-class Something(chrisjen.Node):
+class Something(chrisjen.ProjectComponent):
     
     pass
 
 
 @dataclasses.dataclass
-class AnotherThing(chrisjen.Node):
+class AnotherThing(chrisjen.ProjectComponent):
     
     pass
 
 
 @dataclasses.dataclass
-class EvenAnother(chrisjen.Node):
+class EvenAnother(chrisjen.ProjectComponent):
     
     pass
 
@@ -34,14 +34,14 @@ def test_workflow():
     # Tests adjacency matrix constructor
     matrix = tuple([[[0, 0, 1], [1, 0, 0], [0, 0, 0]],
                     ['scorpion', 'frog', 'river']])
-    workflow = chrisjen.Workflow.from_matrix(matrix = matrix)
+    workflow = chrisjen.Workflow.from_matrix(item = matrix)
     assert 'scorpion' in workflow['frog']
     assert 'river' not in workflow['frog']
     # Tests adjacency list constructor
     adjacency = {'grumpy': {'sleepy'},
                  'doc': {},
                  'sneezy': {'grumpy', 'bashful'}}
-    workflow = chrisjen.Workflow.from_adjacency(adjacency = adjacency)
+    workflow = chrisjen.Workflow.from_adjacency(item = adjacency)
     assert 'sleepy' in workflow['grumpy']
     assert 'bashful' in workflow['sneezy']
     assert 'bashful' not in workflow['doc']
@@ -50,7 +50,7 @@ def test_workflow():
              ('camera', 'man'), 
              ('person', 'man'), 
              ('tv', 'person')]
-    workflow_edges = chrisjen.Workflow.from_edges(edges = edges)
+    workflow_edges = chrisjen.Workflow.from_edges(item = edges)
     assert 'woman' in workflow_edges['camera']
     assert 'man' in workflow_edges['camera']
     assert 'tv' not in workflow_edges['person']
@@ -95,6 +95,5 @@ def test_workflow():
 
 
 if __name__ == '__main__':
-    chrisjen.testing.testify(target_module = chrisjen, 
-                           testing_module = __name__)
+    test_workflow()
     
