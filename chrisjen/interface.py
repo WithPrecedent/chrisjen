@@ -67,7 +67,7 @@ class Project(Iterator):
     name: Optional[str] = None
     settings: Optional[amos.Settings] = None
     stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
-        default_factory = lambda: ['workflow', 'results'])
+        default_factory = lambda: ['outline', 'workflow', 'results'])
     bases: bases.ProjectBases = bases.ProjectBases()
     clerk: Optional[amos.Clerk] = None
     data: Optional[object] = None
@@ -295,10 +295,7 @@ class Project(Iterator):
           
     def _validate_stages(self) -> None:
         """Validates and/or converts 'stages' attribute."""
-        new_stages = [self.settings]
-        for stage in self.stages:
-            new_stages.append(self._validate_stage(stage = stage))
-        self.stages = new_stages
+        self.stages = [self._validate_stage(stage) for stage in self.stages]
         return self
 
     def _validate_stage(self, stage: Any) -> object:
