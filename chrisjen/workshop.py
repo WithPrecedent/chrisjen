@@ -33,6 +33,8 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
+from . import bases
+
 if TYPE_CHECKING:
     from . import interface
     from . import stages
@@ -242,4 +244,327 @@ def get_section_kinds(
         else:
             kind = suffix            
         kinds.update(dict.fromkeys(values, kind))
-    return kinds   
+    return kinds    
+
+
+def create_outline(
+    project: interface.Project,
+    base: Optional[Type[stages.Outline]] = None, 
+    **kwargs) -> stages.Outline:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[stages.Outline]]): [description]. Defaults to None.
+
+    Returns:
+        stages.Outline: [description]
+        
+    """    
+    base = base or project.stages.withdraw(item = 'outline')
+    outline = base(project = project, **kwargs)
+    return _settings_to_outline(
+        settings = project.settings,
+        suffixes = project.components.suffixes,
+        outline = outline)
+    
+def create_workflow(
+    project: interface.Project,
+    base: Optional[Type[stages.Workflow]] = None, 
+    **kwargs) -> stages.Workflow:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[stages.Workflow]]): [description]. Defaults to None.
+
+    Returns:
+        stages.Workflow: [description]
+        
+    """    
+    base = base or project.stages.withdraw(item = 'workflow')
+    workflow = base(project = project, **kwargs)
+    return _outline_to_workflow(
+        outline = project.outline,
+        library = project.components,
+        workflow = workflow)
+    
+def create_results(
+    project: interface.Project,
+    base: Optional[Type[stages.Results]] = None, 
+    **kwargs) -> stages.Results:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[stages.Results]]): [description]. Defaults to None.
+
+    Returns:
+        stages.Results: [description]
+        
+    """    
+    base = base or project.stages.withdraw(item = 'results')
+    results = base(project = project, **kwargs)
+    return _workflow_to_results(
+        worfklow = project.workflow,
+        library = project.components,
+        results = results)
+
+
+""" Private Functions """
+
+def _settings_to_outline(
+    settings: amos.Settings,
+    suffixes: list[str]) -> dict[Hashable, dict[Hashable, Any]]:
+    """[summary]
+
+    Args:
+        settings (amos.Settings): [description]
+        suffixes (list[str]): [description]
+
+    Returns:
+        dict[Hashable, dict[Hashable, Any]]: [description]
+    """
+    all_suffixes = suffixes + 'parameters'
+    return {
+        key: value for key, value in settings.items() 
+        if any(k.endswith(all_suffixes) for k in value.keys())}
+
+def _outline_to_workflow(
+    outline: stages.Outline, 
+    library: bases.ProjectLibrary, 
+    workflow: stages.Workflow) -> stages.Workflow:
+    """[summary]
+
+    Args:
+        outline (stages.Outline): [description]
+        library (bases.LIBRARY): [description]
+
+    Returns:
+        stages.Workflow: [description]
+        
+    """
+    
+    components = {}
+    for name in outline.labels:
+        components[name] = _outline_to_component(
+            name = name,
+            outline = outline,
+            library = library)
+    workflow = _outline_to_system(
+        outline = outline, 
+        components = components,
+        system = workflow)
+    return workflow 
+
+def _outline_to_component(
+    name: str, 
+    outline: stages.Outline,
+    library: bases.ProjectLibrary) -> bases.ProjectComponent:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        outline (stages.Outline): [description]
+        library (bases.ProjectLibrary): [description]
+
+    Returns:
+        bases.ProjectComponent: [description]
+        
+    """    
+    design = outline.designs.get(name, None) 
+    kind = outline.kinds.get(name, None) 
+    lookups = _get_lookups(name = name, design = design, kind = kind)
+    base = library.withdraw(item = lookups)
+    parameters = amos.get_annotations(item = base)
+    attributes, initialization = _parse_initialization(
+        outline = outline,
+        parameters = parameters)
+    initialization['parameters'] = _get_runtime(
+        lookups = lookups,
+        outline = outline)
+    component = base(name = name, **initialization)
+    for key, value in attributes.items():
+        setattr(component, key, value)
+    return component
+
+def _get_lookups(
+    name: str, 
+    design: Optional[str], 
+    kind: Optional[str]) -> list[str]:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        design (Optional[str]): [description]
+        kind (Optional[str]): [description]
+
+    Returns:
+        list[str]: [description]
+        
+    """    
+    lookups = [name]
+    if design:
+        lookups.append(design)
+    if kind:
+        lookups.append(kind)
+    return lookups
+
+def _get_runtime(
+    lookups: list[str], 
+    outline: stages.Outline) -> dict[Hashable, Any]:
+    """[summary]
+
+    Args:
+        lookups (list[str]): [description]
+        outline (stages.Outline): [description]
+
+    Returns:
+        dict[Hashable, Any]: [description]
+        
+    """    
+    runtime = {}
+    for key in lookups:
+        try:
+            match = outline.runtime[key]
+            runtime[lookups[0]] = match
+            break
+        except KeyError:
+            pass
+    return runtime
+
+def _parse_initialization(
+    name: str,
+    outline: stages.Outline, 
+    parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        outline (stages.Outline): [description]
+        parameters (list[str]): [description]
+
+    Returns:
+        tuple[dict[str, Any], dict[str, Any]]: [description]
+        
+    """
+    if name in outline.initialization:
+        attributes = {}
+        initialization = {}
+        for key, value in outline.initialization[name]: 
+            if key in parameters:
+                initialization[key] = value
+            else:
+                attributes[key] = value
+        return attributes, initialization
+    else:
+        return {}, {}  
+
+def _outline_to_system(
+    outline: stages.Outline, 
+    components: dict[str, bases.ProjectComponent],
+    system: stages.Workflow) -> stages.Workflow:
+    """[summary]
+
+    Args:
+        outline (stages.Outline): [description]
+        components (dict[str, bases.ProjectComponent]): [description]
+        system (stages.Workflow): [description]
+
+    Returns:
+        stages.Workflow: [description]
+        
+    """    
+    for node in outline.connections.keys():
+        component = components[node]
+        system = component.organize(workflow = system)    
+    return system
+
+def _finalize_serial(
+    node: str,
+    connections: dict[str, list[str]],
+    library: nodes.Library,
+    graph: amos.Graph) -> amos.Graph:
+    """[summary]
+
+    Args:
+        node (str): [description]
+        connections (dict[str, list[str]]): [description]
+        library (nodes.Library): [description]
+        graph (chrisjen.structures.Graph): [description]
+
+    Returns:
+        chrisjen.structures.Graph: [description]
+        
+    """    
+    connections = _serial_order(
+        name = node, 
+        connections = connections)
+    nodes = list(more_itertools.collapse(connections))
+    if nodes:
+        amos.extend(nodes = nodes)
+    return graph      
+
+def _serial_order(
+    name: str,
+    connections: dict[str, list[str]]) -> list[Hashable]:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        directive (core.Directive): [description]
+
+    Returns:
+        list[Hashable]: [description]
+        
+    """   
+    organized = []
+    components = connections[name]
+    for item in components:
+        organized.append(item)
+        if item in connections:
+            organized_connections = []
+            connections = _serial_order(
+                name = item, 
+                connections = connections)
+            organized_connections.append(connections)
+            if len(organized_connections) == 1:
+                organized.append(organized_connections[0])
+            else:
+                organized.append(organized_connections)
+    return organized   
+
+        
+def _workflow_to_results(
+    path: Sequence[str],
+    project: interface.Project,
+    data: Any = None,
+    library: nodes.Library = None,
+    result: core.Result = None,
+    **kwargs) -> object:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        path (Sequence[str]): [description]
+        project (interface.Project): [description]
+        data (Any, optional): [description]. Defaults to None.
+        library (nodes.Library, optional): [description]. Defaults to None.
+        result (core.Result, optional): [description]. Defaults to None.
+
+    Returns:
+        object: [description]
+        
+    """    
+    library = library or amos.LIBRARY
+    result = result or amos.RESULT
+    data = data or project.data
+    result = result()
+    for node in path:
+        print('test node in path', node)
+        try:
+            component = library.instance(name = node)
+            result.add(component.execute(project = project, **kwargs))
+        except (KeyError, AttributeError):
+            pass
+    return result

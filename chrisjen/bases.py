@@ -36,26 +36,9 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 
 from . import filing
-from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
-
-
-# CLERK: Type[Any] = amos.Clerk
-# DIRECTOR: Type[Any] = globals()['ProjectDirector']
-# LIBRARY: Type[Any] = globals()['ProjectLibrary']
-# NODE: Type[Any] = globals()['ProjectComponent']
-# PARAMETERS: Type[Any] = globals()['ProjectParameters']
-# SETTINGS: Type[Any] = amos.Settings
-# STAGE: Type[Any] = globals()['ProjectStage']
-
-# def get_base(base_type: str) -> None:
-#     return globals()[base_type.upper()]
-
-# def set_base(base_type: str, base: Type[Any]) -> None:
-#     globals()[base_type.upper()] = base
-#     return
 
 
 @dataclasses.dataclass
@@ -453,7 +436,7 @@ class ProjectStage(LibraryFactory):
 
 @dataclasses.dataclass
 class ProjectBases(object):
-    """Base classes for a project.
+    """Base classes for a chrisjen Project.
     
     Args:
             
@@ -463,4 +446,145 @@ class ProjectBases(object):
     parameters: Type[Any] = ProjectParameters
     settings: Type[Any] = amos.Settings
     stage: Type[ProjectLibrary] = ProjectStage
+
     
+@dataclasses.dataclass
+class ProjectDirector(LibraryFactory, Iterator):
+    """Iterator for a chrisjen Project.
+    
+    
+    """
+    project: interface.Project
+    stages: Sequence[Union[str, Type[ProjectStage]]] = dataclasses.field(
+        default_factory = lambda: ['outline', 'workflow', 'results'])
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+       
+    """ Initialization Methods """
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Calls parent and/or mixin initialization method(s).
+        try:
+            super().__post_init__()
+        except AttributeError:
+            pass
+        # Sets index for iteration.
+        self.index = 0
+        # Validate stages
+        self._validate_stages()
+        
+    """ Properties """
+    
+    @property
+    def current(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """    
+        try:    
+            return amos.get_name(item = self.stages[self.index])
+        except IndexError:
+            return 'settings'
+    
+    @property
+    def previous(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """        
+        try:
+            return amos.get_name(item = self.stages[self.index - 1])
+        except IndexError:
+            return 'settings'
+    
+    @property
+    def subsequent(self) -> Optional[str]:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """        
+        try:
+            return amos.get_name(item = self.stages[self.index + 1])
+        except IndexError:
+            return None
+ 
+    """ Public Methods """
+    
+    def advance(self) -> None:
+        """Iterates through next stage."""
+        return self.__next__()
+
+    def complete(self) -> None:
+        """Iterates through all stages."""
+        for _ in self.stages:
+            self.advance()
+        return self    
+
+    def get_base(self, base_type: str) -> None:
+        return getattr(self.options, base_type.upper())
+
+    def set_base(self, base_type: str, base: Type[Any]) -> None:
+        setattr(self.options, base_type, base)
+        return
+    
+    """ Private Methods """
+    
+    def _validate_stages(self) -> None:
+        """Validates and/or converts 'stages' attribute."""
+        self.stages = [self._validate_stage(stage) for stage in self.stages]
+        return self
+
+    def _validate_stage(self, stage: Any) -> object:
+        """[summary]
+
+        Args:
+            stage (Any): [description]
+
+        Raises:
+            KeyError: [description]
+
+        Returns:
+            object: [description]
+            
+        """        
+        if isinstance(stage, str):
+            try:
+                stage = self.project.bases.stage.create(item = stage)
+            except KeyError:
+                raise KeyError(f'{stage} was not found in the stage library')
+        elif inspect.isclass(stage):
+            stage = stage()
+        return stage
+            
+    """ Dunder Methods """
+    
+    def __iter__(self) -> Iterable:
+        """Returns iterable of 'stages'.
+        
+        Returns:
+            Iterable: of 'stages'.
+            
+        """
+        return self
+ 
+    def __next__(self) -> None:
+        """Completes a Stage instance."""
+        if self.index < len(self.stages):
+            source = self.previous or 'settings'
+            product = self.stages[self.current]
+            if self.project.settings['general']['verbose']:
+                print(f'Creating {product} from {source}')
+            stage = self.stages[self.index]
+            setattr(self.project, product, stage.create(item = self))
+            if self.project.settings['general']['verbose']:
+                print(f'Completed {product}')
+            self.index += 1
+        else:
+            raise StopIteration
+        return self  

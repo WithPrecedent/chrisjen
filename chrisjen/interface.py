@@ -23,7 +23,6 @@ Contents:
 from __future__ import annotations
 from collections.abc import Iterable, Iterator, Sequence
 import dataclasses
-import functools
 import inspect
 from typing import Any, ClassVar, Optional, Type, Union
 import warnings
@@ -31,7 +30,7 @@ import warnings
 import amos
 
 from . import bases
-from . import workshop
+from . import filing
 
 
 @dataclasses.dataclass
@@ -66,11 +65,10 @@ class Project(Iterator):
     """
     name: Optional[str] = None
     settings: Optional[amos.Settings] = None
-    stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
-        default_factory = lambda: ['outline', 'workflow', 'results'])
-    bases: bases.ProjectBases = bases.ProjectBases()
-    clerk: Optional[amos.Clerk] = None
+    clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
+    bases: bases.ProjectBases = bases.ProjectBases()
+    director: Optional[bases.ProjectDirector] = bases.ProjectDirector()
     identification: Optional[str] = None
     automatic: bool = True
     
@@ -91,7 +89,7 @@ class Project(Iterator):
         self._validate_bases()
         self._validate_settings()
         self._validate_clerk()
-        self._validate_stages()
+        self._validate_director()
         self._validate_data()
         # Sets multiprocessing technique, if necessary.
         self._set_parallelization()
@@ -104,112 +102,25 @@ class Project(Iterator):
     """ Properties """
     
     @property
-    def current(self) -> str:
+    def components(self) -> bases.ProjectLibrary:
         """[summary]
 
         Returns:
-            str: [description]
-            
-        """    
-        try:    
-            return amos.get_name(item = self.stages[self.index])
-        except IndexError:
-            return 'settings'
-    
-    @property
-    def previous(self) -> str:
-        """[summary]
-
-        Returns:
-            str: [description]
+            bases.ProjectLibrary: [description]
             
         """        
-        try:
-            return amos.get_name(item = self.stages[self.index - 1])
-        except IndexError:
-            return 'settings'
-    
+        return self.bases.component.library
+
     @property
-    def subsequent(self) -> Optional[str]:
+    def stages(self) -> bases.ProjectLibrary:
         """[summary]
 
         Returns:
-            str: [description]
+            bases.ProjectLibrary: [description]
             
         """        
-        try:
-            return amos.get_name(item = self.stages[self.index + 1])
-        except IndexError:
-            return None
-               
-    @functools.cached_property
-    def connections(self) -> dict[str, list[str]]:
-        """Returns raw connections between nodes from 'settings'.
-
-        Returns:
-            dict[str, list[str]]: keys are node names and values are lists of
-                nodes to which the key node is connection. These connections
-                do not include any structure or design.
-            
-        """
-        return workshop.get_connections(project = self)
-
-    @functools.cached_property
-    def designs(self) -> dict[str, str]:
-        """Returns structural designs of nodes based on 'settings'.
-
-        Returns:
-            dict[str, str]: keys are node names and values are design names.
-            
-        """
-        return workshop.get_designs(project = self)
-
-    @functools.cached_property
-    def initialization(self) -> dict[str, dict[str, Any]]:
-        """Returns initialization arguments and attributes for nodes.
-        
-        These values will be parsed into arguments and attributes once the nodes
-        are instanced. They are derived from 'settings'.
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of the initialization arguments and attributes.
-            
-        """
-        return workshop.get_initialization(project = self)
-        
-    @functools.cached_property
-    def kinds(self) -> dict[str, str]:
-        """Returns kinds based on 'settings'.
-
-        Returns:
-            dict[str, str]: keys are names of nodes and values are names of the
-                associated base kind types.
-            
-        """
-        return workshop.get_kinds(project = self)
-    
-    @functools.cached_property
-    def labels(self) -> list[str]:
-        """Returns names of nodes based on 'settings'.
-
-        Returns:
-            list[str]: names of all nodes that are listed in 'settings'.
-            
-        """
-        return workshop.get_labels(project = self)
-
-    @functools.cached_property
-    def runtime(self) -> dict[str, dict[str, Any]]:
-        """Returns runtime parameters based on 'settings'
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of runtime parameters.
-            
-        """
-        return workshop.get_runtime(project = self)
-                
+        return self.bases.stage.library
+      
     """ Public Methods """
     
     def advance(self) -> None:
@@ -292,34 +203,15 @@ class Project(Iterator):
         else:
             self.clerk.settings = self.settings
         return self
-          
-    def _validate_stages(self) -> None:
-        """Validates and/or converts 'stages' attribute."""
-        self.stages = [self._validate_stage(stage) for stage in self.stages]
+       
+    def _validate_director(self) -> None:
+        """Creates or validates 'director'."""
+        if not isinstance(self.director, self.bases.director):
+            self.director = bases.director(project = self)
+        else:
+            self.director.project = self
         return self
-
-    def _validate_stage(self, stage: Any) -> object:
-        """[summary]
-
-        Args:
-            stage (Any): [description]
-
-        Raises:
-            KeyError: [description]
-
-        Returns:
-            object: [description]
-            
-        """        
-        if isinstance(stage, str):
-            try:
-                stage = self.bases.stage.create(item = stage)
-            except KeyError:
-                raise KeyError(f'{stage} was not found in the stage library')
-        elif inspect.isclass(stage):
-            stage = stage()
-        return stage
-
+    
     def _validate_data(self) -> None:
         """Creates or validates 'data'."""
         return self
@@ -335,31 +227,18 @@ class Project(Iterator):
     """ Dunder Methods """
       
     def __iter__(self) -> Iterable:
-        """Returns iterable of 'stages'.
+        """Returns iterable of a Project's director.
         
         Returns:
-            Iterable: of 'stages'.
+            Iterable: of a Project's director.
             
         """
-        return self
+        return iter(self.director)
  
     def __next__(self) -> None:
-        """Completes a Stage instance."""
-        print('test stages', self.index, self.stages)
-        print('test previous', self.previous)
-        if self.index < len(self.stages):
-            source = self.previous
-            product = self.current
-            print('test source, product', source, product)
-            if source != product:
-                stage = self.stages[self.index]
-                if self.settings['general']['verbose']:
-                    print(f'Creating {product} from {source}')
-                kwargs = {'project': self}
-                setattr(self, product, stage.create(item = self, **kwargs))
-            if self.settings['general']['verbose']:
-                print(f'Completed {product}')
-            self.index += 1
-        else:
-            raise StopIteration
+        """Completes a stage in 'director'."""
+        try:
+            next(self.director)
+        except StopIteration:
+            pass
         return self
