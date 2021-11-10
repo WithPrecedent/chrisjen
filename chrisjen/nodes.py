@@ -398,25 +398,9 @@ class Worker(Component, abc.ABC):
         """
         return self._implement_in_serial(project = project, **kwargs)    
 
-    def organize(self, subcomponents: dict[str, list[str]]) -> None:
-        """[summary]
-
-        Args:
-            subcomponents (dict[str, list[str]]): [description]
-
-        """
-        subcomponents = self._serial_order(
-            name = self.name, 
-            subcomponents = subcomponents)
-        nodes = list(more_itertools.collapse(subcomponents))
-        if nodes:
-            self.extend(nodes = nodes)
-        return self       
-
     """ Private Methods """
-
-    def _implement_in_serial(
-        self, 
+    
+    def _implement_in_serial(self, 
         project: interface.Project, 
         **kwargs) -> interface.Project:
         """Applies stored nodes to 'project' in order.
@@ -431,39 +415,9 @@ class Worker(Component, abc.ABC):
         """
         for node in self.paths[0]:
             project = node.execute(project = project, **kwargs)
-        return project
-       
-    def _serial_order(
-        self, 
-        name: str,
-        subcomponents: dict[str, list[str]]) -> list[Hashable]:
-        """[summary]
+        return project 
+        
 
-        Args:
-            name (str): [description]
-            directive (Directive): [description]
-
-        Returns:
-            list[Hashable]: [description]
-            
-        """   
-        organized = []
-        components = subcomponents[name]
-        for item in components:
-            organized.append(item)
-            if item in subcomponents:
-                organized_subcomponents = []
-                subcomponents = self._serial_order(
-                    name = item, 
-                    subcomponents = subcomponents)
-                organized_subcomponents.append(subcomponents)
-                if len(organized_subcomponents) == 1:
-                    organized.append(organized_subcomponents[0])
-                else:
-                    organized.append(organized_subcomponents)
-        return organized   
-    
-    
 @dataclasses.dataclass
 class Laborer(amos.Graph, Worker):
     """Keystone class for parts of a chrisjen workflow.
@@ -501,20 +455,21 @@ class Laborer(amos.Graph, Worker):
    
     """ Public Methods """  
 
-    def organize(self, subcomponents: dict[str, list[str]]) -> None:
+    def integrate(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
-            subcomponents (dict[str, list[str]]): [description]
+            project (interface.Project): [description]
 
-        """
-        subcomponents = self._serial_order(
-            name = self.name, 
-            subcomponents = subcomponents)
-        nodes = list(more_itertools.collapse(subcomponents))
-        if nodes:
-            self.extend(nodes = nodes)
-        return self       
+        Returns:
+            interface.Project: [description]
+        """        
+        pipeline = workshop.create_pipeline(
+            name = self.name,
+            project = project,
+            base = amos.Pipeline)
+        graph = amos.System.from_pipeline(item = pipeline)
+        return project.workflow.append(graph)   
 
     def implement(
         self, project: interface.Project, **kwargs) -> interface.Project:
@@ -529,54 +484,6 @@ class Laborer(amos.Graph, Worker):
             
         """
         return self._implement_in_serial(project = project, **kwargs)    
-
-    """ Private Methods """
-    
-    def _implement_in_serial(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies stored nodes to 'project' in order.
-
-        Args:
-            project (Project): chrisjen project to apply changes to and/or
-                gather needed data from.
-                
-        Returns:
-            Project: with possible alterations made.       
-        
-        """
-        for node in self.paths[0]:
-            project = node.execute(project = project, **kwargs)
-        return project
-
-    def _serial_order(self, 
-        name: str,
-        subcomponents: dict[str, list[str]]) -> list[Hashable]:
-        """[summary]
-
-        Args:
-            name (str): [description]
-            directive (Directive): [description]
-
-        Returns:
-            list[Hashable]: [description]
-            
-        """   
-        organized = []
-        components = subcomponents[name]
-        for item in components:
-            organized.append(item)
-            if item in subcomponents:
-                organized_subcomponents = []
-                subcomponents = self._serial_order(
-                    name = item, 
-                    subcomponents = subcomponents)
-                organized_subcomponents.append(subcomponents)
-                if len(organized_subcomponents) == 1:
-                    organized.append(organized_subcomponents[0])
-                else:
-                    organized.append(organized_subcomponents)
-        return organized   
 
  
 @dataclasses.dataclass
@@ -619,19 +526,23 @@ class Manager(Worker, abc.ABC):
     critera: Union[Callable, str] = None
               
     """ Public Methods """
-
-    def organize(self, subcomponents: dict[str, list[str]]) -> None:
+    
+    def integrate(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
-            subcomponents (dict[str, list[str]]): [description]
+            project (interface.Project): [description]
 
-        """
-        step_names = subcomponents[self.name]
-        nodes = [subcomponents[step] for step in step_names]
-        self.branchify(nodes = nodes)
-        return self  
-       
+        Returns:
+            interface.Project: [description]
+        """        
+        pipelines = workshop.create_pipelines(
+            name = self.name,
+            project = project,
+            base = amos.Pipelines)
+        graph = amos.System.from_pipelines(item = pipelines)
+        return project.workflow.append(graph)   
+           
     def implement(
         self,
         project: interface.Project, 
@@ -907,7 +818,7 @@ class Step(Task):
     
     """ Public Methods """
     
-    def organize(self, technique: Technique) -> Technique:
+    def integrate(self, technique: Technique) -> Technique:
         """[summary]
 
         Args:
@@ -990,7 +901,7 @@ class Technique(Task):
         """
         if self.step is not None:
             step = self.library.instance(name = self.step)
-            self = step.organize(technique = self)
+            self = step.integrate(technique = self)
         return super().execute(
             project = project, 
             iterations = iterations, 

@@ -21,14 +21,9 @@ Contents:
 """
 from __future__ import annotations
 import abc
-from collections.abc import (
-    Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence)
-import copy
-import dataclasses
-import inspect
+from collections.abc import Hashable, MutableMapping, Sequence
 import itertools
-import pathlib
-import types
+
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
@@ -246,7 +241,6 @@ def get_section_kinds(
         kinds.update(dict.fromkeys(values, kind))
     return kinds    
 
-
 def create_outline(
     project: interface.Project,
     base: Optional[Type[stages.Outline]] = None, 
@@ -288,7 +282,54 @@ def create_workflow(
         outline = project.outline,
         library = project.components,
         workflow = workflow)
-    
+
+def create_pipeline(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[amos.Pipeline]] = None, 
+    **kwargs) -> amos.Pipeline:
+    """[summary]
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[amos.Pipeline]]): [description]. Defaults to None.
+
+    Returns:
+        amos.Pipeline: [description]
+          
+    """    
+    base = base or amos.Pipeline
+    return base(contents = project.outline.connections[name], **kwargs)
+
+def create_pipelines(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[amos.Pipelines]] = None, 
+    pipeline_base: Optional[Type[amos.Pipeline]] = None, 
+    **kwargs) -> amos.Pipelines:
+    """[summary]
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[amos.Pipelines]]): [description]. Defaults to None.
+
+    Returns:
+        amos.Pipelines: [description]
+          
+    """    
+    base = base or amos.Pipelines
+    pipeline_base = pipeline_base or amos.Pipeline
+    pipelines = []
+    for connection in project.outline.connections[name]:
+        pipelines.append(create_pipeline(
+            name = connection, 
+            project = project,
+            base = pipeline_base))  
+    permutations = itertools.product(pipelines)
+    return base(contents = permutations, **kwargs)
+   
 def create_results(
     project: interface.Project,
     base: Optional[Type[stages.Results]] = None, 
@@ -309,7 +350,6 @@ def create_results(
         worfklow = project.workflow,
         library = project.components,
         results = results)
-
 
 """ Private Functions """
 
@@ -463,7 +503,7 @@ def _parse_initialization(
 def _outline_to_system(
     outline: stages.Outline, 
     components: dict[str, bases.ProjectComponent],
-    system: stages.Workflow) -> stages.Workflow:
+    system: stages.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
@@ -477,70 +517,15 @@ def _outline_to_system(
     """    
     for node in outline.connections.keys():
         component = components[node]
-        system = component.organize(workflow = system)    
+        system = component.integrate(workflow = system)    
     return system
 
-def _finalize_serial(
-    node: str,
-    connections: dict[str, list[str]],
-    library: nodes.Library,
-    graph: amos.Graph) -> amos.Graph:
-    """[summary]
-
-    Args:
-        node (str): [description]
-        connections (dict[str, list[str]]): [description]
-        library (nodes.Library): [description]
-        graph (chrisjen.structures.Graph): [description]
-
-    Returns:
-        chrisjen.structures.Graph: [description]
-        
-    """    
-    connections = _serial_order(
-        name = node, 
-        connections = connections)
-    nodes = list(more_itertools.collapse(connections))
-    if nodes:
-        amos.extend(nodes = nodes)
-    return graph      
-
-def _serial_order(
-    name: str,
-    connections: dict[str, list[str]]) -> list[Hashable]:
-    """[summary]
-
-    Args:
-        name (str): [description]
-        directive (core.Directive): [description]
-
-    Returns:
-        list[Hashable]: [description]
-        
-    """   
-    organized = []
-    components = connections[name]
-    for item in components:
-        organized.append(item)
-        if item in connections:
-            organized_connections = []
-            connections = _serial_order(
-                name = item, 
-                connections = connections)
-            organized_connections.append(connections)
-            if len(organized_connections) == 1:
-                organized.append(organized_connections[0])
-            else:
-                organized.append(organized_connections)
-    return organized   
-
-        
 def _workflow_to_results(
     path: Sequence[str],
     project: interface.Project,
     data: Any = None,
-    library: nodes.Library = None,
-    result: core.Result = None,
+    library: bases.ProjectLibrary = None,
+    result: stages.Results = None,
     **kwargs) -> object:
     """[summary]
 
