@@ -391,7 +391,7 @@ def _outline_to_workflow(
             name = name,
             outline = outline,
             library = library)
-    workflow = _outline_to_system(
+    workflow = _outline_to_adjacency(
         outline = outline, 
         components = components,
         system = workflow)
@@ -500,7 +500,7 @@ def _parse_initialization(
     else:
         return {}, {}  
 
-def _outline_to_system(
+def _outline_to_adjacency(
     outline: stages.Outline, 
     components: dict[str, bases.ProjectComponent],
     system: stages.Workflow) -> amos.Pipeline:
@@ -515,7 +515,7 @@ def _outline_to_system(
         stages.Workflow: [description]
         
     """    
-    for node in outline.connections.keys():
+    for node, connections in outline.connections.items():
         component = components[node]
         system = component.integrate(workflow = system)    
     return system
