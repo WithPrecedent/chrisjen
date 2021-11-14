@@ -59,28 +59,9 @@ class ProjectLibrary(amos.Library):
         default_factory = amos.Catalog)
     instances: amos.Catalog[str, object] = dataclasses.field(
         default_factory = amos.Catalog)
-    kinds: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
 
     """ Public Methods """
     
-    def classify(
-        self,
-        item: Union[str, Type[Any], Any]) -> str:
-        """[summary]
-
-        Args:
-            item (str): [description]
-
-        Returns:
-            str: [description]
-            
-        """
-        for name, _ in self.items():
-            if self.is_kind(item = item, kind = name):
-                return name
-        raise KeyError('item was not found in the project library')
-
     def instance(
         self, 
         name: Union[str, Sequence[str]], 
@@ -121,39 +102,6 @@ class ProjectLibrary(amos.Library):
             for key, value in kwargs.items():
                 setattr(instance, key, value)  
         return instance 
-
-    def is_kind(
-        self, 
-        item: Union[str, Type[Any], Any],
-        kind: str) -> bool:
-        """[summary]
-
-        Args:
-            item (Union[str, Type[NODE], NODE]): [description]
-            kind (str): [description]
-
-        Returns:
-            bool: [description]
-            
-        """
-        if isinstance(item, str):
-            item = self[item]
-        elif not inspect.isclass(item):
-            item = item.__class__
-        return issubclass(item, self.kinds[kind])        
-        
-    def parameterify(self, name: Union[str, Sequence[str]]) -> list[str]:
-        """[summary]
-
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-
-        Returns:
-            list[str]: [description]
-            
-        """        
-        item = self.select(name = name)
-        return list(item.__annotations__.keys())  
 
       
 @dataclasses.dataclass
