@@ -313,7 +313,7 @@ class NodeLibrary(bases.amos.Library):
 
            
 @dataclasses.dataclass
-class Component(bases.ProjectComponent, amos.LibraryFactory):
+class Component(bases.ProjectNode, amos.LibraryFactory):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -329,13 +329,8 @@ class Component(bases.ProjectComponent, amos.LibraryFactory):
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        library (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
-            names of a subclass (snake_case by default) and values are the 
-            subclasses. Defaults to an empty dict.  
-            
-    Attributes:
-        library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+        library (ClassVar[amos.Library]): a Library instance storing both 
+            subclasses and instances.  
   
     """
     contents: Optional[Any] = None
@@ -344,6 +339,28 @@ class Component(bases.ProjectComponent, amos.LibraryFactory):
         default_factory = bases.NodeParameters)
     iterations: Union[int, str] = 1
     library: ClassVar[NodeLibrary] = NodeLibrary()
+    
+    """ Public Methods """
+
+    def implement(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        try:
+            project = self.contents.execute(project = project, **kwargs)
+        except AttributeError:
+            project = self.contents(project, **kwargs)
+        return project    
     
     
 @dataclasses.dataclass

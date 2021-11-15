@@ -400,7 +400,7 @@ def _outline_to_workflow(
 def _outline_to_component(
     name: str, 
     outline: stages.Outline,
-    library: bases.amos.Library) -> bases.ProjectComponent:
+    library: bases.amos.Library) -> bases.ProjectNode:
     """[summary]
 
     Args:
@@ -409,7 +409,7 @@ def _outline_to_component(
         library (bases.amos.Library): [description]
 
     Returns:
-        bases.ProjectComponent: [description]
+        bases.ProjectNode: [description]
         
     """    
     design = outline.designs.get(name, None) 
@@ -502,13 +502,13 @@ def _parse_initialization(
 
 def _outline_to_adjacency(
     outline: stages.Outline, 
-    components: dict[str, bases.ProjectComponent],
+    components: dict[str, bases.ProjectNode],
     system: stages.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         outline (stages.Outline): [description]
-        components (dict[str, bases.ProjectComponent]): [description]
+        components (dict[str, bases.ProjectNode]): [description]
         system (stages.Workflow): [description]
 
     Returns:

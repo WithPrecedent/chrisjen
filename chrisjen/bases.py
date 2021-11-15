@@ -170,7 +170,7 @@ class NodeParameters(amos.Dictionary):
 
          
 @dataclasses.dataclass
-class ProjectComponent(amos.Node, amos.LibraryFactory):
+class ProjectNode(amos.Node):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -193,7 +193,6 @@ class ProjectComponent(amos.Node, amos.LibraryFactory):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = NodeParameters)
     iterations: Union[int, str] = 1
-    library: ClassVar[amos.Library] = amos.Library()
       
     """ Required Subclass Methods """
 
@@ -235,7 +234,7 @@ class ProjectComponent(amos.Node, amos.LibraryFactory):
         iterations = iterations or self.iterations
         if self.contents not in [None, 'None', 'none']:
             if self.parameters:
-                if isinstance(self.parameters, NodeParameters):
+                if hasattr(self.parameters, 'finalize'):
                     self.parameters.finalize(project = project)
                 parameters = self.parameters
                 parameters.update(kwargs)
@@ -249,20 +248,39 @@ class ProjectComponent(amos.Node, amos.LibraryFactory):
                     project = self.implement(project = project, **parameters)
         return project
 
-
+        
 @dataclasses.dataclass
-class ProjectStage(amos.LibraryFactory):
-    """Base classes for project stages.
-    
+class Stage(ProjectNode, amos.LibraryFactory, abc.ABC):
+    """Base class for stage nodes in a chrisjen project.
+
     Args:
-        contents (Optional[Collection]): collection of data at a project stage.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty 'Parameters' instance.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
+        library (ClassVar[amos.Library]): a Library instance storing both 
+            subclasses and instances.  
             
+    Attributes:
+        library (ClassVar[Library]): library that stores concrete (non-abstract) 
+            subclasses and instances of Component. 
+  
     """
-    contents: Optional[Collection] = None
+    contents: Optional[Any] = None
     name: Optional[str] = None
-    library: ClassVar[amos.Library] = amos.Library()
-
-
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = NodeParameters)
+    iterations: Union[int, str] = 1
+    library: ClassVar[amos.Library] = amos.Library() 
+    
 @dataclasses.dataclass
 class ProjectBases(object):
     """Base classes for a chrisjen Project.
@@ -271,10 +289,10 @@ class ProjectBases(object):
             
     """
     clerk: Type[Any] = filing.Clerk
-    component: Type[amos.LibraryFactory] = ProjectComponent
+    component: Type[amos.LibraryFactory] = ProjectNode
     parameters: Type[Any] = NodeParameters
     settings: Type[Any] = amos.Settings
-    stage: Type[amos.LibraryFactory] = ProjectStage
+    stage: Type[amos.LibraryFactory] = Stage
 
     
 @dataclasses.dataclass
@@ -410,7 +428,7 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
             if self.project.settings['general']['verbose']:
                 print(f'Creating {product} from {source}')
             stage = self.stages[self.index]
-            setattr(self.project, product, stage.create(item = self))
+            setattr(self.project, product, stage.execute(project = self))
             if self.project.settings['general']['verbose']:
                 print(f'Completed {product}')
             self.index += 1

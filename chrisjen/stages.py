@@ -23,9 +23,9 @@ Contents:
     
 """
 from __future__ import annotations
+import abc
 import collections
-from collections.abc import (
-    Collection, Hashable, Mapping, MutableMapping, Sequence, Set)
+from collections.abc import Hashable, Mapping, MutableMapping, Set
 import dataclasses
 import functools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
@@ -37,10 +37,10 @@ from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
-
- 
+    
+    
 @dataclasses.dataclass
-class Outline(amos.Dictionary):
+class Outline(amos.Dictionary, bases.Stage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -57,6 +57,10 @@ class Outline(amos.Dictionary):
     """
     contents: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
+    name: str = 'Outline'
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.NodeParameters)
+    iterations: Union[int, str] = 1
     default_factory: Optional[Any] = dict
     project: interface.Project = None
 
@@ -133,7 +137,7 @@ class Outline(amos.Dictionary):
     """ Public Methods """
     
     @classmethod
-    def create(cls, project: interface.Project) -> Workflow:
+    def implement(cls, project: interface.Project) -> Outline:
         """[summary]
 
         Args:
@@ -171,7 +175,7 @@ class Outline(amos.Dictionary):
 
 
 @dataclasses.dataclass
-class Workflow(amos.System, bases.ProjectStage):
+class Workflow(amos.System, bases.Stage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -189,11 +193,15 @@ class Workflow(amos.System, bases.ProjectStage):
     contents: MutableMapping[amos.Node, Set[amos.Node]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
-
+    name: str = 'Workflow'
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.NodeParameters)
+    iterations: Union[int, str] = 1
+    
     """ Public Methods """
     
     @classmethod
-    def create(cls, project: interface.Project) -> Workflow:
+    def implement(cls, project: interface.Project) -> Workflow:
         """[summary]
 
         Args:
@@ -203,11 +211,11 @@ class Workflow(amos.System, bases.ProjectStage):
             interface.Project: [description]
             
         """        
-        return workshop.create_workflow(project = project)
+        return workshop.implement_workflow(project = project, base = cls)
 
 
 @dataclasses.dataclass
-class Results(amos.System, bases.ProjectStage):
+class Results(amos.System, bases.Stage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -220,11 +228,15 @@ class Results(amos.System, bases.ProjectStage):
     contents: MutableMapping[amos.Node, Set[amos.Node]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
-
+    name: Optional[str] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.NodeParameters)
+    iterations: Union[int, str] = 1
+    
     """ Public Methods """
 
     @classmethod
-    def create(cls, project: interface.Project) -> Results:
+    def implement(cls, project: interface.Project) -> Results:
         """[summary]
 
         Args:
@@ -233,4 +245,4 @@ class Results(amos.System, bases.ProjectStage):
             Results: derived from 'item'.
             
         """
-        return workshop.create_results(project = project)
+        return workshop.create_results(project = project, base = cls)
