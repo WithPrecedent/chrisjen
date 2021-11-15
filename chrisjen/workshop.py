@@ -372,7 +372,7 @@ def _settings_to_outline(
 
 def _outline_to_workflow(
     outline: stages.Outline, 
-    library: bases.ProjectLibrary, 
+    library: bases.amos.Library, 
     workflow: stages.Workflow) -> stages.Workflow:
     """[summary]
 
@@ -400,13 +400,13 @@ def _outline_to_workflow(
 def _outline_to_component(
     name: str, 
     outline: stages.Outline,
-    library: bases.ProjectLibrary) -> bases.ProjectComponent:
+    library: bases.amos.Library) -> bases.ProjectComponent:
     """[summary]
 
     Args:
         name (str): [description]
         outline (stages.Outline): [description]
-        library (bases.ProjectLibrary): [description]
+        library (bases.amos.Library): [description]
 
     Returns:
         bases.ProjectComponent: [description]
@@ -524,7 +524,7 @@ def _workflow_to_results(
     path: Sequence[str],
     project: interface.Project,
     data: Any = None,
-    library: bases.ProjectLibrary = None,
+    library: bases.amos.Library = None,
     result: stages.Results = None,
     **kwargs) -> object:
     """[summary]
@@ -548,7 +548,7 @@ def _workflow_to_results(
     for node in path:
         print('test node in path', node)
         try:
-            component = library.instance(name = node)
+            component = library.withdraw(name = node)
             result.add(component.execute(project = project, **kwargs))
         except (KeyError, AttributeError):
             pass

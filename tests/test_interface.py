@@ -79,7 +79,7 @@ def test_project():
     # Tests base libraries.
     assert 'parser' in chrisjen.Component.library.subclasses
     dynamite = Dynamite()
-    assert 'annihilate' in chrisjen.Component.library.instances
+    assert 'annihilate' in chrisjen.Component.library.withdraws
     # Tests workflow construction.
     print('test project workflow', project.workflow)
     print('test workflow endpoints', str(project.workflow.endpoints))

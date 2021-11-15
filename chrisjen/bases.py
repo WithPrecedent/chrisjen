@@ -40,141 +40,22 @@ from . import filing
 if TYPE_CHECKING:
     from . import interface
 
-
-@dataclasses.dataclass
-class ProjectLibrary(amos.Library):
-    """Stores project classes and class instances.
-    
-    When searching for matches, instances are prioritized over classes.
-    
-    Args:
-        classes (Catalog): a catalog of stored classes. Defaults to any empty
-            Catalog.
-        instances (Catalog): a catalog of stored class instances. Defaults to an
-            empty Catalog.
-        kinds (Catalog): kind types of nodes. Defaults to an empty Catalog.
-                 
-    """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-
-    """ Public Methods """
-    
-    def instance(
-        self, 
-        name: Union[str, Sequence[str]], 
-        **kwargs) -> object:
-        """Returns instance of first match of 'name' in stored catalogs.
-        
-        The method prioritizes the 'instances' catalog over 'classes' and any
-        passed names in the order they are listed.
-        
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-            
-        Raises:
-            KeyError: [description]
-            
-        Returns:
-            object: [description]
-            
-        """
-        names = list(amos.iterify(name))
-        primary = names[0]
-        item = None
-        for key in names:
-            for catalog in ['instances', 'classes']:
-                try:
-                    item = getattr(self, catalog)[key]
-                    break
-                except KeyError:
-                    pass
-            if item is not None:
-                break
-        if item is None:
-            raise KeyError(f'No matching item for {name} was found') 
-        elif inspect.isclass(item):
-            instance = item(primary, **kwargs)
-        else:
-            instance = copy.deepcopy(item)
-            for key, value in kwargs.items():
-                setattr(instance, key, value)  
-        return instance 
-
-      
-@dataclasses.dataclass
-class LibraryFactory(object):
-    """Mixin which registers subclasses, instances, and kinds.
-    
-    Args:
-        library (ClassVar[ProjectLibrary]): project library of classes, 
-            instances, and base classes. 
-            
-    """
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
-    
-    """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass."""
-        # Because LibraryFactory is used as a mixin, it is important to
-        # call other base class '__init_subclass__' methods, if they exist.
-        try:
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        name = amos.get_name(item = cls)
-        cls.library.deposit(item = cls, name = name)
-            
-    def __post_init__(self) -> None:
-        try:
-            super().__post_init__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        key = amos.get_name(item = self)
-        self.__class__.library.deposit(item = self, name = key)
-    
-    """ Public Methods """
-
-    @classmethod
-    def create(
-        cls, 
-        item: Union[str, Sequence[str]], 
-        *args: Any, 
-        **kwargs: Any) -> LibraryFactory:
-        """Creates an instance of a LibraryFactory subclass from 'item'.
-        
-        Args:
-            item (Any): any supported data structure which acts as a source for
-                creating a LibraryFactory or a str which matches a key in 
-                'library'.
-                                
-        Returns:
-            LibraryFactory: a LibraryFactory subclass instance created based 
-                on 'item' and any passed arguments.
-                
-        """
-        return cls.library.instance(item, *args, **kwargs)
-
-    
+   
 @dataclasses.dataclass    
-class ProjectParameters(amos.Dictionary):
+class NodeParameters(amos.Dictionary):
     """Creates and stores parameters for a Component.
     
-    The use of ProjectParameters is entirely optional, but it provides a handy 
+    The use of NodeParameters is entirely optional, but it provides a handy 
     tool for aggregating data from an array of sources, including those which 
     only become apparent during execution of a chrisjen project, to create a 
     unified set of implementation parameters.
     
-    ProjectParameters can be unpacked with '**', which will turn the 'contents' 
+    NodeParameters can be unpacked with '**', which will turn the 'contents' 
     attribute an ordinary set of kwargs. In this way, it can serve as a drop-in
     replacement for a dict that would ordinarily be used for accumulating 
     keyword arguments.
     
-    If a chrisjen class uses a ProjectParameters instance, the 'finalize' method 
+    If a chrisjen class uses a NodeParameters instance, the 'finalize' method 
     should be called before that instance's 'implement' method in order for each 
     of the parameter types to be incorporated.
     
@@ -289,7 +170,7 @@ class ProjectParameters(amos.Dictionary):
 
          
 @dataclasses.dataclass
-class ProjectComponent(amos.Node, LibraryFactory):
+class ProjectComponent(amos.Node, amos.LibraryFactory):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -300,7 +181,7 @@ class ProjectComponent(amos.Node, LibraryFactory):
             Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
-            empty 'ProjectParameters' instance.
+            empty 'NodeParameters' instance.
         iterations (Union[int, str]): number of times the 'implement' method 
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
@@ -310,9 +191,9 @@ class ProjectComponent(amos.Node, LibraryFactory):
     contents: Optional[Any] = None
     name: Optional[str] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = ProjectParameters)
+        default_factory = NodeParameters)
     iterations: Union[int, str] = 1
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+    library: ClassVar[amos.Library] = amos.Library()
       
     """ Required Subclass Methods """
 
@@ -354,7 +235,7 @@ class ProjectComponent(amos.Node, LibraryFactory):
         iterations = iterations or self.iterations
         if self.contents not in [None, 'None', 'none']:
             if self.parameters:
-                if isinstance(self.parameters, ProjectParameters):
+                if isinstance(self.parameters, NodeParameters):
                     self.parameters.finalize(project = project)
                 parameters = self.parameters
                 parameters.update(kwargs)
@@ -370,7 +251,7 @@ class ProjectComponent(amos.Node, LibraryFactory):
 
 
 @dataclasses.dataclass
-class ProjectStage(LibraryFactory):
+class ProjectStage(amos.LibraryFactory):
     """Base classes for project stages.
     
     Args:
@@ -379,7 +260,7 @@ class ProjectStage(LibraryFactory):
     """
     contents: Optional[Collection] = None
     name: Optional[str] = None
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+    library: ClassVar[amos.Library] = amos.Library()
 
 
 @dataclasses.dataclass
@@ -390,14 +271,14 @@ class ProjectBases(object):
             
     """
     clerk: Type[Any] = filing.Clerk
-    component: Type[ProjectLibrary] = ProjectComponent
-    parameters: Type[Any] = ProjectParameters
+    component: Type[amos.LibraryFactory] = ProjectComponent
+    parameters: Type[Any] = NodeParameters
     settings: Type[Any] = amos.Settings
-    stage: Type[ProjectLibrary] = ProjectStage
+    stage: Type[amos.LibraryFactory] = ProjectStage
 
     
 @dataclasses.dataclass
-class ProjectDirector(LibraryFactory, Iterator):
+class ProjectDirector(amos.LibraryFactory, Iterator):
     """Iterator for a chrisjen Project.
     
     
@@ -405,7 +286,7 @@ class ProjectDirector(LibraryFactory, Iterator):
     project: interface.Project
     stages: Sequence[Union[str, Type[ProjectStage]]] = dataclasses.field(
         default_factory = lambda: ['outline', 'workflow', 'results'])
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+    library: ClassVar[amos.Library] = amos.Library()
        
     """ Initialization Methods """
 
@@ -535,4 +416,5 @@ class ProjectDirector(LibraryFactory, Iterator):
             self.index += 1
         else:
             raise StopIteration
-        return self  
+        return self
+    

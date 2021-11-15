@@ -102,21 +102,21 @@ class Project(Iterator):
     """ Properties """
     
     @property
-    def components(self) -> bases.ProjectLibrary:
+    def components(self) -> bases.amos.Library:
         """[summary]
 
         Returns:
-            bases.ProjectLibrary: [description]
+            bases.amos.Library: [description]
             
         """        
         return self.bases.component.library
 
     @property
-    def stages(self) -> bases.ProjectLibrary:
+    def stages(self) -> bases.amos.Library:
         """[summary]
 
         Returns:
-            bases.ProjectLibrary: [description]
+            bases.amos.Library: [description]
             
         """        
         return self.bases.stage.library
