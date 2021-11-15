@@ -1,5 +1,5 @@
 """
-options: base configuration and file management classes for chrisjen projects
+filing: base file management classes and functions for chrisjen projects
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -34,7 +34,8 @@ import types
 from typing import Any, Optional, Union
 
 import amos
-        
+  
+      
 @dataclasses.dataclass
 class FileFormat(object):
     """File format information.
@@ -407,10 +408,14 @@ def validate_file_format(file_format: Union[str, FileFormat]) -> FileFormat:
         FileFormat: appropriate instance.
 
     """
-    return utilities.validate_choice(
-        item = file_format,
-        dictionary = formats,
-        kind = FileFormat)
+    if file_format in file_formats:
+        return file_formats[file_format]
+    elif isinstance(file_format, FileFormat):
+        return file_format
+    elif issubclass(file_format, FileFormat):
+        return file_format()
+    else:
+        raise TypeError(f'{file_format} is not a recognized file format')
 
 def combine_path(
     folder: str,
@@ -491,10 +496,10 @@ def prepare_transfer(
         file_path = amos.pathlibify(item = file_path)
         if not file_format:
             try:
-                file_format = [f for f in formats.values()
+                file_format = [f for f in file_formats.values()
                                if f.extension == file_path.suffix[1:]][0]
             except IndexError:
-                file_format = [f for f in formats.values()
+                file_format = [f for f in file_formats.values()
                                if f.extension == file_path.suffix][0]           
     file_format = validate_file_format(file_format = file_format)
     extension = file_format.extension
