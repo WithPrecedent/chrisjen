@@ -32,7 +32,26 @@ import amos
 from . import bases
 from . import filing
 
-
+       
+@dataclasses.dataclass
+class ProjectBases(object):
+    """Base classes for a chrisjen Project.
+    
+    Args:
+        clerk (Type[Any]): base class for a project filing clerk. Defaults to
+            filing.Clerk.
+        settings (Type[Any]): base class for project configuration settings.
+        stage (amos.LibraryFactory)
+        
+    """
+    clerk: Type[Any] = filing.Clerk
+    settings: Type[Any] = amos.Settings
+    stage: Type[amos.LibraryFactory] = ProjectStage
+    director: Type[Any] = ProjectDirector
+    component: Type[amos.LibraryFactory] = ProjectNode
+    workflow: Type[amos.Composite] = amos.System
+    
+    
 @dataclasses.dataclass
 class Project(Iterator):
     """Interface for a chrisjen project.
@@ -67,7 +86,7 @@ class Project(Iterator):
     settings: Optional[amos.Settings] = None
     clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
-    bases: bases.ProjectBases = bases.ProjectBases()
+    bases: ProjectBases = ProjectBases()
     director: Optional[bases.ProjectDirector] = bases.ProjectDirector()
     identification: Optional[str] = None
     automatic: bool = True

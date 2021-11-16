@@ -1,5 +1,5 @@
 """
-bases: base classes for a project
+bases: base classes for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,6 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
+
 
 """
 from __future__ import annotations
@@ -171,7 +172,7 @@ class NodeParameters(amos.Dictionary):
          
 @dataclasses.dataclass
 class ProjectNode(amos.Node):
-    """Base class for nodes in a project workflow.
+    """Base class for nodes in a chrisjen project.
 
     Args:
         contents (Optional[Any]): stored item(s) that has/have an 'implement' 
@@ -280,20 +281,7 @@ class Stage(ProjectNode, amos.LibraryFactory, abc.ABC):
         default_factory = NodeParameters)
     iterations: Union[int, str] = 1
     library: ClassVar[amos.Library] = amos.Library() 
-    
-@dataclasses.dataclass
-class ProjectBases(object):
-    """Base classes for a chrisjen Project.
-    
-    Args:
-            
-    """
-    clerk: Type[Any] = filing.Clerk
-    component: Type[amos.LibraryFactory] = ProjectNode
-    parameters: Type[Any] = NodeParameters
-    settings: Type[Any] = amos.Settings
-    stage: Type[amos.LibraryFactory] = Stage
-
+   
     
 @dataclasses.dataclass
 class ProjectDirector(amos.LibraryFactory, Iterator):
@@ -302,7 +290,7 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
     
     """
     project: interface.Project
-    stages: Sequence[Union[str, Type[ProjectStage]]] = dataclasses.field(
+    stages: Sequence[Union[str, Type[Stage]]] = dataclasses.field(
         default_factory = lambda: ['outline', 'workflow', 'results'])
     library: ClassVar[amos.Library] = amos.Library()
        
@@ -436,3 +424,5 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
             raise StopIteration
         return self
     
+
+
