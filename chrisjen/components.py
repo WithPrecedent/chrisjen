@@ -1,5 +1,5 @@
 """
-nodes: project workflow nodes and related classes
+components: project workflow nodes and related classes
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -19,7 +19,7 @@ License: Apache-2.0
 Contents:
     amos.Library
     Parameters
-    Component
+    bases.ProjectComponent
     Worker
     Laborer
     Manager
@@ -50,321 +50,9 @@ from . import workshop
 if TYPE_CHECKING:
     from . import interface
 
-
-@dataclasses.dataclass
-class NodeLibrary(bases.amos.Library):
-    """Stores project classes and class instances.
-    
-    When searching for matches, instances are prioritized over classes.
-    
-    Args:
-        classes (Catalog): a catalog of stored classes. Defaults to any empty
-            Catalog.
-        instances (Catalog): a catalog of stored class instances. Defaults to an
-            empty Catalog.
-        bases (Catalog): base types of nodes. Defaults to an empty Catalog.
-                 
-    """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-    bases: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-
-    """ Properties """
-    
-    @property
-    def suffixes(self) -> tuple[str]:
-        """Returns all stored names and naive plurals of those names.
-        
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
-        """
-        plurals = [key + 's' for key in self.instances.keys()] 
-        return tuple(plurals + [key + 's' for key in self.classes.keys()])
-    
-    @property
-    def laborers(self) -> tuple[str]:
-        kind = self.bases['laborer']
-        instances = [
-            k for k, v in self.instances.items() if isinstance(v, kind)]
-        classes = [
-            k for k, v in self.classes.items() if issubclass(v, kind)]
-        return tuple(instances + classes)   
-        
-    @property
-    def manager(self) -> tuple[str]:
-        kind = self.bases['manager']
-        instances = [
-            k for k, v in self.instances.items() if isinstance(v, kind)]
-        classes = [
-            k for k, v in self.classes.items() if issubclass(v, kind)]
-        return tuple(instances + classes)   
-     
-    @property
-    def tasks(self) -> tuple[str]:
-        kind = self.bases['task']
-        instances = [
-            k for k, v in self.instances.items() if isinstance(v, kind)]
-        classes = [
-            k for k, v in self.classes.items() if issubclass(v, kind)]
-        return tuple(instances + classes)
-
-    @property
-    def workers(self) -> tuple[str]:
-        kind = self.bases['worker']
-        instances = [
-            k for k, v in self.instances.items() if isinstance(v, kind)]
-        classes = [
-            k for k, v in self.classes.items() if issubclass(v, kind)]
-        return tuple(instances + classes)
-
-    """ Public Methods """
-    
-    def classify(
-        self,
-        component: Union[str, Type[bases.NODE], bases.NODE]) -> str:
-        """[summary]
-
-        Args:
-            component (str): [description]
-
-        Returns:
-            str: [description]
-            
-        """
-        for name, _ in self.bases.items():
-            if self.is_base(component = component, base = name):
-                return name
-        raise KeyError('component was not found in the project library')
-
-    def is_base(
-        self, 
-        component: Union[str, Type[bases.NODE], bases.NODE],
-        base: str) -> bool:
-        """[summary]
-
-        Args:
-            component (Union[str, Type[bases.NODE], bases.NODE]): [description]
-            base (str): [description]
-
-        Returns:
-            bool: [description]
-            
-        """
-        if isinstance(component, str):
-            component = self[component]
-        elif isinstance(component, bases.NODE):
-            component = component.__class__
-        return issubclass(component, self.bases[base])        
-        
-    def instance(
-        self, 
-        name: Union[str, Sequence[str]], 
-        *args, 
-        **kwargs) -> Component:
-        """Returns instance of first match of 'name' in stored catalogs.
-        
-        The method prioritizes the 'instances' catalog over 'classes' and any
-        passed names in the order they are listed.
-        
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-            
-        Raises:
-            KeyError: [description]
-            
-        Returns:
-            Component: [description]
-            
-        """
-        names = amos.iterify(name)
-        primary = names[0]
-        item = None
-        for key in names:
-            for catalog in ['instances', 'classes']:
-                try:
-                    item = getattr(self, catalog)[key]
-                    break
-                except KeyError:
-                    pass
-            if item is not None:
-                break
-        if item is None:
-            raise KeyError(f'No matching item for {name} was found') 
-        elif inspect.isclass(item):
-            instance = item(primary, *args, **kwargs)
-        else:
-            instance = copy.deepcopy(item)
-            for key, value in kwargs.items():
-                setattr(instance, key, value)  
-        return instance 
-
-    def parameterify(self, name: Union[str, Sequence[str]]) -> list[str]:
-        """[summary]
-
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-
-        Returns:
-            list[str]: [description]
-            
-        """        
-        component = self.select(name = name)
-        return list(component.__annotations__.keys())
-       
-    def register(self, component: Union[Component, Type[Component]]) -> None:
-        """[summary]
-
-        Args:
-            component (Union[Component, Type[Component]]): [description]
-
-        Raises:
-            TypeError: [description]
-
-        Returns:
-            [type]: [description]
-            
-        """
-        if isinstance(component, Component):
-            instances_key = self._get_instances_key(component = component)
-            self.instances[instances_key] = component
-            subclasses_key = self._get_subclasses_key(component = component)
-            if subclasses_key not in self.classes:
-                self.classes[subclasses_key] = component.__class__
-        elif inspect.isclass(component) and issubclass(component, Component):
-            subclasses_key = self._get_subclasses_key(component = component)
-            self.classes[subclasses_key] = component
-        else:
-            raise TypeError(
-                f'component must be a Component subclass or instance')
-        return self
-    
-    def select(self, name: Union[str, Sequence[str]]) -> Component:
-        """Returns subclass of first match of 'name' in stored catalogs.
-        
-        The method prioritizes the 'classes' catalog over 'instances' and any
-        passed names in the order they are listed.
-        
-        Args:
-            name (Union[str, Sequence[str]]): [description]
-            
-        Raises:
-            KeyError: [description]
-            
-        Returns:
-            Component: [description]
-            
-        """
-        names = amos.iterify(name)
-        item = None
-        for key in names:
-            for catalog in ['classes', 'instances']:
-                try:
-                    item = getattr(self, catalog)[key]
-                    break
-                except KeyError:
-                    pass
-            if item is not None:
-                break
-        if item is None:
-            raise KeyError(f'No matching item for {name} was found') 
-        elif inspect.isclass(item):
-            component = item
-        else:
-            component = item.__class__  
-        return component 
-    
-    """ Private Methods """
-    
-    def _get_instances_key(self, 
-        component: Union[Component, Type[Component]]) -> str:
-        """Returns a snakecase key of the class name.
-        
-        Returns:
-            str: the snakecase name of the class.
-            
-        """
-        try:
-            key = component.name 
-        except AttributeError:
-            try:
-                key = amos.snakify(component.__name__) 
-            except AttributeError:
-                key = amos.snakify(component.__class__.__name__)
-        return key
-    
-    def _get_subclasses_key(self, 
-        component: Union[Component, Type[Component]]) -> str:
-        """Returns a snakecase key of the class name.
-        
-        Returns:
-            str: the snakecase name of the class.
-            
-        """
-        try:
-            key = amos.snakify(component.__name__) 
-        except AttributeError:
-            key = amos.snakify(component.__class__.__name__)
-        return key      
-
-           
-@dataclasses.dataclass
-class Component(bases.ProjectNode, amos.LibraryFactory):
-    """Base class for nodes in a project workflow.
-
-    Args:
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty 'Parameters' instance.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-        library (ClassVar[amos.Library]): a Library instance storing both 
-            subclasses and instances.  
-  
-    """
-    contents: Optional[Any] = None
-    name: Optional[str] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
-    iterations: Union[int, str] = 1
-    library: ClassVar[NodeLibrary] = NodeLibrary()
-    
-    """ Public Methods """
-
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        try:
-            project = self.contents.execute(project = project, **kwargs)
-        except AttributeError:
-            project = self.contents(project, **kwargs)
-        return project    
-    
     
 @dataclasses.dataclass
-class Worker(Component, abc.ABC):
+class Worker(bases.ProjectComponent, abc.ABC):
     """Keystone class for parts of a chrisjen workflow.
 
     Args:
@@ -388,13 +76,13 @@ class Worker(Component, abc.ABC):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                               
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
 
     """ Public Methods """  
@@ -460,13 +148,13 @@ class Laborer(amos.Graph, Worker):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                               
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
    
@@ -526,18 +214,18 @@ class Manager(Worker, abc.ABC):
         default (Any): default value to return when the 'get' method is used.
             Defaults to an empty list.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.ProjectComponent in 
             'library' to use. Defaults to None.
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                           
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Union[Callable, str] = None
@@ -630,18 +318,18 @@ class Contest(Manager):
         default (Any): default value to return when the 'get' method is used.
             Defaults to an empty list.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.ProjectComponent in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                           
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -673,18 +361,18 @@ class Study(Manager):
         default (Any): default value to return when the 'get' method is used.
             Defaults to an empty list.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.ProjectComponent in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                         
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -716,25 +404,25 @@ class Survey(Manager):
         default (Any): default value to return when the 'get' method is used.
             Defaults to an empty list.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.ProjectComponent in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                             
     """
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
 
 
 @dataclasses.dataclass
-class Task(Component):
+class Task(bases.ProjectComponent):
     """Node type for chrisjen Workflows.
 
     Args:
@@ -750,7 +438,7 @@ class Task(Component):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     step: Union[str, Callable] = None
     technique: Callable = None
@@ -808,13 +496,13 @@ class Step(Task):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                                                  
     """
     name: Optional[str] = None
     contents: Optional[Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
                     
     """ Properties """
@@ -874,13 +562,13 @@ class Technique(Task):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.ProjectComponent. 
                                                  
     """
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.NodeParameters)
+        default_factory = bases.ComponentParameters)
     iterations: Union[int, str] = 1
     step: str = None
         

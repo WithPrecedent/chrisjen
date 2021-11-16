@@ -372,7 +372,7 @@ def _settings_to_outline(
 
 def _outline_to_workflow(
     outline: stages.Outline, 
-    library: bases.amos.Library, 
+    library: amos.Library, 
     workflow: stages.Workflow) -> stages.Workflow:
     """[summary]
 
@@ -400,13 +400,13 @@ def _outline_to_workflow(
 def _outline_to_component(
     name: str, 
     outline: stages.Outline,
-    library: bases.amos.Library) -> bases.ProjectNode:
+    library: amos.Library) -> bases.ProjectNode:
     """[summary]
 
     Args:
         name (str): [description]
         outline (stages.Outline): [description]
-        library (bases.amos.Library): [description]
+        library (amos.Library): [description]
 
     Returns:
         bases.ProjectNode: [description]
@@ -524,7 +524,7 @@ def _workflow_to_results(
     path: Sequence[str],
     project: interface.Project,
     data: Any = None,
-    library: bases.amos.Library = None,
+    library: amos.Library = None,
     result: stages.Results = None,
     **kwargs) -> object:
     """[summary]

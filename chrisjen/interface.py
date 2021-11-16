@@ -41,14 +41,22 @@ class ProjectBases(object):
         clerk (Type[Any]): base class for a project filing clerk. Defaults to
             filing.Clerk.
         settings (Type[Any]): base class for project configuration settings.
-        stage (amos.LibraryFactory)
+            Defaults to amos.Settings.
+        stage (Type[amos.LibraryFactory]): base class for project stages. 
+            Defaults to bases.ProjectStage.
+        director (Type[Any]): base class for a project director. Defaults to
+            bases.ProjectDirector.
+        component (Type[amos.LibraryFactory]): base class for nodes in a project
+            workflow. Defaults to bases.ProjectComponent.
+        workflow (Type[amos.Composite]): base class for a project workflow.
+            Defaults to amos.System. 
         
     """
     clerk: Type[Any] = filing.Clerk
     settings: Type[Any] = amos.Settings
-    stage: Type[amos.LibraryFactory] = ProjectStage
-    director: Type[Any] = ProjectDirector
-    component: Type[amos.LibraryFactory] = ProjectNode
+    stage: Type[amos.LibraryFactory] = bases.ProjectStage
+    director: Type[amos.LibraryFactory] = bases.ProjectDirector
+    component: Type[amos.LibraryFactory] = bases.ProjectComponent
     workflow: Type[amos.Composite] = amos.System
     
     
@@ -57,26 +65,26 @@ class Project(Iterator):
     """Interface for a chrisjen project.
     
     Args:
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout chrisjen. For example, if a chrisjen 
-            instance needs outline from an Outline instance, 'name' should 
-            match the appropriate section name in an Outline instance. Defaults 
-            to None. 
-        settings
-        clerk (ClerkSources): a Clerk-compatible class or a str or pathlib.Path 
-            containing the full path of where the root folder should be located 
-            for file input and output. A 'clerk' must contain all file path and 
-            import/export methods for use throughout chrisjen. Defaults to the 
-            default Clerk instance. 
-        stages  
-        bases
-        data (object): any data object for the project to be applied. If it is 
-            None, an instance will still execute its workflow, but it won't
-            apply it to any external data. Defaults to None.
-        identification (str): a unique identification name for a chrisjen 
-            Project. The name is used for creating file folders related to the 
-            project. If it is None, a str will be created from 'name' and the 
-            date and time. Defaults to None.   
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal referencing throughout chrisjen. Defaults to None. 
+        settings (Optional[amos.Settings]): configuration settings for the 
+            project. Defaults to None.
+        clerk (Optional[filing.Clerk]): a filing clerk for loading and saving 
+            files throughout a chrisjen project. Defaults to None.
+        data (Optional[object]): any data object for the project to be applied. 
+            If it is None, an instance will still execute its workflow, but it 
+            won't apply it to any external data. Defaults to None.
+        bases (ProjectBases): base classes for a project. Users can set
+            different bases that will automatically be used by the Project
+            framework. Defaults to a ProjectBases instance with the default base
+            classes.
+        director (Optional[bases.ProjectDirector]): the iterator for going
+            through the project stages. Defaults to None.
+        identification (Optional[str]): a unique identification name for a 
+            chrisjen project. The name is primarily used for creating file 
+            folders related to the project. If it is None, a str will be created 
+            from 'name' and the date and time. This prevents files from one 
+            project from overwriting another. Defaults to None.   
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
@@ -87,7 +95,7 @@ class Project(Iterator):
     clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
     bases: ProjectBases = ProjectBases()
-    director: Optional[bases.ProjectDirector] = bases.ProjectDirector()
+    director: Optional[bases.ProjectDirector] = None
     identification: Optional[str] = None
     automatic: bool = True
     
@@ -121,59 +129,69 @@ class Project(Iterator):
     """ Properties """
     
     @property
-    def components(self) -> bases.amos.Library:
-        """[summary]
+    def components(self) -> amos.Library:
+        """Returns the current library of available workflow components.
 
         Returns:
-            bases.amos.Library: [description]
+            amos.Library: library of workflow components.
             
         """        
         return self.bases.component.library
-
+    
     @property
-    def stages(self) -> bases.amos.Library:
-        """[summary]
+    def directors(self) -> amos.Library:
+        """Returns the current library of available project directors.
 
         Returns:
-            bases.amos.Library: [description]
+            amos.Library: library of project directors.
             
         """        
+        return self.bases.director.library
+    
+    @property
+    def stages(self) -> amos.Library:
+        """Returns the current library of available project stages.
+
+        Returns:
+            amos.Library: library of project stages.
+            
+        """       
         return self.bases.stage.library
       
     """ Public Methods """
     
     def advance(self) -> None:
-        """Iterates through next stage."""
+        """Iterates through the next stage."""
         return self.__next__()
 
     def complete(self) -> None:
         """Iterates through all stages."""
-        for _ in self.stages:
+        for _ in self:
             self.advance()
         return self
 
-    def get_base(self, base_type: str) -> None:
-        """[summary]
+    # def get_base(self, base_type: str) -> None:
+    #     """[summary]
 
-        Args:
-            base_type (str): [description]
+    #     Args:
+    #         base_type (str): [description]
 
-        Returns:
-            [type]: [description]
+    #     Returns:
+    #         [type]: [description]
             
-        """        
-        return getattr(self.bases, base_type)
+    #     """        
+    #     return getattr(self.bases, base_type)
 
-    def set_base(self, base_type: str, base: Type[Any]) -> None:
-        """[summary]
+    # def set_base(self, base_type: str, base: Type[Any]) -> None:
+    #     """[summary]
 
-        Args:
-            base_type (str): [description]
-            base (Type[Any]): [description]
+    #     Args:
+    #         base_type (str): [description]
+    #         base (Type[Any]): [description]
             
-        """        
-        setattr(self.bases, base_type, base)
-        return self
+    #     """        
+    #     setattr(self.bases, base_type, base)
+    #     return self
                         
     """ Private Methods """
     
@@ -188,6 +206,10 @@ class Project(Iterator):
         By default, 'identification' is set to the 'name' attribute followed by
         an underscore and the date and time.
         
+        Raises:
+            TypeError: if the 'identification' attribute is neither a str nor
+                None.
+                
         """
         if self.identification is None:
             prefix = self.name + '_'
@@ -200,24 +222,30 @@ class Project(Iterator):
         """Creates or validates 'bases'."""
         if inspect.isclass(self.bases):
             self.bases = self.bases()
-        if (
-            not isinstance(self.bases, bases.ProjectBases)
+        if (not isinstance(self.bases, ProjectBases)
             or not amos.has_attributes(
                 item = self,
                 attributes = [
-                    'clerk', 'component', 'parameters', 'settings', 'stage'])):
-            self.bases = bases.ProjectBases()
+                    'clerk', 'component', 'director', 'settings', 'stage', 
+                    'workflow'])):
+            self.bases = ProjectBases()
         return self
             
     def _validate_settings(self) -> None:
         """Creates or validates 'settings'."""
-        if not isinstance(self.settings, self.bases.settings):
+        if inspect.isclass(self.settings):
+            self.settings = self.settings()
+        if (self.settings is None 
+                or not isinstance(self.settings, self.bases.settings)):
             self.settings = self.bases.settings.create(item = self.settings)
         return self
           
     def _validate_clerk(self) -> None:
         """Creates or validates 'clerk'."""
-        if not isinstance(self.clerk, self.bases.clerk):
+        if inspect.isclass(self.clerk):
+            self.clerk = self.clerk(settings = self.settings)
+        if (self.clerk is None or 
+                not isinstance(self.clerk, self.bases.clerk)):
             self.clerk = self.bases.clerk(settings = self.settings)
         else:
             self.clerk.settings = self.settings
@@ -225,14 +253,24 @@ class Project(Iterator):
        
     def _validate_director(self) -> None:
         """Creates or validates 'director'."""
-        if not isinstance(self.director, self.bases.director):
-            self.director = bases.director(project = self)
+        if inspect.isclass(self.director):
+            self.director = self.director(project = self)
+        if (self.director is None 
+                or not isinstance(self.director, self.bases.director)):
+            self.director = self.bases.director.create('director')(
+                project = self)
         else:
             self.director.project = self
         return self
     
     def _validate_data(self) -> None:
-        """Creates or validates 'data'."""
+        """Creates or validates 'data'.
+        
+        The default method performs no validation but is included as a hook for
+        subclasses to override if validation of the 'data' attribute is 
+        required.
+        
+        """
         return self
     
     def _set_parallelization(self) -> None:
