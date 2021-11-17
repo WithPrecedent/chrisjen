@@ -70,19 +70,7 @@ class Stage(bases.ProjectNode):
         default_factory = dict)
     iterations: Union[int, str] = 1
     
-    
-@dataclasses.dataclass
-class Director(bases.ProjectDirector):
-    """Outline, Workflow, Results director for a chrisjen project.
-    
-    
-    """
-    contents: Sequence[Union[str, Type[Stage]]] = dataclasses.field(
-        default_factory = lambda: ['outline', 'workflow', 'results'])
-    project: interface.Project = None
-    library: ClassVar[amos.Library] = amos.Library()
-        
-    
+  
 @dataclasses.dataclass
 class Outline(amos.Dictionary, Stage):
     """Project workflow implementation as a directed acyclic graph (DAG).
@@ -180,8 +168,7 @@ class Outline(amos.Dictionary, Stage):
     
     """ Public Methods """
     
-    @classmethod
-    def implement(cls, project: interface.Project) -> Outline:
+    def implement(self, project: interface.Project) -> Outline:
         """[summary]
 
         Args:
@@ -191,7 +178,9 @@ class Outline(amos.Dictionary, Stage):
             interface.Project: [description]
             
         """        
-        project.outline = workshop.create_outline(project = project, base = cls)
+        project.outline = workshop.create_outline(
+            project = project, 
+            base = self)
         return project
 
     """ Dunder Methods """
@@ -245,8 +234,7 @@ class Workflow(amos.System, Stage):
     
     """ Public Methods """
     
-    @classmethod
-    def implement(cls, project: interface.Project) -> Workflow:
+    def implement(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
@@ -255,15 +243,13 @@ class Workflow(amos.System, Stage):
         Returns:
             interface.Project: [description]
             
-        """        
-        project.workflow = workshop.implement_workflow(
-            project = project, 
-            base = cls)
+        """
+        project.workflow = workshop.create_workflow(project = project)    
         return project
 
 
 @dataclasses.dataclass
-class Results(amos.System, Stage):
+class Results(amos.Pipelines, Stage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -283,8 +269,7 @@ class Results(amos.System, Stage):
     
     """ Public Methods """
 
-    @classmethod
-    def implement(cls, project: interface.Project) -> Results:
+    def implement(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
@@ -295,5 +280,5 @@ class Results(amos.System, Stage):
         """
         project.results = workshop.create_results(
             project = project, 
-            base = cls)
+            base = self)
         return project

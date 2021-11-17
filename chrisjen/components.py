@@ -304,7 +304,7 @@ class Worker(Component, abc.ABC):
         
 
 @dataclasses.dataclass
-class Laborer(amos.Graph, Worker):
+class Laborer(amos.Pipeline, Worker):
     """Keystone class for parts of a chrisjen workflow.
 
     Args:

@@ -30,9 +30,10 @@ import warnings
 import amos
 
 from . import bases
+from . import configuration
 from . import filing
 
-       
+    
 @dataclasses.dataclass
 class ProjectBases(object):
     """Base classes for a chrisjen Project.
@@ -44,14 +45,13 @@ class ProjectBases(object):
             Defaults to amos.Settings.
         node (Type[amos.LibraryFactory]): base class for nodes in a project
             workflow. Defaults to bases.ProjectNode.
-        director (Type[Any]): base class for a project director. Defaults to
-            bases.ProjectDirector.
       
     """
     clerk: Type[Any] = filing.Clerk
-    settings: Type[Any] = amos.Settings
+    settings: Type[Any] = configuration.Settings
     node: Type[amos.LibraryFactory] = bases.ProjectNode
-    director: Type[amos.LibraryFactory] = bases.ProjectDirector
+    default_stages: list[str] = dataclasses.field(
+        default_factory = lambda: ['outline', 'workflow', 'results'])
     
     
 @dataclasses.dataclass
@@ -89,7 +89,7 @@ class Project(Iterator):
     clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
     bases: ProjectBases = ProjectBases()
-    director: Optional[bases.ProjectDirector] = None
+    stages: Optional[Sequence[Union[str, Type[Any]]]] = None
     identification: Optional[str] = None
     automatic: bool = True
     
@@ -110,7 +110,7 @@ class Project(Iterator):
         self._validate_bases()
         self._validate_settings()
         self._validate_clerk()
-        self._validate_director()
+        self._validate_stages()
         self._validate_data()
         # Sets multiprocessing technique, if necessary.
         self._set_parallelization()
@@ -123,15 +123,15 @@ class Project(Iterator):
     """ Properties """
     
     @property
-    def directors(self) -> amos.Library:
-        """Returns the current library of available project directors.
+    def current(self) -> str:
+        """[summary]
 
         Returns:
-            amos.Library: library of project directors.
+            str: [description]
             
-        """        
-        return self.bases.director.library
-          
+        """    
+        return amos.get_name(item = self.stages[self.index])
+         
     @property
     def nodes(self) -> bases.NodeLibrary:
         """Returns the current library of available workflow components.
@@ -142,6 +142,32 @@ class Project(Iterator):
         """        
         return self.bases.node.library
 
+    @property
+    def previous(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """
+        if self.index == 0:
+            return 'settings'        
+        else:
+            return amos.get_name(item = self.stages[self.index - 1])
+        
+    @property
+    def subsequent(self) -> Optional[str]:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """        
+        if self.index == len(self.stages) - 1:
+            return None
+        else:
+            return amos.get_name(item = self.stages[self.index + 1])
+        
     """ Public Methods """
     
     def advance(self) -> None:
@@ -235,18 +261,43 @@ class Project(Iterator):
             self.clerk.settings = self.settings
         return self
        
-    def _validate_director(self) -> None:
-        """Creates or validates 'director'."""
-        if inspect.isclass(self.director):
-            self.director = self.director(project = self)
-        print('test director library', self.bases.director.library)
-        if (self.director is None 
-                or not isinstance(self.director, self.bases.director)):
-            self.director = self.bases.director.create(item = 'director')(
-                project = self)
-        else:
-            self.director.project = self
+    def _validate_stages(self) -> None:
+        """Creates or validates 'stages' and sets iterator index."""
+        # Sets index for iteration.
+        self.index = 0
+        if not self.stages:
+            try:
+                self.stages = self.settings[self.name]['stages']
+            except KeyError:
+                try:
+                    self.stages = self.settings[self.name][f'{self.name}_stages']
+                except KeyError:
+                    self.stages = self.bases.default_stages
+        validated_stages = [self._validate_stage(s) for s in self.stages]
+        self.stages = amos.Pipeline(contents = validated_stages)
         return self
+    
+    def _validate_stage(self, stage: Any) -> object:
+        """[summary]
+
+        Args:
+            stage (Any): [description]
+
+        Raises:
+            KeyError: [description]
+
+        Returns:
+            object: [description]
+            
+        """        
+        if isinstance(stage, str):
+            try:
+                stage = self.bases.node.create(item = stage)
+            except KeyError:
+                raise KeyError(f'{stage} was not found in the node library')
+        if inspect.isclass(stage):
+            stage = stage()
+        return stage
     
     def _validate_data(self) -> None:
         """Creates or validates 'data'.
@@ -269,18 +320,26 @@ class Project(Iterator):
     """ Dunder Methods """
       
     def __iter__(self) -> Iterable:
-        """Returns iterable of a Project's director.
+        """Returns iterable of 'stages'.
         
         Returns:
-            Iterable: of a Project's director.
+            Iterable: of 'stages'.
             
         """
-        return iter(self.director)
+        return self
  
     def __next__(self) -> None:
-        """Completes a stage in 'director'."""
-        try:
-            next(self.director)
-        except StopIteration:
-            pass
+        """Completes a Stage instance."""
+        if self.index < len(self.stages):
+            source = self.previous or 'settings'
+            product = self.current
+            if self.settings['general']['verbose']:
+                print(f'Creating {product} from {source}')
+            stage = self.stages[self.index]
+            stage.execute(project = self)
+            if self.settings['general']['verbose']:
+                print(f'Completed {product}')
+            self.index += 1
+        else:
+            raise StopIteration
         return self

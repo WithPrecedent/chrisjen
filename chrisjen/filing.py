@@ -374,7 +374,7 @@ class Clerk(object):
         """Returns default parameters for file transfers from 'settings'."""
         # Gets default parameters for file transfers from 'settings'.
         base = copy.deepcopy(default_parameters)
-        self.settings.update(self.parameters)
+        # self.settings.update(self.parameters)
         self.parameters = base
         for section in ['files', 'filer', 'clerk']:
             if section in self.settings:

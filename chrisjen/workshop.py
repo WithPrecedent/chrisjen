@@ -88,7 +88,9 @@ def get_initialization(project: interface.Project) -> dict[str, dict[str, Any]]:
     """
     initialization = {}
     for key, section in project.settings.items():   
-        new_initialization = get_section_initialization(section = section)
+        new_initialization = get_section_initialization(
+            section = section,
+            suffixes = project.nodes.suffixes)
         initialization[key] = new_initialization
     return initialization
                           
@@ -122,10 +124,12 @@ def get_labels(project: interface.Project) -> list[str]:
         list[str]: names of all nodes that are listed in 'project.settings'.
         
     """        
-    key_nodes = list(project.connections.keys())
+    key_nodes = list(project.outline.connections.keys())
     value_nodes = list(
-        itertools.chain.from_iterable(project.connections.values()))
-    return amos.deduplicate(item = key_nodes + value_nodes)     
+        itertools.chain.from_iterable(project.outline.connections.values()))
+    all_nodes = key_nodes + value_nodes
+    print('test all nodes', all_nodes)
+    return amos.deduplicate_list(item = all_nodes)     
       
 def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
     """[summary]
@@ -140,7 +144,9 @@ def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
     runtime = {}
     for key, section in project.settings.items():
         if key.endswith('_parameters'):
-            new_key = amos.drop_suffix(item = key, suffix = '_parameters')
+            new_key = amos.drop_suffix_from_str(
+                item = key, 
+                suffix = '_parameters')
             runtime[new_key] = section
     return runtime
 
@@ -157,7 +163,7 @@ def get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_suffixes = suffixes + 'design'
+    all_suffixes = suffixes + ('design',)
     return {
         k: v for k, v in section.items() if not k.endswith(all_suffixes)}
     
@@ -255,12 +261,11 @@ def create_outline(
         stages.Outline: [description]
         
     """    
-    base = base or project.stages.withdraw(item = 'outline')
-    outline = base(project = project, **kwargs)
-    return _settings_to_outline(
+    base = base or project.nodes.withdraw(item = 'outline')
+    contents = _settings_to_outline(
         settings = project.settings,
-        suffixes = project.nodes.suffixes,
-        outline = outline)
+        suffixes = project.nodes.suffixes)
+    return base(contents = contents, project = project, **kwargs)
     
 def create_workflow(
     project: interface.Project,
@@ -276,8 +281,8 @@ def create_workflow(
         stages.Workflow: [description]
         
     """    
-    base = base or project.stages.withdraw(item = 'workflow')
-    workflow = base(project = project, **kwargs)
+    base = base or project.nodes.withdraw(item = 'workflow')
+    workflow = base(**kwargs)
     return _outline_to_workflow(
         outline = project.outline,
         library = project.nodes,
@@ -344,12 +349,11 @@ def create_results(
         stages.Results: [description]
         
     """    
-    base = base or project.stages.withdraw(item = 'results')
+    base = base or project.nodes.withdraw(item = 'results')
     results = base(project = project, **kwargs)
-    return _workflow_to_results(
-        worfklow = project.workflow,
-        library = project.nodes,
-        results = results)
+    for path in project.workflow.paths:
+        results.add(_path_to_result(path = path, project = project))
+    return results
 
 """ Private Functions """
 
@@ -365,7 +369,7 @@ def _settings_to_outline(
     Returns:
         dict[Hashable, dict[Hashable, Any]]: [description]
     """
-    all_suffixes = suffixes + 'parameters'
+    all_suffixes = suffixes + ('parameters',)
     return {
         key: value for key, value in settings.items() 
         if any(k.endswith(all_suffixes) for k in value.keys())}
@@ -418,6 +422,7 @@ def _outline_to_component(
     base = library.withdraw(item = lookups)
     parameters = amos.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
+        name = name,
         outline = outline,
         parameters = parameters)
     initialization['parameters'] = _get_runtime(
@@ -520,13 +525,10 @@ def _outline_to_adjacency(
         system = component.integrate(workflow = system)    
     return system
 
-def _workflow_to_results(
-    path: Sequence[str],
+def _path_to_result(
+    path: amos.Pipeline,
     project: interface.Project,
-    data: Any = None,
-    library: amos.Library = None,
-    result: stages.Results = None,
-    **kwargs) -> object:
+    **kwargs) -> amos.Pipeline:
     """[summary]
 
     Args:
@@ -540,16 +542,9 @@ def _workflow_to_results(
     Returns:
         object: [description]
         
-    """    
-    library = library or amos.LIBRARY
-    result = result or amos.RESULT
-    data = data or project.data
-    result = result()
-    for node in path:
-        print('test node in path', node)
-        try:
-            component = library.withdraw(name = node)
-            result.add(component.execute(project = project, **kwargs))
-        except (KeyError, AttributeError):
-            pass
+    """
+    result = amos.Pipeline()
+    for path in project.workflow.paths:
+        for node in path:
+            result.append(node.execute(project = project, *kwargs))
     return result
