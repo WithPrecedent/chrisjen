@@ -72,8 +72,8 @@ class Project(Iterator):
             different bases that will automatically be used by the Project
             framework. Defaults to a ProjectBases instance with the default base
             classes.
-        director (Optional[bases.ProjectDirector]): the iterator for going
-            through the project stages. Defaults to None.
+        stages (Optional[Sequence[Union[str, Type[Any]]]]): stage nodes or node
+            names for creation of the project. Defaults to None.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
             folders related to the project. If it is None, a str will be created 
@@ -124,10 +124,10 @@ class Project(Iterator):
     
     @property
     def current(self) -> str:
-        """[summary]
+        """Returns name of the active node.
 
         Returns:
-            str: [description]
+            str: name of a node.
             
         """    
         return amos.get_name(item = self.stages[self.index])
@@ -144,12 +144,14 @@ class Project(Iterator):
 
     @property
     def previous(self) -> str:
-        """[summary]
+        """Returns name of the previous node.
+        
+        If a previous node doesn't exist, 'settings' is returned.
 
         Returns:
-            str: [description]
+            str: name of a node.
             
-        """
+        """  
         if self.index == 0:
             return 'settings'        
         else:
@@ -157,10 +159,12 @@ class Project(Iterator):
         
     @property
     def subsequent(self) -> Optional[str]:
-        """[summary]
-
+        """Returns name of the next node.
+        
+        If no subsequent node exists, None is returned.
+        
         Returns:
-            str: [description]
+            str: name of a node.
             
         """        
         if self.index == len(self.stages) - 1:
@@ -278,7 +282,7 @@ class Project(Iterator):
         return self
     
     def _validate_stage(self, stage: Any) -> object:
-        """[summary]
+        """Validates or converts a stage to a stage node instance.
 
         Args:
             stage (Any): [description]
