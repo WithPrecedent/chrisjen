@@ -77,9 +77,10 @@ class Director(bases.ProjectDirector):
     
     
     """
-    project: interface.Project
-    stages: Sequence[Union[str, Type[bases.ProjectStage]]] = dataclasses.field(
+    contents: Sequence[Union[str, Type[Stage]]] = dataclasses.field(
         default_factory = lambda: ['outline', 'workflow', 'results'])
+    project: interface.Project = None
+    library: ClassVar[amos.Library] = amos.Library()
         
     
 @dataclasses.dataclass
@@ -190,7 +191,8 @@ class Outline(amos.Dictionary, Stage):
             interface.Project: [description]
             
         """        
-        return workshop.create_outline(project = project, base = cls)
+        project.outline = workshop.create_outline(project = project, base = cls)
+        return project
 
     """ Dunder Methods """
 
@@ -254,7 +256,10 @@ class Workflow(amos.System, Stage):
             interface.Project: [description]
             
         """        
-        return workshop.implement_workflow(project = project, base = cls)
+        project.workflow = workshop.implement_workflow(
+            project = project, 
+            base = cls)
+        return project
 
 
 @dataclasses.dataclass
@@ -288,4 +293,7 @@ class Results(amos.System, Stage):
             Results: derived from 'item'.
             
         """
-        return workshop.create_results(project = project, base = cls)
+        project.results = workshop.create_results(
+            project = project, 
+            base = cls)
+        return project

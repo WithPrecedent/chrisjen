@@ -259,7 +259,7 @@ def create_outline(
     outline = base(project = project, **kwargs)
     return _settings_to_outline(
         settings = project.settings,
-        suffixes = project.components.suffixes,
+        suffixes = project.nodes.suffixes,
         outline = outline)
     
 def create_workflow(
@@ -280,7 +280,7 @@ def create_workflow(
     workflow = base(project = project, **kwargs)
     return _outline_to_workflow(
         outline = project.outline,
-        library = project.components,
+        library = project.nodes,
         workflow = workflow)
 
 def create_pipeline(
@@ -348,7 +348,7 @@ def create_results(
     results = base(project = project, **kwargs)
     return _workflow_to_results(
         worfklow = project.workflow,
-        library = project.components,
+        library = project.nodes,
         results = results)
 
 """ Private Functions """

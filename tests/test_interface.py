@@ -75,12 +75,12 @@ def test_project():
     project = chrisjen.Project(
         name = 'cool_project',
         settings = pathlib.Path('tests') / 'project_settings.py',
-        automatic = False)
+        automatic = True)
     # Tests base libraries.
-    assert 'parser' in project.components.classes
+    assert 'parser' in project.nodes.classes
     dynamite = Dynamite()
-    print('test instances', project.components.instances)
-    assert 'annihilate' in project.components.instances
+    print('test instances', project.nodes.instances)
+    assert 'annihilate' in project.nodes.instances
     # Tests workflow construction.
     print('test project workflow', project.workflow)
     print('test workflow endpoints', str(project.workflow.endpoints))

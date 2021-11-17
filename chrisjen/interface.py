@@ -239,9 +239,10 @@ class Project(Iterator):
         """Creates or validates 'director'."""
         if inspect.isclass(self.director):
             self.director = self.director(project = self)
+        print('test director library', self.bases.director.library)
         if (self.director is None 
                 or not isinstance(self.director, self.bases.director)):
-            self.director = self.bases.director.create('director')(
+            self.director = self.bases.director.create(item = 'director')(
                 project = self)
         else:
             self.director.project = self

@@ -127,6 +127,11 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
         """Initializes class instance attributes."""
         # Sets 'name' attribute if 'name' is None.
         self.name = self.name or amos.get_name(item = self)
+        # Calls other '__post_init__' methods for parent and mixin classes.
+        try:
+            super().__post_init__() # type: ignore
+        except AttributeError:
+            pass
         
     """ Required Subclass Methods """
 
@@ -271,16 +276,16 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
 
 
 @dataclasses.dataclass
-class ProjectDirector(amos.LibraryFactory, Iterator):
+class ProjectDirector(amos.LibraryFactory, amos.Dictionary):
     """Iterator for a chrisjen Project.
     
     
     """
-    project: interface.Project
-    stages: Sequence[Union[str, Type[ProjectNode]]] = dataclasses.field(
+    contents: Sequence[Union[str, Type[ProjectNode]]] = dataclasses.field(
         default_factory = lambda: ['outline', 'workflow', 'results'])
+    project: interface.Project = None
     library: ClassVar[amos.Library] = amos.Library()
-       
+   
     """ Initialization Methods """
 
     def __post_init__(self) -> None:
@@ -294,7 +299,6 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
         self.index = 0
         # Validate stages
         self._validate_stages()
-        print('test stages', self.stages)
         
     """ Properties """
     
@@ -320,6 +324,16 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
             return 'settings'        
         else:
             return amos.get_name(item = self.stages[self.index - 1])
+    
+    @property
+    def stages(self) -> Sequence[Union[str, Type[ProjectNode]]]:
+        """[summary]
+
+        Returns:
+            Sequence[Union[str, Type[ProjectNode]]]: [description]
+            
+        """
+        return self.contents
     
     @property
     def subsequent(self) -> Optional[str]:
@@ -394,7 +408,7 @@ class ProjectDirector(amos.LibraryFactory, Iterator):
             if self.project.settings['general']['verbose']:
                 print(f'Creating {product} from {source}')
             stage = self.stages[self.index]
-            setattr(self.project, product, stage.execute(project = self))
+            self.project = stage.execute(project = self)
             if self.project.settings['general']['verbose']:
                 print(f'Completed {product}')
             self.index += 1
