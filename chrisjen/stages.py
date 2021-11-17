@@ -40,6 +40,38 @@ if TYPE_CHECKING:
     
 
 @dataclasses.dataclass
+class Stage(bases.ProjectNode):
+    """Base class for stage nodes in a chrisjen project.
+
+    Args:
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
+        library (ClassVar[amos.Library]): a Library instance storing both 
+            subclasses and instances.  
+            
+    Attributes:
+        library (ClassVar[Library]): library that stores concrete (non-abstract) 
+            subclasses and instances of Component. 
+  
+    """
+    contents: Optional[Any] = None
+    name: Optional[str] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+    iterations: Union[int, str] = 1
+    
+    
+@dataclasses.dataclass
 class Director(bases.ProjectDirector):
     """Outline, Workflow, Results director for a chrisjen project.
     
@@ -51,7 +83,7 @@ class Director(bases.ProjectDirector):
         
     
 @dataclasses.dataclass
-class Outline(amos.Dictionary, bases.ProjectStage):
+class Outline(amos.Dictionary, Stage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -186,7 +218,7 @@ class Outline(amos.Dictionary, bases.ProjectStage):
 
 
 @dataclasses.dataclass
-class Workflow(amos.System, bases.ProjectStage):
+class Workflow(amos.System, Stage):
     """Project workflow implementation as a directed acyclic graph (DAG).
     
     Workflow stores its graph as an adjacency list. Despite being called an 
@@ -226,7 +258,7 @@ class Workflow(amos.System, bases.ProjectStage):
 
 
 @dataclasses.dataclass
-class Results(amos.System, bases.ProjectStage):
+class Results(amos.System, Stage):
     """Project workflow after it has been implemented.
     
     Args:

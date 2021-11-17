@@ -42,22 +42,16 @@ class ProjectBases(object):
             filing.Clerk.
         settings (Type[Any]): base class for project configuration settings.
             Defaults to amos.Settings.
-        stage (Type[amos.LibraryFactory]): base class for project stages. 
-            Defaults to bases.ProjectStage.
+        node (Type[amos.LibraryFactory]): base class for nodes in a project
+            workflow. Defaults to bases.ProjectNode.
         director (Type[Any]): base class for a project director. Defaults to
             bases.ProjectDirector.
-        component (Type[amos.LibraryFactory]): base class for nodes in a project
-            workflow. Defaults to bases.ProjectComponent.
-        workflow (Type[amos.Composite]): base class for a project workflow.
-            Defaults to amos.System. 
-        
+      
     """
     clerk: Type[Any] = filing.Clerk
     settings: Type[Any] = amos.Settings
-    stage: Type[amos.LibraryFactory] = bases.ProjectStage
+    node: Type[amos.LibraryFactory] = bases.ProjectNode
     director: Type[amos.LibraryFactory] = bases.ProjectDirector
-    component: Type[amos.LibraryFactory] = bases.ProjectComponent
-    workflow: Type[amos.Composite] = amos.System
     
     
 @dataclasses.dataclass
@@ -129,16 +123,6 @@ class Project(Iterator):
     """ Properties """
     
     @property
-    def components(self) -> amos.Library:
-        """Returns the current library of available workflow components.
-
-        Returns:
-            amos.Library: library of workflow components.
-            
-        """        
-        return self.bases.component.library
-    
-    @property
     def directors(self) -> amos.Library:
         """Returns the current library of available project directors.
 
@@ -147,17 +131,17 @@ class Project(Iterator):
             
         """        
         return self.bases.director.library
-    
+          
     @property
-    def stages(self) -> amos.Library:
-        """Returns the current library of available project stages.
+    def nodes(self) -> bases.NodeLibrary:
+        """Returns the current library of available workflow components.
 
         Returns:
-            amos.Library: library of project stages.
+            bases.NodeLibrary: library of workflow components.
             
-        """       
-        return self.bases.stage.library
-      
+        """        
+        return self.bases.node.library
+
     """ Public Methods """
     
     def advance(self) -> None:
