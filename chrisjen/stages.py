@@ -17,7 +17,6 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Outline
     Workflow
     Results
     
@@ -27,214 +26,43 @@ import abc
 import collections
 from collections.abc import Hashable, Mapping, MutableMapping, Sequence, Set
 import dataclasses
-import functools
+import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
 from . import bases
-from . import workshop
 
 if TYPE_CHECKING:
+    from . import configuration
     from . import interface
     
 
 @dataclasses.dataclass
-class Stage(bases.ProjectNode):
-    """Base class for stage nodes in a chrisjen project.
-
+class Workflow(amos.System, bases.Stage):
+    """Project workflow implementation as a directed acyclic graph (DAG).
+    
+    Workflow stores its graph as an adjacency list. Despite being called an 
+    "adjacency list," the typical and most efficient way to create one in python
+    is using a dict. The keys of the dict are the nodes and the values are sets
+    of the hashable summarys of other nodes.
+    
     Args:
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
+        contents (MutableMapping[bases.ProjectNode, Set[str]]): keys are nodes 
+            and values are sets of nodes (or hashable representations of nodes). 
+            Defaults to a defaultdict that has a set for its value format.
         name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-        library (ClassVar[amos.Library]): a Library instance storing both 
-            subclasses and instances.  
-            
-    Attributes:
-        library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
-  
-    """
-    contents: Optional[Any] = None
-    name: Optional[str] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    iterations: Union[int, str] = 1
-    
-  
-@dataclasses.dataclass
-class Outline(amos.Dictionary, Stage):
-    """Project workflow implementation as a directed acyclic graph (DAG).
-    
-    Workflow stores its graph as an adjacency list. Despite being called an 
-    "adjacency list," the typical and most efficient way to create one in python
-    is using a dict. The keys of the dict are the nodes and the values are sets
-    of the hashable summarys of other nodes.
-    
-    Args:
-        contents (MutableMapping[Hashable, Any]): a dict for storing 
-            configuration options. Defaults to en empty dict.
-        default (Any): default value to return when the 'get' method is used.
-            Defaults to an empty dict.
-
-    """
-    contents: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    name: str = 'Outline'
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    iterations: Union[int, str] = 1
-    default_factory: Optional[Any] = dict
-    project: interface.Project = None
-
-    """ Properties """       
-    
-    @functools.cached_property
-    def connections(self) -> dict[str, list[str]]:
-        """Returns raw connections between nodes from 'settings'.
-
-        Returns:
-            dict[str, list[str]]: keys are node names and values are lists of
-                nodes to which the key node is connection. These connections
-                do not include any structure or design.
-            
-        """
-        return workshop.get_connections(project = self.project)
-
-    @functools.cached_property
-    def designs(self) -> dict[str, str]:
-        """Returns structural designs of nodes based on 'settings'.
-
-        Returns:
-            dict[str, str]: keys are node names and values are design names.
-            
-        """
-        return workshop.get_designs(project = self.project)
-
-    @functools.cached_property
-    def initialization(self) -> dict[str, dict[str, Any]]:
-        """Returns initialization arguments and attributes for nodes.
-        
-        These values will be parsed into arguments and attributes once the nodes
-        are instanced. They are derived from 'settings'.
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of the initialization arguments and attributes.
-            
-        """
-        return workshop.get_initialization(project = self.project)
-        
-    @functools.cached_property
-    def kinds(self) -> dict[str, str]:
-        """Returns kinds based on 'settings'.
-
-        Returns:
-            dict[str, str]: keys are names of nodes and values are names of the
-                associated base kind types.
-            
-        """
-        return workshop.get_kinds(project = self.project)
-    
-    @functools.cached_property
-    def labels(self) -> list[str]:
-        """Returns names of nodes based on 'settings'.
-
-        Returns:
-            list[str]: names of all nodes that are listed in 'settings'.
-            
-        """
-        return workshop.get_labels(project = self.project)
-
-    @functools.cached_property
-    def runtime(self) -> dict[str, dict[str, Any]]:
-        """Returns runtime parameters based on 'settings'
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of runtime parameters.
-            
-        """
-        return workshop.get_runtime(project = self.project)
-    
-    """ Public Methods """
-    
-    def implement(self, project: interface.Project) -> Outline:
-        """[summary]
-
-        Args:
-            project (interface.Project): [description]
-
-        Returns:
-            interface.Project: [description]
-            
-        """        
-        project.outline = workshop.create_outline(
-            project = project, 
-            base = self)
-        return project
-
-    """ Dunder Methods """
-
-    def __setitem__(self, key: str, value: Mapping[str, Any]) -> None:
-        """Creates new key/value pair(s) in a section of the active dictionary.
-
-        Args:
-            key (str): name of a section in the active dictionary.
-            value (Mapping[str, Any]): the dictionary to be placed in that 
-                section.
-
-        Raises:
-            TypeError if 'key' isn't a str or 'value' isn't a dict.
-
-        """
-        try:
-            self.contents[key].update(value)
-        except KeyError:
-            try:
-                self.contents[key] = value
-            except TypeError:
-                raise TypeError(
-                    'key must be a str and value must be a dict type')
-        return
-
-
-@dataclasses.dataclass
-class Workflow(amos.System, Stage):
-    """Project workflow implementation as a directed acyclic graph (DAG).
-    
-    Workflow stores its graph as an adjacency list. Despite being called an 
-    "adjacency list," the typical and most efficient way to create one in python
-    is using a dict. The keys of the dict are the nodes and the values are sets
-    of the hashable summarys of other nodes.
-    
-    Args:
-        contents (MutableMapping[amos.Node, Set[amos.Node]]): keys 
-            are nodes and values are sets of nodes (or hashable representations 
-            of nodes). Defaults to a defaultdict that has a set for its value 
-            format.
+            used for internal and external referencing. Defaults to None.            
                   
     """  
-    contents: MutableMapping[amos.Node, Set[amos.Node]] = (
+    contents: MutableMapping[bases.ProjectNode, Set[str]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     name: str = 'Workflow'
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    iterations: Union[int, str] = 1
     
     """ Public Methods """
     
-    def implement(self, project: interface.Project) -> interface.Project:
+    def create(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
@@ -244,12 +72,12 @@ class Workflow(amos.System, Stage):
             interface.Project: [description]
             
         """
-        project.workflow = workshop.create_workflow(project = project)    
+        project.workflow = create_workflow(project = project)    
         return project
 
 
 @dataclasses.dataclass
-class Results(amos.Pipelines, Stage):
+class Results(amos.Pipelines, bases.Stage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -262,14 +90,11 @@ class Results(amos.Pipelines, Stage):
     contents: MutableMapping[amos.Node, Set[amos.Node]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
-    name: Optional[str] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    iterations: Union[int, str] = 1
+    name: Optional[str] = 'Results'
     
     """ Public Methods """
 
-    def implement(self, project: interface.Project) -> interface.Project:
+    def create(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
@@ -278,7 +103,222 @@ class Results(amos.Pipelines, Stage):
             Results: derived from 'item'.
             
         """
-        project.results = workshop.create_results(
+        project.results = create_results(
             project = project, 
             base = self)
         return project
+
+  
+def create_workflow(
+    project: interface.Project,
+    base: Optional[Type[Workflow]] = None, 
+    **kwargs) -> Workflow:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[Workflow]]): [description]. Defaults to None.
+
+    Returns:
+        Workflow: [description]
+        
+    """    
+    base = base or project.bases.stage.library.withdraw(item = 'workflow')
+    workflow = base(**kwargs)
+    return _settings_to_workflow(
+        settings = project.settings,
+        library = project.nodes,
+        workflow = workflow)
+
+def create_results(
+    project: interface.Project,
+    base: Optional[Type[Results]] = None, 
+    **kwargs) -> Results:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[Results]]): [description]. Defaults to None.
+
+    Returns:
+        Results: [description]
+        
+    """    
+    base = base or project.bases.stage.library.withdraw(item = 'results')
+    results = base(project = project, **kwargs)
+    for path in project.workflow.paths:
+        results.add(_path_to_result(path = path, project = project))
+    return results
+
+""" Private Functions """
+
+def _settings_to_workflow(
+    settings: configuration.ProjectSettings, 
+    library: amos.Library, 
+    workflow: Workflow) -> Workflow:
+    """[summary]
+
+    Args:
+        settings (configuration.ProjectSettings): [description]
+        library (bases.LIBRARY): [description]
+
+    Returns:
+        Workflow: [description]
+        
+    """
+    
+    components = {}
+    for name in settings.labels:
+        components[name] = _settings_to_component(
+            name = name,
+            settings = settings,
+            library = library)
+    workflow = _settings_to_adjacency(
+        settings = settings, 
+        components = components,
+        system = workflow)
+    return workflow 
+
+def _settings_to_component(
+    name: str, 
+    settings: configuration.ProjectSettings,
+    library: amos.Library) -> bases.ProjectNode:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        settings (configuration.ProjectSettings): [description]
+        library (amos.Library): [description]
+
+    Returns:
+        bases.ProjectNode: [description]
+        
+    """    
+    design = settings.designs.get(name, None) 
+    kind = settings.kinds.get(name, None) 
+    lookups = _get_lookups(name = name, design = design, kind = kind)
+    base = library.withdraw(item = lookups)
+    parameters = amos.get_annotations(item = base)
+    attributes, initialization = _parse_initialization(
+        name = name,
+        settings = settings,
+        parameters = parameters)
+    initialization['parameters'] = _get_runtime(
+        lookups = lookups,
+        settings = settings)
+    component = base(name = name, **initialization)
+    for key, value in attributes.items():
+        setattr(component, key, value)
+    return component
+
+def _get_lookups(
+    name: str, 
+    design: Optional[str], 
+    kind: Optional[str]) -> list[str]:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        design (Optional[str]): [description]
+        kind (Optional[str]): [description]
+
+    Returns:
+        list[str]: [description]
+        
+    """    
+    lookups = [name]
+    if design:
+        lookups.append(design)
+    if kind:
+        lookups.append(kind)
+    return lookups
+
+def _get_runtime(
+    lookups: list[str], 
+    settings: configuration.ProjectSettings) -> dict[Hashable, Any]:
+    """[summary]
+
+    Args:
+        lookups (list[str]): [description]
+        settings (configuration.ProjectSettings): [description]
+
+    Returns:
+        dict[Hashable, Any]: [description]
+        
+    """    
+    runtime = {}
+    for key in lookups:
+        try:
+            match = settings.runtime[key]
+            runtime[lookups[0]] = match
+            break
+        except KeyError:
+            pass
+    return runtime
+
+def _parse_initialization(
+    name: str,
+    settings: configuration.ProjectSettings, 
+    parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        settings (configuration.ProjectSettings): [description]
+        parameters (list[str]): [description]
+
+    Returns:
+        tuple[dict[str, Any], dict[str, Any]]: [description]
+        
+    """
+    if name in settings.initialization:
+        attributes = {}
+        initialization = {}
+        for key, value in settings.initialization[name].items(): 
+            if key in parameters:
+                initialization[key] = value
+            else:
+                attributes[key] = value
+        return attributes, initialization
+    else:
+        return {}, {}  
+
+def _settings_to_adjacency(
+    settings: configuration.ProjectSettings, 
+    components: dict[str, bases.ProjectNode],
+    system: Workflow) -> amos.Pipeline:
+    """[summary]
+
+    Args:
+        settings (configuration.ProjectSettings): [description]
+        components (dict[str, bases.ProjectNode]): [description]
+        system (Workflow): [description]
+
+    Returns:
+        Workflow: [description]
+        
+    """    
+    for node, connects in settings.connections.items():
+        component = components[node]
+        system = component.integrate(item = system)    
+    return system
+
+def _path_to_result(
+    path: amos.Pipeline,
+    project: interface.Project,
+    **kwargs) -> amos.Pipeline:
+    """[summary]
+
+    Args:
+        path (amos.Pipeline): [description]
+        project (interface.Project): [description]
+
+    Returns:
+        object: [description]
+        
+    """
+    result = amos.Pipeline()
+    for path in project.workflow.paths:
+        for node in path:
+            result.append(node.execute(project = project, *kwargs))
+    return result

@@ -45,7 +45,6 @@ import amos
 import more_itertools
 
 from . import bases
-from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
@@ -349,7 +348,7 @@ class Laborer(amos.Pipeline, Worker):
         Returns:
             interface.Project: [description]
         """        
-        pipeline = workshop.create_pipeline(
+        pipeline = create_pipeline(
             name = self.name,
             project = project,
             base = amos.Pipeline)
@@ -421,7 +420,7 @@ class Manager(Worker, abc.ABC):
         Returns:
             interface.Project: [description]
         """        
-        pipelines = workshop.create_pipelines(
+        pipelines = create_pipelines(
             name = self.name,
             project = project,
             base = amos.Pipelines)
@@ -622,12 +621,6 @@ class Task(Component):
     iterations: Union[int, str] = 1
     step: Union[str, Callable] = None
     technique: Callable = None
-      
-    """ Required Subclass Methods """
-    
-    @abc.abstractmethod
-    def execute(self, *args, **kwargs) -> Any:
-        pass
   
     """ Public Methods """
     
@@ -703,7 +696,7 @@ class Step(Task):
     
     """ Public Methods """
     
-    def integrate(self, technique: Technique) -> Technique:
+    def integrate(self, project: interface.Project) -> interface.Project:
         """[summary]
 
         Args:
@@ -715,9 +708,9 @@ class Step(Task):
         """
         if self.parameters:
             new_parameters = self.parameters
-            new_parameters.update(technique.parameters)
-            technique.parameters = new_parameters
-        return technique
+            new_parameters.update(project.parameters)
+            project.parameters = new_parameters
+        return project
         
                                                   
 @dataclasses.dataclass
@@ -792,3 +785,51 @@ class Technique(Task):
             iterations = iterations, 
             **kwargs)
 
+
+def create_pipeline(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[amos.Pipeline]] = None, 
+    **kwargs) -> amos.Pipeline:
+    """[summary]
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[amos.Pipeline]]): [description]. Defaults to None.
+
+    Returns:
+        amos.Pipeline: [description]
+          
+    """    
+    base = base or amos.Pipeline
+    return base(contents = project.settings.connections[name], **kwargs)
+
+def create_pipelines(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[amos.Pipelines]] = None, 
+    pipeline_base: Optional[Type[amos.Pipeline]] = None, 
+    **kwargs) -> amos.Pipelines:
+    """[summary]
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[amos.Pipelines]]): [description]. Defaults to None.
+
+    Returns:
+        amos.Pipelines: [description]
+          
+    """    
+    base = base or amos.Pipelines
+    pipeline_base = pipeline_base or amos.Pipeline
+    pipelines = []
+    for connection in project.settings.connections[name]:
+        pipelines.append(create_pipeline(
+            name = connection, 
+            project = project,
+            base = pipeline_base))  
+    permutations = itertools.product(pipelines)
+    return base(contents = permutations, **kwargs)
+   

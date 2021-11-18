@@ -60,4 +60,3 @@ from .configuration import *
 from .filing import *
 from .interface import *
 from .stages import *
-from .workshop import *

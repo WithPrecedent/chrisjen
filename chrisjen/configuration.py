@@ -17,8 +17,8 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Settings (Factory, MutableMapping): stores configuration settings after 
-        either loading them from disk or by the passed arguments.
+    ProjectSettings (amos.Settings): stores configuration settings after either 
+        loading them from disk or by the passed arguments.
 
 ToDo:
        
@@ -26,43 +26,22 @@ ToDo:
 """
 from __future__ import annotations
 from collections.abc import Hashable, Mapping, MutableMapping, Sequence
-import configparser
 import dataclasses
-import importlib
+import functools
 import importlib.util
+import itertools
 import pathlib
-from typing import Any, ClassVar, Optional, Type, Union
+from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
+if TYPE_CHECKING:
+    from . import interface
+    
 
 @dataclasses.dataclass
-class Settings(amos.Dictionary, amos.SourcesFactory): # type: ignore
+class ProjectSettings(amos.Settings):
     """Loads and stores configuration settings.
-
-    To create settings instance, a user can pass as the 'contents' parameter a:
-        1) pathlib file path of a compatible file type;
-        2) string containing a a file path to a compatible file type;
-                                or,
-        3) 2-level nested dict.
-
-    If 'contents' is imported from a file, settings creates a dict and can 
-    convert the dict values to appropriate datatypes. Currently, supported file 
-    types are: ini, json, toml, yaml, and python. If you want to use toml, yaml, 
-    or json, the identically named packages must be available in your python
-    environment.
-
-    If 'infer_types' is set to True (the default option), str dict values are 
-    automatically converted to appropriate datatypes (str, list, float, bool, 
-    and int are currently supported). Type conversion is automatically disabled
-    if the source file is a python module (assuming the user has properly set
-    the types of the stored python dict).
-
-    Because settings uses ConfigParser for .ini files, by default it stores 
-    a 2-level dict. The desire for accessibility and simplicity dictated this 
-    limitation. A greater number of levels can be achieved by having separate
-    sections with names corresponding to the strings in the values of items in 
-    other sections. 
 
     Args:
         contents (MutableMapping[Hashable, Any]): a dict for storing 
@@ -75,6 +54,8 @@ class Settings(amos.Dictionary, amos.SourcesFactory): # type: ignore
         infer_types (bool): whether values in 'contents' are converted to other 
             datatypes (True) or left alone (False). If 'contents' was imported 
             from an .ini file, all values will be strings. Defaults to True.
+        project (interface.Project): a related project instance which has data
+            that the properties can be derived.
 
     """
     contents: MutableMapping[Hashable, Any] = dataclasses.field(
@@ -83,335 +64,290 @@ class Settings(amos.Dictionary, amos.SourcesFactory): # type: ignore
     default: Mapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     infer_types: bool = True
+    project: interface.Project = None
     sources: ClassVar[Mapping[Type[Any], str]] = {
         MutableMapping: 'dictionary', 
         pathlib.Path: 'path',  
         str: 'path'}
 
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        # Converts 'contents' if it is not a dict.
-        if not (self.contents, MutableMapping):
-            self = self.create(
-                source = self.contents,
-                default_factory = self.default_factory,
-                default = self.default,
-                infer_types = self.infer_types)
-        # Infers types for values in 'contents', if the 'infer_types' option is 
-        # selected.
-        if self.infer_types:
-            self.contents = self._infer_types(contents = self.contents)
-        # Adds default settings as backup settings to 'contents'.
-        self.contents = self._add_default(contents = self.contents)
-
-    """ Class Methods """
-
-    @classmethod
-    def from_dictionary(
-        cls, 
-        dictionary: MutableMapping[Hashable, Any], 
-        **kwargs: Any) -> Settings:
-        """[recap]
-
-        Args:
-            path (Union[str, pathlib.Path]): [description]
-
-        Returns:
-            settings: [description]
-            
-        """        
-        return cls(contents = dictionary, **kwargs)
-        
-    @classmethod
-    def from_path(
-        cls, 
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """[summary]
-
-        Args:
-            path (Union[str, pathlib.Path]): [description]
-
-        Returns:
-            settings: [description]
-            
-        """
-        path = amos.pathlibify(item = path)   
-        extension = path.suffix[1:]
-        load_method = getattr(cls, f'from_{extension}')
-        return load_method(path = path, **kwargs)
+    """ Properties """       
     
-    @classmethod
-    def from_ini(
-        cls, 
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """Returns settings from an .ini file.
-
-        Args:
-            path (str): path to configparser-compatible .ini file.
+    @functools.cached_property
+    def connections(self) -> dict[str, list[str]]:
+        """Returns raw connections between nodes from 'settings'.
 
         Returns:
-            Mapping[Any, Any] of contents.
-
-        Raises:
-            FileNotFoundError: if the path does not correspond to a file.
-
+            dict[str, list[str]]: keys are node names and values are lists of
+                nodes to which the key node is connection. These connections
+                do not include any structure or design.
+            
         """
-        path = amos.pathlibify(item = path) 
-        if 'infer_types' not in kwargs:
-            kwargs['infer_types'] = True
-        try:
-            contents = configparser.ConfigParser(dict_type = dict)
-            contents.optionxform = lambda option: option
-            contents.read(path)
-            return cls(contents = dict(contents._sections), **kwargs)
-        except (KeyError, FileNotFoundError):
-            raise FileNotFoundError(f'settings file {path} not found')
+        return get_connections(project = self.project)
 
-    @classmethod
-    def from_json(
-        cls,
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """Returns settings from an .json file.
-
-        Args:
-            path (str): path to configparser-compatible .json file.
+    @functools.cached_property
+    def designs(self) -> dict[str, str]:
+        """Returns structural designs of nodes based on 'settings'.
 
         Returns:
-            Mapping[Any, Any] of contents.
-
-        Raises:
-            FileNotFoundError: if the path does not correspond to a file.
-
+            dict[str, str]: keys are node names and values are design names.
+            
         """
-        import json
-        path = amos.pathlibify(item = path) 
-        if 'infer_types' not in kwargs:
-            kwargs['infer_types'] = True
-        try:
-            with open(pathlib.Path(path)) as settings_file:
-                contents = json.load(settings_file)
-            return cls(contents = contents, **kwargs)
-        except FileNotFoundError:
-            raise FileNotFoundError(f'settings file {path} not found')
+        return get_designs(project = self.project)
 
-    @classmethod
-    def from_py(
-        cls,
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """Returns a settings dictionary from a .py file.
-
-        Args:
-            path (str): path to python module with '__dict__' defined and an 
-                attribute named 'settings' that contains the settings to use for 
-                creating a settings instance..
-
-        Returns:
-            Mapping[Any, Any] of contents.
-
-        Raises:
-            FileNotFoundError: if the path does not correspond to a
-                file.
-
-        """
-        path = amos.pathlibify(item = path) 
-        if 'infer_types' not in kwargs:
-            kwargs['infer_types'] = False
-        try:
-            path = pathlib.Path(path)
-            import_path = importlib.util.spec_from_file_location(
-                path.name,
-                path)
-            import_module = importlib.util.module_from_spec(import_path)
-            import_path.loader.exec_module(import_module)
-            return cls(contents = import_module.settings, **kwargs)
-        except FileNotFoundError:
-            raise FileNotFoundError(f'settings file {path} not found')
-
-    @classmethod
-    def from_toml(
-        cls,
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """Returns settings from a .toml file.
-
-        Args:
-            path (str): path to configparser-compatible .toml file.
-
-        Returns:
-            Mapping[Any, Any] of contents.
-
-        Raises:
-            FileNotFoundError: if the path does not correspond to a file.
-
-        """
-        import toml
-        path = amos.pathlibify(item = path) 
-        if 'infer_types' not in kwargs:
-            kwargs['infer_types'] = True
-        try:
-            return cls(contents = toml.load(path), **kwargs)
-        except FileNotFoundError:
-            raise FileNotFoundError(f'settings file {path} not found')
-   
-    @classmethod
-    def from_yaml(
-        cls, 
-        path: Union[str, pathlib.Path], 
-        **kwargs: Any) -> Settings:
-        """Returns settings from a .yaml file.
-
-        Args:
-            path (str): path to configparser-compatible .toml file.
-
-        Returns:
-            Mapping[Any, Any] of contents.
-
-        Raises:
-            FileNotFoundError: if the path does not correspond to a file.
-
-        """
-        import yaml
-        path = amos.pathlibify(item = path) 
-        if 'infer_types' not in kwargs:
-            kwargs['infer_types'] = False
-        try:
-            with open(path, 'r') as config:
-                return cls(contents = yaml.safe_load(config, **kwargs))
-        except FileNotFoundError:
-            raise FileNotFoundError(f'settings file {path} not found')
+    @functools.cached_property
+    def initialization(self) -> dict[str, dict[str, Any]]:
+        """Returns initialization arguments and attributes for nodes.
         
-    """ Public Methods """
+        These values will be parsed into arguments and attributes once the nodes
+        are instanced. They are derived from 'settings'.
 
-    def add(self, section: Hashable, contents: Mapping[Hashable, Any]) -> None:
-        """Adds 'settings' to 'contents'.
-
-        Args:
-            section (Hashable): name of section to add 'contents' to.
-            contents (Mapping[Hashable, Any]): a dict to store in 'section'.
-
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of the initialization arguments and attributes.
+            
         """
-        try:
-            self[section].update(contents)
-        except KeyError:
-            self[section] = contents
-        return
+        return get_initialization(project = self.project)
         
-    def inject(
-        self, 
-        instance: object,
-        additional: Optional[Union[Sequence[str], str]] = None,
-        overwrite: bool = False) -> object:
-        """Injects appropriate items into 'instance' from 'contents'.
-
-        Args:
-            instance (object): amos class instance to be modified.
-            additional (Union[Sequence[str], str]]): other section(s) in 
-                'contents' to inject into 'instance'. Defaults to None.
-            overwrite (bool]): whether to overwrite a local attribute in 
-                'instance' if there are values stored in that attribute. 
-                Defaults to False.
+    @functools.cached_property
+    def kinds(self) -> dict[str, str]:
+        """Returns kinds based on 'settings'.
 
         Returns:
-            instance (object): amos class instance with modifications made.
-
+            dict[str, str]: keys are names of nodes and values are names of the
+                associated base kind types.
+            
         """
-        sections = []
-        try:
-            sections.append(instance.name)
-        except AttributeError:
-            pass
-        if additional:
-            sections.extend(amos.iterify(additional))
-        for section in sections:
-            try:
-                for key, value in self.contents[section].items():
-                    if (not hasattr(instance, key)
-                            or not getattr(instance, key)
-                            or overwrite):
-                        setattr(instance, key, value)
-            except KeyError:
-                pass
-        return instance
-       
-    """ Private Methods """
-
-    def _infer_types(
-        self, 
-        contents: MutableMapping[Hashable, Any]) -> (
-            MutableMapping[Hashable, Any]):
-        """Converts stored values to appropriate datatypes.
-
-        Args:
-            contents (MutableMapping[Hashable, Any]): a nested contents dict to 
-                review.
+        return get_kinds(project = self.project)
+    
+    @functools.cached_property
+    def labels(self) -> list[str]:
+        """Returns names of nodes based on 'settings'.
 
         Returns:
-            MutableMapping[Hashable, Any]: with the nested values converted to 
-                the appropriate datatypes.
-
+            list[str]: names of all nodes that are listed in 'settings'.
+            
         """
-        new_contents = {}
-        for key, value in contents.items():
-            if isinstance(value, dict):
-                inner_bundle = {
-                    inner_key: amos.typify(inner_value)
-                    for inner_key, inner_value in value.items()}
-                new_contents[key] = inner_bundle
+        return get_labels(project = self.project)
+
+    @functools.cached_property
+    def runtime(self) -> dict[str, dict[str, Any]]:
+        """Returns runtime parameters based on 'settings'
+
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of runtime parameters.
+            
+        """
+        return get_runtime(project = self.project)    
+
+
+def get_connections(project: interface.Project) -> dict[str, list[str]]:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, list[str]]: [description]
+        
+    """
+    connections = {}
+    for key, section in project.settings.items():
+        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+            new_connections = _get_section_connections(
+                section = section,
+                name = key,
+                suffixes = project.nodes.suffixes)
+            for inner_key, inner_value in new_connections.items():
+                if inner_key in connections:
+                    connections[inner_key].extend(inner_value)
+                else:
+                    connections[inner_key] = inner_value
+    return connections
+
+def get_designs(project: interface.Project) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """
+    designs = {}
+    for key, section in project.settings.items():
+        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+            new_designs = _get_section_designs(section = section, name = key)
+            designs.update(new_designs)
+    return designs
+
+def get_initialization(project: interface.Project) -> dict[str, dict[str, Any]]:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, dict[str, Any]]: [description]
+        
+    """
+    initialization = {}
+    for key, section in project.settings.items():   
+        new_initialization = _get_section_initialization(
+            section = section,
+            suffixes = project.nodes.suffixes)
+        initialization[key] = new_initialization
+    return initialization
+                          
+def get_kinds(project: interface.Project) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """
+    kinds = {}
+    for key, section in project.settings.items():
+        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+            new_kinds = _get_section_kinds(
+                section = section,
+                suffixes = project.nodes.suffixes)
+            kinds.update(new_kinds)  
+    return kinds
+
+def get_labels(project: interface.Project) -> list[str]:
+    """Returns names of nodes based on 'project.settings'.
+
+    Args:
+        project (interface.Project): an instance of Project with 'settings' and
+            'connections'.
+        
+    Returns:
+        list[str]: names of all nodes that are listed in 'project.settings'.
+        
+    """        
+    key_nodes = list(project.settings.connections.keys())
+    value_nodes = list(
+        itertools.chain.from_iterable(project.settings.connections.values()))
+    all_nodes = key_nodes + value_nodes
+    return amos.deduplicate_list(item = all_nodes)     
+      
+def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, dict[str, Any]]: [description]
+        
+    """
+    runtime = {}
+    for key, section in project.settings.items():
+        if key.endswith('_parameters'):
+            new_key = amos.drop_suffix_from_str(
+                item = key, 
+                suffix = '_parameters')
+            runtime[new_key] = section
+    return runtime
+
+def _get_section_initialization(
+    section: MutableMapping[Hashable, Any],
+    suffixes: Sequence[str]) -> dict[str, Any]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        suffixes (Sequence[str]): [description]
+
+    Returns:
+        dict[str, Any]: [description]
+        
+    """
+    all_suffixes = suffixes + ('design',)
+    return {
+        k: v for k, v in section.items() if not k.endswith(all_suffixes)}
+    
+def _get_section_connections(
+    section: MutableMapping[Hashable, Any],
+    name: str,
+    suffixes: Sequence[str]) -> dict[str, list[str]]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        name (str): [description]
+        suffixes (Sequence[str]): [description]
+
+    Returns:
+        dict[str, list[str]]: [description]
+        
+    """    
+    connections = {}
+    keys = [k for k in section.keys() if k.endswith(suffixes)]
+    for key in keys:
+        prefix, suffix = amos.cleave_str(key)
+        values = list(amos.iterify(section[key]))
+        if prefix == suffix:
+            if prefix in connections:
+                connections[name].extend(values)
             else:
-                new_contents[key] = amos.typify(value)
-        return new_contents
+                connections[name] = values
+        else:
+            if prefix in connections:
+                connections[prefix].extend(values)
+            else:
+                connections[prefix] = values
+    return connections
+      
+def _get_section_designs(
+    section: MutableMapping[Hashable, Any],
+    name: str) -> dict[str, str]:
+    """[summary]
 
-    def _add_default(
-        self, 
-        contents: MutableMapping[Hashable, Any]) -> (
-            MutableMapping[Hashable, Any]):
-        """Creates a backup set of mappings for amos settings lookup.
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        name (str): [description]
 
+    Returns:
+        dict[str, str]: [description]
+        
+    """    
+    designs = {}
+    design_keys = [k for k in section.keys() if k.endswith('design')]
+    for key in design_keys:
+        prefix, suffix = amos.cleave_str(key)
+        if prefix == suffix:
+            designs[name] = section[key]
+        else:
+            designs[prefix] = section[key]
+    return designs
 
-        Args:
-            contents (MutableMapping[Hashable, Any]): a nested contents dict to 
-                add default to.
+def _get_section_kinds(    
+    section: MutableMapping[Hashable, Any],
+    suffixes: Sequence[str]) -> dict[str, str]: 
+    """[summary]
 
-        Returns:
-            MutableMapping[Hashable, Any]: with stored default added.
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        suffixes (Sequence[str]): [description]
 
-        """
-        new_contents = self.default
-        new_contents.update(contents)
-        return new_contents
-
-    """ Dunder Methods """
-
-    def __setitem__(self, key: str, value: Mapping[str, Any]) -> None:
-        """Creates new key/value pair(s) in a section of the active dictionary.
-
-        Args:
-            key (str): name of a section in the active dictionary.
-            value (Mapping[str, Any]): the dictionary to be placed in that 
-                section.
-
-        Raises:
-            TypeError if 'key' isn't a str or 'value' isn't a dict.
-
-        """
-        try:
-            self.contents[key].update(value)
-        except KeyError:
-            try:
-                self.contents[key] = value
-            except TypeError:
-                raise TypeError(
-                    'key must be a str and value must be a dict type')
-        return
-
+    Returns:
+        dict[str, str]: [description]
+        
+    """         
+    kinds = {}
+    keys = [k for k in section.keys() if k.endswith(suffixes)]
+    for key in keys:
+        _, suffix = amos.cleave_str(key)
+        values = amos.iterify(section[key])
+        if suffix.endswith('s'):
+            kind = suffix[:-1]
+        else:
+            kind = suffix            
+        kinds.update(dict.fromkeys(values, kind))
+    return kinds  

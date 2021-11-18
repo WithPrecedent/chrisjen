@@ -33,7 +33,8 @@ from collections.abc import (
     Collection, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence)
 import copy
 import dataclasses
-import inspect
+import functools
+import pathlib
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
@@ -41,6 +42,24 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
+
+@dataclasses.dataclass
+class Stage(amos.LibraryFactory, abc.ABC):
+    """Base class for stages in a chrisjen project.
+
+    Args:
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing. Defaults to None.
+        library (ClassVar[amos.Library]): a amos.Library instance storing both 
+            subclasses and instances. 
+            
+    """
+    contents: Optional[Any] = None
+    name: Optional[str] = None
+    library: ClassVar[amos.Library] = amos.Library() 
+    
 
 @dataclasses.dataclass
 class NodeLibrary(amos.Library):

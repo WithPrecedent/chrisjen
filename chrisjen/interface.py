@@ -35,7 +35,7 @@ from . import filing
 
     
 @dataclasses.dataclass
-class ProjectBases(object):
+class ProjectDefaults(object):
     """Base classes for a chrisjen Project.
     
     Args:
@@ -48,10 +48,11 @@ class ProjectBases(object):
       
     """
     clerk: Type[Any] = filing.Clerk
-    settings: Type[Any] = configuration.Settings
+    settings: Type[Any] = configuration.ProjectSettings
     node: Type[amos.LibraryFactory] = bases.ProjectNode
+    stage: Type[Any] = bases.Stage
     default_stages: list[str] = dataclasses.field(
-        default_factory = lambda: ['outline', 'workflow', 'results'])
+        default_factory = lambda: ['workflow', 'results'])
     
     
 @dataclasses.dataclass
@@ -68,10 +69,10 @@ class Project(Iterator):
         data (Optional[object]): any data object for the project to be applied. 
             If it is None, an instance will still execute its workflow, but it 
             won't apply it to any external data. Defaults to None.
-        bases (ProjectBases): base classes for a project. Users can set
+        bases (ProjectDefaults): base classes for a project. Users can set
             different bases that will automatically be used by the Project
-            framework. Defaults to a ProjectBases instance with the default base
-            classes.
+            framework. Defaults to a ProjectDefaults instance with the default 
+            base classes.
         stages (Optional[Sequence[Union[str, Type[Any]]]]): stage nodes or node
             names for creation of the project. Defaults to None.
         identification (Optional[str]): a unique identification name for a 
@@ -88,7 +89,7 @@ class Project(Iterator):
     settings: Optional[amos.Settings] = None
     clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
-    bases: ProjectBases = ProjectBases()
+    bases: ProjectDefaults = ProjectDefaults()
     stages: Optional[Sequence[Union[str, Type[Any]]]] = None
     identification: Optional[str] = None
     automatic: bool = True
@@ -236,22 +237,26 @@ class Project(Iterator):
         """Creates or validates 'bases'."""
         if inspect.isclass(self.bases):
             self.bases = self.bases()
-        if (not isinstance(self.bases, ProjectBases)
+        if (not isinstance(self.bases, ProjectDefaults)
             or not amos.has_attributes(
                 item = self,
                 attributes = [
                     'clerk', 'component', 'director', 'settings', 'stage', 
                     'workflow'])):
-            self.bases = ProjectBases()
+            self.bases = ProjectDefaults()
         return self
             
     def _validate_settings(self) -> None:
         """Creates or validates 'settings'."""
         if inspect.isclass(self.settings):
-            self.settings = self.settings()
+            self.settings = self.settings(project = self)
         if (self.settings is None 
                 or not isinstance(self.settings, self.bases.settings)):
-            self.settings = self.bases.settings.create(item = self.settings)
+            self.settings = self.bases.settings.create(
+                item = self.settings,
+                project = self)
+        elif isinstance(self.settings, self.bases.settings):
+            self.settings.project = self
         return self
           
     def _validate_clerk(self) -> None:
@@ -296,7 +301,7 @@ class Project(Iterator):
         """        
         if isinstance(stage, str):
             try:
-                stage = self.bases.node.create(item = stage)
+                stage = self.bases.stage.create(item = stage)
             except KeyError:
                 raise KeyError(f'{stage} was not found in the node library')
         if inspect.isclass(stage):
@@ -340,7 +345,7 @@ class Project(Iterator):
             if self.settings['general']['verbose']:
                 print(f'Creating {product} from {source}')
             stage = self.stages[self.index]
-            stage.execute(project = self)
+            stage.create(project = self)
             if self.settings['general']['verbose']:
                 print(f'Completed {product}')
             self.index += 1
