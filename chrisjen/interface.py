@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Project (amos.Node, Iterator): primary interface for chrisjen projects.
+    Project (Iterator): primary interface for chrisjen projects.
 
 """
 from __future__ import annotations
@@ -51,6 +51,7 @@ class ProjectDefaults(object):
     settings: Type[Any] = configuration.ProjectSettings
     node: Type[amos.LibraryFactory] = bases.ProjectNode
     stage: Type[Any] = bases.Stage
+    criteria: Type[Any] = bases.Criteria
     default_stages: list[str] = dataclasses.field(
         default_factory = lambda: ['workflow', 'results'])
     

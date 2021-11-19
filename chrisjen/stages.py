@@ -19,7 +19,13 @@ License: Apache-2.0
 Contents:
     Workflow
     Results
-    
+    create_workflow
+    create_results
+
+To Do:
+    Add support for parallel construction of Results in the 'create_results'
+        function.
+        
 """
 from __future__ import annotations
 import abc
@@ -37,6 +43,8 @@ if TYPE_CHECKING:
     from . import configuration
     from . import interface
     
+
+""" Public Classes """
 
 @dataclasses.dataclass
 class Workflow(amos.System, bases.Stage):
@@ -108,7 +116,9 @@ class Results(amos.Pipelines, bases.Stage):
             base = self)
         return project
 
-  
+
+""" Public Functions """
+
 def create_workflow(
     project: interface.Project,
     base: Optional[Type[Workflow]] = None, 
@@ -145,7 +155,7 @@ def create_results(
         
     """    
     base = base or project.bases.stage.library.withdraw(item = 'results')
-    results = base(project = project, **kwargs)
+    results = base(**kwargs)
     for path in project.workflow.paths:
         results.add(_path_to_result(path = path, project = project))
     return results

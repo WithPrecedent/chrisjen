@@ -1,5 +1,5 @@
 """
-components: project workflow nodes and related classes
+directors: iterators for project workflows
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,18 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    amos.Library
-    Parameters
-    Component
-    Worker
-    Laborer
-    Manager
-    Contest
-    Study
-    Survey
-    Task
-    Step
-    Technique
+
     
 """
 from __future__ import annotations
@@ -49,55 +38,98 @@ from . import bases
 if TYPE_CHECKING:
     from . import interface
 
- 
-@dataclasses.dataclass
-class Component(bases.ProjectNode, amos.LibraryFactory, abc.ABC):
-    """Base class for nodes in a project workflow.
+
+def implement(
+    node: bases.ProjectNode,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
 
     Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-  
-    """
-    name: Optional[str] = None
-    contents: Optional[Any] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-    iterations: Union[int, str] = 1
-    
-    """ Public Methods """
+        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
 
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        try:
-            project = self.contents.execute(project = project, **kwargs)
-        except AttributeError:
-            project = self.contents(project, **kwargs)
-        return project    
-       
+    Returns:
+        interface.Project: with possible changes made by 'node'.
         
+    """
+    ancestors = count_ancestors(node = node, workflow = project.workflow)
+    descendants = len(project.workflow[node])
+    if ancestors > descendants:
+        method = closer_implement
+    elif ancestors < descendants:
+        method = mananger_implement
+    elif ancestors == descendants:
+        method = task_implement
+    return method(node = node, project = project, **kwargs)
+    
+def closer_implement(
+    node: bases.ProjectNode,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    try:
+        project = node.execute(project = project, **kwargs)
+    except AttributeError:
+        project = node(project, **kwargs)
+    return project    
+
+def mananger_implement(
+    node: bases.ProjectNode,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    branches = project.workflow[node]
+    number = len(branches)     
+    
+def task_implement(
+    node: bases.ProjectNode,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    try:
+        project = node.execute(project = project, **kwargs)
+    except AttributeError:
+        project = node(project, **kwargs)
+    return project    
+
+def count_ancestors(node: bases.ProjectNode, workflow: bases.Stage) -> int:
+    connections = list(more_itertools.collapse(workflow.values()))
+    return connections.count(node)
+    
+    
+            
 @dataclasses.dataclass
 class Worker(Component, abc.ABC):
     """Keystone class for parts of a chrisjen workflow.
@@ -124,7 +156,7 @@ class Worker(Component, abc.ABC):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
 
     """ Public Methods """  
@@ -191,7 +223,7 @@ class Laborer(amos.Pipeline, Worker):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
    
@@ -257,7 +289,7 @@ class Manager(Worker, abc.ABC):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Union[Callable, str] = None
@@ -356,7 +388,7 @@ class Contest(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -394,7 +426,7 @@ class Study(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -432,7 +464,7 @@ class Survey(Manager):
     name: Optional[str] = None
     contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     default: Any = dataclasses.field(default_factory = list)
     critera: Callable = None
@@ -461,7 +493,7 @@ class Task(Component):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     step: Union[str, Callable] = None
     technique: Callable = None
@@ -517,7 +549,7 @@ class Step(Task):
     name: Optional[str] = None
     contents: Optional[Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
                     
     """ Properties """
@@ -581,7 +613,7 @@ class Technique(Task):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = ComponentParameters)
     iterations: Union[int, str] = 1
     step: str = None
         
