@@ -194,27 +194,33 @@ class Stage(amos.LibraryFactory, abc.ABC):
     
 
 @dataclasses.dataclass
-class NodeLibrary(amos.Library):
-    """Stores project classes and class instances.
-    
-    When searching for matches, instances are prioritized over classes.
-    
+class NodeCatalog(amos.Catalog):
+    """Wildcard and list-accepting dictionary of project nodes.
+
     Args:
-        classes (Catalog): a catalog of stored classes. Defaults to any empty
-            Catalog.
-        instances (Catalog): a catalog of stored class instances. Defaults to an
-            empty Catalog.
-                 
+        contents (Mapping[Hashable, Any]]): stored dictionary. Defaults to an 
+            empty dict.
+        default_factory (Any): default value to return when the 'get' method is 
+            used.
+        default (Optional[str]): a list of keys in 'contents' which will be 
+            used to return items when 'default' is sought. If not passed, 
+            'default' will be set to all keys.
+        always_return_list (bool): whether to return a list even when the key 
+            passed is not a list or special access key (True) or to return a 
+            list only when a list or special access key is used (False). 
+            Defaults to False.
+                     
     """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
+    contents: Mapping[str, Type[ProjectNode]] = dataclasses.field(
+        default_factory = dict)
+    default_factory: Optional[Any] = None
+    default: Optional[str] = 'all'
+    always_return_list: bool = False
 
     """ Properties """
     
     @property
-    def suffixes(self) -> tuple[str]:
+    def plurals(self) -> tuple[str]:
         """Returns all stored names and naive plurals of those names.
         
         Returns:
@@ -222,8 +228,7 @@ class NodeLibrary(amos.Library):
                 plurals combined with the stored keys.
                 
         """
-        plurals = [key + 's' for key in self.instances.keys()] 
-        return tuple(plurals + [key + 's' for key in self.classes.keys()])
+        return tuple([key + 's' for key in self.contents.keys()])
 
              
 @dataclasses.dataclass
@@ -252,7 +257,7 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     iterations: Union[int, str] = 1
-    library: ClassVar[NodeLibrary] = NodeLibrary() 
+    catalog: ClassVar[NodeCatalog] = NodeCatalog() 
     
     """ Initialization Methods """
     
@@ -425,7 +430,122 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
             except TypeError:
                 return item == self.contents 
 
+       
+@dataclasses.dataclass
+class Component(ProjectNode, amos.LibraryFactory, abc.ABC):
+    """Base class for nodes in a project workflow.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
+  
+    """
+    name: Optional[str] = None
+    contents: Optional[Any] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = Parameters)
+    iterations: Union[int, str] = 1
     
+    """ Public Methods """
+
+    def implement(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        try:
+            project = self.contents.execute(project = project, **kwargs)
+        except AttributeError:
+            project = self.contents(project, **kwargs)
+        return project   
+    
+            
+@dataclasses.dataclass
+class Worker(Component, abc.ABC):
+    """Keystone class for parts of a chrisjen workflow.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
+
+    Attributes:
+        library (ClassVar[Library]): library that stores concrete (non-abstract) 
+            subclasses and instances of Component. 
+                              
+    """
+    name: Optional[str] = None
+    contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = Parameters)
+    iterations: Union[int, str] = 1
+
+    """ Public Methods """  
+    
+    def implement(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+        
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        return self._implement_in_serial(project = project, **kwargs)    
+
+    """ Private Methods """
+    
+    def _implement_in_serial(self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies stored nodes to 'project' in order.
+
+        Args:
+            project (Project): chrisjen project to apply changes to and/or
+                gather needed data from.
+                
+        Returns:
+            Project: with possible alterations made.       
+        
+        """
+        for node in self.paths[0]:
+            project = node.execute(project = project, **kwargs)
+        return project 
+        
+   
 @dataclasses.dataclass   
 class Criteria(amos.LibraryFactory):
     """Evaluates paths for use by Judge

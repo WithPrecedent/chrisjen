@@ -30,7 +30,8 @@ To Do:
 from __future__ import annotations
 import abc
 import collections
-from collections.abc import Hashable, Mapping, MutableMapping, Sequence, Set
+from collections.abc import (
+    Hashable, Mapping, MutableMapping, MutableSequence, Sequence, Set)
 import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
@@ -47,25 +48,19 @@ if TYPE_CHECKING:
 """ Public Classes """
 
 @dataclasses.dataclass
-class Workflow(amos.System, bases.Stage):
-    """Project workflow implementation as a directed acyclic graph (DAG).
-    
-    Workflow stores its graph as an adjacency list. Despite being called an 
-    "adjacency list," the typical and most efficient way to create one in python
-    is using a dict. The keys of the dict are the nodes and the values are sets
-    of the hashable summarys of other nodes.
+class Workflow(amos.Pipeline, bases.Stage):
+    """Project workflow composite object.
     
     Args:
-        contents (MutableMapping[bases.ProjectNode, Set[str]]): keys are nodes 
+        contents (MutableMapping[bases.Projectbases.ProjectNode, Set[str]]): keys are nodes 
             and values are sets of nodes (or hashable representations of nodes). 
             Defaults to a defaultdict that has a set for its value format.
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing. Defaults to None.            
                   
     """  
-    contents: MutableMapping[bases.ProjectNode, Set[str]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
+    contents: MutableSequence[bases.ProjectNode] = dataclasses.field(
+        default_factory = list)
     name: str = 'Workflow'
     
     """ Public Methods """
@@ -89,13 +84,13 @@ class Results(amos.Pipelines, bases.Stage):
     """Project workflow after it has been implemented.
     
     Args:
-        contents (MutableMapping[amos.Node, Set[amos.Node]]): keys 
+        contents (MutableMapping[amos.bases.ProjectNode, Set[amos.bases.ProjectNode]]): keys 
             are nodes and values are sets of nodes (or hashable representations 
             of nodes). Defaults to a defaultdict that has a set for its value 
             format.
                   
     """  
-    contents: MutableMapping[amos.Node, Set[amos.Node]] = (
+    contents: MutableMapping[amos.bases.ProjectNode, Set[amos.bases.ProjectNode]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     name: Optional[str] = 'Results'
@@ -192,7 +187,7 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: configuration.ProjectSettings,
-    library: amos.Library) -> bases.ProjectNode:
+    library: amos.Library) -> bases.Projectbases.ProjectNode:
     """[summary]
 
     Args:
@@ -201,7 +196,7 @@ def _settings_to_component(
         library (amos.Library): [description]
 
     Returns:
-        bases.ProjectNode: [description]
+        bases.Projectbases.ProjectNode: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -295,13 +290,13 @@ def _parse_initialization(
 
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
-    components: dict[str, bases.ProjectNode],
+    components: dict[str, bases.Projectbases.ProjectNode],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        components (dict[str, bases.ProjectNode]): [description]
+        components (dict[str, bases.Projectbases.ProjectNode]): [description]
         system (Workflow): [description]
 
     Returns:

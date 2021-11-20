@@ -91,7 +91,7 @@ class Project(Iterator):
     clerk: Optional[filing.Clerk] = None
     data: Optional[object] = None
     bases: ProjectDefaults = ProjectDefaults()
-    stages: Optional[Sequence[Union[str, Type[Any]]]] = None
+    workers: Optional[Sequence[Union[str, Type[Any]]]] = None
     identification: Optional[str] = None
     automatic: bool = True
     
