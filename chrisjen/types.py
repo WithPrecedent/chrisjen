@@ -43,6 +43,9 @@ class Test(Component):
     """Same data, different nodes"""
     pass
 
+    @classmethod
+    def create(cls, name: str, project: interface.Project) -> Test:
+        pass
     
 @dataclasses.dataclass   
 class Comparison(Test):
@@ -91,3 +94,36 @@ class Validation(Judge):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
 
+
+
+
+def create_test(
+    name: str, 
+    project: interface.Project,
+    **kwargs) -> Test:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        project (interface.Project): [description]
+
+    Returns:
+        Test: [description]
+        
+    """    
+    design = project.settings.designs.get(name, None) 
+    kind = project.settings.kinds.get(name, None) 
+    lookups = _get_lookups(name = name, design = design, kind = kind)
+    base = project.components.withdraw(item = lookups)
+    parameters = amos.get_annotations(item = base)
+    attributes, initialization = _parse_initialization(
+        name = name,
+        settings = project.settings,
+        parameters = parameters)
+    initialization['parameters'] = _get_runtime(
+        lookups = lookups,
+        settings = project.settings)
+    component = base(name = name, **initialization)
+    for key, value in attributes.items():
+        setattr(component, key, value)
+    return component
