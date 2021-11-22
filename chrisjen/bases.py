@@ -18,9 +18,9 @@ License: Apache-2.0
 
 Contents:
     ProjectNode (amos.Node, abc.ABC):
-    ProjectComponent (amos.LibraryFactory, ProjectNode, abc.ABC):
-    ProjectStage (amos.LibraryFactory, ProjectNode, abc.ABC):
-    ProjectDirector (amos.LibraryFactory, Iterator):
+    ProjectComponent (ProjectOptions, ProjectNode, abc.ABC):
+    ProjectStage (ProjectOptions, ProjectNode, abc.ABC):
+    ProjectDirector (ProjectOptions, Iterator):
 
 To Do:
     Make ProjectNode a subclass of amos.Node by fixing the proxy access methods
@@ -42,7 +42,109 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
+ 
+# @dataclasses.dataclass
+# class ProjectCatalog(amos.Catalog):
+#     """[summary]
 
+#     Args:
+#         contents (Mapping[Hashable, Any]]): stored dictionary. Defaults to an 
+#             empty dict.
+#         default_factory (Any): default value to return when the 'get' method is 
+#             used.
+#         default (Sequence[Any]]): a list of keys in 'contents' which will be 
+#             used to return items when 'default' is sought. If not passed, 
+#             'default' will be set to all keys.
+#         always_return_list (bool): whether to return a list even when the key 
+#             passed is not a list or special access key (True) or to return a 
+#             list only when a list or special access key is used (False). 
+#             Defaults to False.
+                     
+#     """
+#     contents: Mapping[str, Type[Any]] = dataclasses.field(
+#         default_factory = dict)
+#     default_factory: Optional[Any] = None
+#     default: Optional[Any] = 'all'
+#     always_return_list: bool = False
+    
+#     """ Public Methods """
+ 
+
+@dataclasses.dataclass
+class ProjectOptions(object):
+    """Mixin which registers subclasses and provides construction methods.
+    
+    Args:
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+            derived from the 'amos.get_name' function.
+            
+    """
+    catalog: ClassVar[amos.Catalog] = amos.Catalog()
+    
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass."""
+        # Because ProjectOptions is used as a mixin, it is important to
+        # call other base class '__init_subclass__' methods, if they exist.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        name = amos.get_name(item = cls)
+        cls.catalog[name] = cls
+
+    """ Properties """
+    
+    @property
+    def plurals(self) -> tuple[str]:
+        """Returns all stored names and naive plurals of those names.
+        
+        Returns:
+            tuple[str]: all names with an 's' added in order to create simple 
+                plurals combined with the stored keys.
+                
+        """
+        return tuple([key + 's' for key in self.contents.keys()])
+        
+    """ Public Methods """
+
+    @classmethod
+    def instance(
+        cls, 
+        item: Union[str, Sequence[str]], 
+        **kwargs: Any) -> ProjectOptions:
+        """Creates an instance of a ProjectOptions subclass from 'item'.
+        
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a ProjectOptions or a str which matches a key in 
+                'catalog''.
+                                
+        Returns:
+            ProjectOptions: a ProjectOptions subclass instance created based 
+                on 'item' and any passed arguments.
+                
+        """
+        return cls.catalog[item](**kwargs)
+
+    @classmethod
+    def select(cls, item: Union[str, Sequence[str]]) -> Type[ProjectOptions]:
+        """Returns a ProjectOptions subclass based on 'item'.
+        
+        Args:
+            item (Any): any supported data structure which acts as a source for
+                creating a ProjectOptions or a str which matches a key in 
+                'catalog''.
+                                
+        Returns:
+            Type[ProjectOptions]: a ProjectOptions subclass.
+                
+        """
+        return cls.catalog[item]   
+    
+    
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary):
     """Creates and stores parameters for a Component.
@@ -176,7 +278,7 @@ class Parameters(amos.Dictionary):
 
    
 @dataclasses.dataclass
-class Stage(amos.LibraryFactory, abc.ABC):
+class Stage(ProjectOptions, abc.ABC):
     """Base class for stages in a chrisjen project.
 
     Args:
@@ -184,55 +286,17 @@ class Stage(amos.LibraryFactory, abc.ABC):
             method. Defaults to None.
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing. Defaults to None.
-        library (ClassVar[amos.Library]): a amos.Library instance storing both 
-            subclasses and instances. 
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+            derived from the 'amos.get_name' function.
             
     """
     contents: Optional[Any] = None
     name: Optional[str] = None
-    library: ClassVar[amos.Library] = amos.Library() 
-    
-
-@dataclasses.dataclass
-class NodeCatalog(amos.Catalog):
-    """Wildcard and list-accepting dictionary of project nodes.
-
-    Args:
-        contents (Mapping[Hashable, Any]]): stored dictionary. Defaults to an 
-            empty dict.
-        default_factory (Any): default value to return when the 'get' method is 
-            used.
-        default (Optional[str]): a list of keys in 'contents' which will be 
-            used to return items when 'default' is sought. If not passed, 
-            'default' will be set to all keys.
-        always_return_list (bool): whether to return a list even when the key 
-            passed is not a list or special access key (True) or to return a 
-            list only when a list or special access key is used (False). 
-            Defaults to False.
-                     
-    """
-    contents: Mapping[str, Type[ProjectNode]] = dataclasses.field(
-        default_factory = dict)
-    default_factory: Optional[Any] = None
-    default: Optional[str] = 'all'
-    always_return_list: bool = False
-
-    """ Properties """
-    
-    @property
-    def plurals(self) -> tuple[str]:
-        """Returns all stored names and naive plurals of those names.
-        
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
-        """
-        return tuple([key + 's' for key in self.contents.keys()])
+    catalog: ClassVar[amos.Catalog] = amos.Catalog()
 
              
 @dataclasses.dataclass
-class ProjectNode(amos.LibraryFactory, abc.ABC):
+class ProjectNode(ProjectOptions, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -248,8 +312,8 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        library (ClassVar[NodeLibrary]): a NodeLibrary instance storing both 
-            subclasses and instances. Defaults to an empty NodeLibrary.
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+            derived from the 'amos.get_name' function.
               
     """
     name: Optional[str] = None
@@ -257,7 +321,7 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     iterations: Union[int, str] = 1
-    catalog: ClassVar[NodeCatalog] = NodeCatalog() 
+    catalog: ClassVar[amos.Catalog] = amos.Catalog()
     
     """ Initialization Methods """
     
@@ -432,7 +496,7 @@ class ProjectNode(amos.LibraryFactory, abc.ABC):
 
        
 @dataclasses.dataclass
-class Component(ProjectNode, amos.LibraryFactory, abc.ABC):
+class Component(ProjectNode, ProjectOptions, abc.ABC):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -547,7 +611,7 @@ class Worker(Component, abc.ABC):
         
    
 @dataclasses.dataclass   
-class Criteria(amos.LibraryFactory):
+class Criteria(ProjectOptions):
     """Evaluates paths for use by Judge
     
     Args:
