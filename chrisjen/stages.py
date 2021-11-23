@@ -48,20 +48,19 @@ if TYPE_CHECKING:
 """ Public Classes """
 
 @dataclasses.dataclass
-class Workflow(amos.Pipeline, bases.Stage):
+class Workflow(object):
     """Project workflow composite object.
     
     Args:
-        contents (MutableMapping[bases.Projectbases.ProjectNode, Set[str]]): keys are nodes 
-            and values are sets of nodes (or hashable representations of nodes). 
-            Defaults to a defaultdict that has a set for its value format.
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing. Defaults to None.            
+    Args:
+        name (str): name of class used for internal referencing and logging.
+            Defaults to 'worfklow'.
+        contents (Optional[amos.Composite]): iterable composite data structure 
+            for storing the project workflow. Defaults to None.
                   
     """  
-    contents: MutableSequence[bases.ProjectNode] = dataclasses.field(
-        default_factory = list)
     name: str = 'Workflow'
+    contents: Optional[amos.Composite] = None
     
     """ Public Methods """
     
@@ -78,22 +77,39 @@ class Workflow(amos.Pipeline, bases.Stage):
         project.workflow = create_workflow(project = project)    
         return project
 
+    # def execute(
+    #     self, 
+    #     project: interface.Project, 
+    #     **kwargs) -> interface.Project:
+    #     """Calls the 'implement' method the number of times in 'iterations'.
 
+    #     Args:
+    #         project (interface.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
+
+    #     Returns:
+    #         interface.Project: with possible changes made.
+            
+    #     """
+    #     if self.contents not in [None, 'None', 'none']:
+    #         for node in self:
+    #             project = node.execute(project = project, **kwargs)
+    #     return project
+    
+    
 @dataclasses.dataclass
-class Results(amos.Pipelines, bases.Stage):
+class Results(object):
     """Project workflow after it has been implemented.
     
     Args:
-        contents (MutableMapping[amos.bases.ProjectNode, Set[amos.bases.ProjectNode]]): keys 
-            are nodes and values are sets of nodes (or hashable representations 
-            of nodes). Defaults to a defaultdict that has a set for its value 
-            format.
+        name (str): name of class used for internal referencing and logging.
+            Defaults to 'results'.
+        contents (Optional[amos.Composite]): iterable composite data structure 
+            for storing the project results. Defaults to None.
                   
     """  
-    contents: MutableMapping[amos.bases.ProjectNode, Set[amos.bases.ProjectNode]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    name: Optional[str] = 'Results'
+    name: str = 'results'
+    contents: Optional[amos.Composite] = None
     
     """ Public Methods """
 
@@ -111,7 +127,7 @@ class Results(amos.Pipelines, bases.Stage):
             base = self)
         return project
 
-
+    
 """ Public Functions """
 
 def create_workflow(
@@ -128,11 +144,11 @@ def create_workflow(
         Workflow: [description]
         
     """    
-    base = base or project.bases.stage.library.withdraw(item = 'workflow')
+    base = base or Workflow
     workflow = base(**kwargs)
     return _settings_to_workflow(
         settings = project.settings,
-        library = project.nodes,
+        catalog = project.nodes,
         workflow = workflow)
 
 def create_results(
@@ -149,7 +165,7 @@ def create_results(
         Results: [description]
         
     """    
-    base = base or project.bases.stage.library.withdraw(item = 'results')
+    base = base or Results
     results = base(**kwargs)
     for path in project.workflow.paths:
         results.add(_path_to_result(path = path, project = project))
@@ -159,25 +175,24 @@ def create_results(
 
 def _settings_to_workflow(
     settings: configuration.ProjectSettings, 
-    library: amos.Library, 
+    catalog: amos.Catalog, 
     workflow: Workflow) -> Workflow:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        library (bases.LIBRARY): [description]
+        catalog (bases.LIBRARY): [description]
 
     Returns:
         Workflow: [description]
         
     """
-    
     components = {}
     for name in settings.labels:
         components[name] = _settings_to_component(
             name = name,
             settings = settings,
-            library = library)
+            catalog = catalog)
     workflow = _settings_to_adjacency(
         settings = settings, 
         components = components,
@@ -187,13 +202,13 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: configuration.ProjectSettings,
-    library: amos.Library) -> bases.Projectbases.ProjectNode:
+    catalog: amos.Catalog) -> bases.Projectbases.ProjectNode:
     """[summary]
 
     Args:
         name (str): [description]
         settings (configuration.ProjectSettings): [description]
-        library (amos.Library): [description]
+        catalog (amos.Catalog): [description]
 
     Returns:
         bases.Projectbases.ProjectNode: [description]
@@ -202,7 +217,7 @@ def _settings_to_component(
     design = settings.designs.get(name, None) 
     kind = settings.kinds.get(name, None) 
     lookups = _get_lookups(name = name, design = design, kind = kind)
-    base = library.withdraw(item = lookups)
+    base = _get_base(lookups = lookups, catalog = catalog)
     parameters = amos.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
         name = name,
@@ -237,6 +252,29 @@ def _get_lookups(
     if kind:
         lookups.append(kind)
     return lookups
+
+def _get_base(
+    lookups: Sequence[str],
+    catalog: amos.Catalog) -> bases.Component:
+    """[summary]
+
+    Args:
+        lookups (Sequence[str]): [description]
+        catalog (amos.Catalog): [description]
+
+    Raises:
+        KeyError: [description]
+
+    Returns:
+        bases.Component: [description]
+        
+    """
+    for lookup in lookups:
+        try:
+            return catalog[lookup]
+        except KeyError:
+            pass
+    raise KeyError(f'No matches in the node catalog found for {lookups}')
 
 def _get_runtime(
     lookups: list[str], 

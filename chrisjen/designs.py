@@ -39,14 +39,19 @@ if TYPE_CHECKING:
     
     
 @dataclasses.dataclass   
-class Test(Component):
+class Test(bases.Component):
     """Same data, different nodes"""
-    pass
+    name: Optional[str] = None
+    contents: amos.Pipelines = dataclasses.field(
+        default_factory = amos.Pipelines)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.Parameters)
 
     @classmethod
     def create(cls, name: str, project: interface.Project) -> Test:
         pass
-    
+
+ 
 @dataclasses.dataclass   
 class Comparison(Test):
     """Same data, different nodes"""
@@ -60,7 +65,7 @@ class Comparison(Test):
 """ Single Nodes """
 
 @dataclasses.dataclass   
-class Judge(Component):
+class Judge(object):
     """Reduces paths"""
     name: Optional[str] = None
     contents: Optional[bases.Criteria] = None

@@ -29,8 +29,9 @@ To Do:
 """
 from __future__ import annotations
 import abc
+import collections
 from collections.abc import (
-    Callable, Hashable, Mapping, MutableMapping, Sequence)
+    Callable, Hashable, Mapping, MutableMapping, Sequence, Set)
 import copy
 import dataclasses
 import functools
@@ -42,33 +43,6 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
- 
-# @dataclasses.dataclass
-# class ProjectCatalog(amos.Catalog):
-#     """[summary]
-
-#     Args:
-#         contents (Mapping[Hashable, Any]]): stored dictionary. Defaults to an 
-#             empty dict.
-#         default_factory (Any): default value to return when the 'get' method is 
-#             used.
-#         default (Sequence[Any]]): a list of keys in 'contents' which will be 
-#             used to return items when 'default' is sought. If not passed, 
-#             'default' will be set to all keys.
-#         always_return_list (bool): whether to return a list even when the key 
-#             passed is not a list or special access key (True) or to return a 
-#             list only when a list or special access key is used (False). 
-#             Defaults to False.
-                     
-#     """
-#     contents: Mapping[str, Type[Any]] = dataclasses.field(
-#         default_factory = dict)
-#     default_factory: Optional[Any] = None
-#     default: Optional[Any] = 'all'
-#     always_return_list: bool = False
-    
-#     """ Public Methods """
- 
 
 @dataclasses.dataclass
 class ProjectOptions(object):
@@ -144,7 +118,169 @@ class ProjectOptions(object):
         """
         return cls.catalog[item]   
     
+ 
+@dataclasses.dataclass
+class ProjectNode(ProjectOptions, abc.ABC):
+    """Base class for nodes in a chrisjen project.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
+            derived from the 'amos.get_name' function.
+              
+    """
+    name: Optional[str] = None
+    contents: Optional[Any] = None
+    catalog: ClassVar[amos.Catalog] = amos.Catalog()
     
+    """ Initialization Methods """
+    
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Forces subclasses to use the same hash methods as ProjectNode.
+        
+        This is necessary because dataclasses, by design, do not automatically 
+        inherit the hash and equivalance dunder methods from their super 
+        classes.
+        
+        """
+        # Calls other '__init_subclass__' methods for parent and mixin classes.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        # Copies hashing related methods to a subclass.
+        cls.__hash__ = ProjectNode.__hash__ # type: ignore
+        cls.__eq__ = ProjectNode.__eq__ # type: ignore
+        cls.__ne__ = ProjectNode.__ne__ # type: ignore
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Sets 'name' attribute if 'name' is None.
+        self.name = self.name or amos.get_name(item = self)
+        # Calls other '__post_init__' methods for parent and mixin classes.
+        try:
+            super().__post_init__() # type: ignore
+        except AttributeError:
+            pass
+        
+    """ Required Subclass Methods """
+
+    @abc.abstractmethod
+    def execute(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+
+        Subclasses must provide their own methods.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        pass
+            
+    """ Dunder Methods """
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
+        """Returns whether 'subclass' is a virtual or real subclass.
+
+        Args:
+            subclass (Type[Any]): item to test as a subclass.
+
+        Returns:
+            bool: whether 'subclass' is a real or virtual subclass.
+            
+        """
+        return (
+            amos.is_node(subclass) 
+            and amos.has_attributes(subclass, ['name', 'contents', 'catalog'])
+            and amos.has_method(subclass, 'execute'))
+               
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        """Returns whether 'instances' is an instance of this class.
+
+        Args:
+            instance (object): item to test as an instance.
+
+        Returns:
+            bool: whether 'instance' is an instance of this class.
+            
+        """
+        return (
+            issubclass(instance.__class__, cls)
+            and isinstance(instance.name, str))
+    
+    def __hash__(self) -> int:
+        """Makes Node hashable so that it can be used as a key in a dict.
+
+        Rather than using the object ID, this method prevents two Nodes with
+        the same name from being used in a composite object that uses a dict as
+        its base storage type.
+        
+        Returns:
+            int: hashable of 'name'.
+            
+        """
+        return hash(self.name)
+
+    def __eq__(self, other: object) -> bool:
+        """Makes Node hashable so that it can be used as a key in a dict.
+
+        Args:
+            other (object): other object to test for equivalance.
+            
+        Returns:
+            bool: whether 'name' is the same as 'other.name'.
+            
+        """
+        try:
+            return str(self.name) == str(other.name) # type: ignore
+        except AttributeError:
+            return str(self.name) == other
+
+    def __ne__(self, other: object) -> bool:
+        """Completes equality test dunder methods.
+
+        Args:
+            other (object): other object to test for equivalance.
+           
+        Returns:
+            bool: whether 'name' is not the same as 'other.name'.
+            
+        """
+        return not(self == other)
+
+    def __contains__(self, item: Any) -> bool:
+        """Returns whether 'item' is in or equal to 'contents'.
+
+        Args:
+            item (Any): item to check versus 'contents'
+            
+        Returns:
+            bool: if 'item' is in or equal to 'contents' (True). Otherwise, it
+                returns False.
+
+        """
+        try:
+            return item in self.contents
+        except TypeError:
+            try:
+                return item is self.contents
+            except TypeError:
+                return item == self.contents 
+
+
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary):
     """Creates and stores parameters for a Component.
@@ -276,28 +412,10 @@ class Parameters(amos.Dictionary):
                     pass
         return self
 
-   
+               
 @dataclasses.dataclass
-class Stage(ProjectOptions, abc.ABC):
-    """Base class for stages in a chrisjen project.
-
-    Args:
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing. Defaults to None.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-            
-    """
-    contents: Optional[Any] = None
-    name: Optional[str] = None
-    catalog: ClassVar[amos.Catalog] = amos.Catalog()
-
-             
-@dataclasses.dataclass
-class ProjectNode(ProjectOptions, abc.ABC):
-    """Base class for nodes in a chrisjen project.
+class Component(ProjectNode):
+    """Base class for nodes in a project workflow.
 
     Args:
         name (Optional[str]): designates the name of a class instance that is 
@@ -312,68 +430,18 @@ class ProjectNode(ProjectOptions, abc.ABC):
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
+            
+    Attributes:
+        catalog (ClassVar[amos.Catalog]): ProjectNode subclasses stored with str 
+            keys derived from the 'amos.get_name' function.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
+        default_factory = Parameters)
     iterations: Union[int, str] = 1
-    catalog: ClassVar[amos.Catalog] = amos.Catalog()
     
-    """ Initialization Methods """
-    
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Forces subclasses to use the same hash methods as ProjectNode.
-        
-        This is necessary because dataclasses, by design, do not automatically 
-        inherit the hash and equivalance dunder methods from their super 
-        classes.
-        
-        """
-        # Calls other '__init_subclass__' methods for parent and mixin classes.
-        try:
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        # Copies hashing related methods to a subclass.
-        cls.__hash__ = ProjectNode.__hash__ # type: ignore
-        cls.__eq__ = ProjectNode.__eq__ # type: ignore
-        cls.__ne__ = ProjectNode.__ne__ # type: ignore
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Sets 'name' attribute if 'name' is None.
-        self.name = self.name or amos.get_name(item = self)
-        # Calls other '__post_init__' methods for parent and mixin classes.
-        try:
-            super().__post_init__() # type: ignore
-        except AttributeError:
-            pass
-        
-    """ Required Subclass Methods """
-
-    @abc.abstractmethod
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-
-        Subclasses must provide their own methods.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        pass
-
     """ Public Methods """
     
     def execute(self, 
@@ -406,122 +474,7 @@ class ProjectNode(ProjectOptions, abc.ABC):
                 for _ in range(iterations):
                     project = self.implement(project = project, **parameters)
         return project
-            
-    """ Dunder Methods """
     
-    @classmethod
-    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-        """Returns whether 'subclass' is a virtual or real subclass.
-
-        Args:
-            subclass (Type[Any]): item to test as a subclass.
-
-        Returns:
-            bool: whether 'subclass' is a real or virtual subclass.
-            
-        """
-        return issubclass(subclass, Hashable) and hasattr(subclass, 'name')
-               
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        """Returns whether 'instances' is an instance of this class.
-
-        Args:
-            instance (object): item to test as an instance.
-
-        Returns:
-            bool: whether 'instance' is an instance of this class.
-            
-        """
-        return amos.is_node(item = instance)
-    
-    def __hash__(self) -> int:
-        """Makes Node hashable so that it can be used as a key in a dict.
-
-        Rather than using the object ID, this method prevents two Nodes with
-        the same name from being used in a composite object that uses a dict as
-        its base storage type.
-        
-        Returns:
-            int: hashable of 'name'.
-            
-        """
-        return hash(self.name)
-
-    def __eq__(self, other: object) -> bool:
-        """Makes Node hashable so that it can be used as a key in a dict.
-
-        Args:
-            other (object): other object to test for equivalance.
-            
-        Returns:
-            bool: whether 'name' is the same as 'other.name'.
-            
-        """
-        try:
-            return str(self.name) == str(other.name) # type: ignore
-        except AttributeError:
-            return str(self.name) == other
-
-    def __ne__(self, other: object) -> bool:
-        """Completes equality test dunder methods.
-
-        Args:
-            other (object): other object to test for equivalance.
-           
-        Returns:
-            bool: whether 'name' is not the same as 'other.name'.
-            
-        """
-        return not(self == other)
-
-    def __contains__(self, item: Any) -> bool:
-        """Returns whether 'item' is in or equal to 'contents'.
-
-        Args:
-            item (Any): item to check versus 'contents'
-            
-        Returns:
-            bool: if 'item' is in or equal to 'contents' (True). Otherwise, it
-                returns False.
-
-        """
-        try:
-            return item in self.contents
-        except TypeError:
-            try:
-                return item is self.contents
-            except TypeError:
-                return item == self.contents 
-
-       
-@dataclasses.dataclass
-class Component(ProjectNode, ProjectOptions, abc.ABC):
-    """Base class for nodes in a project workflow.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-  
-    """
-    name: Optional[str] = None
-    contents: Optional[Any] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
-    iterations: Union[int, str] = 1
-    
-    """ Public Methods """
-
     def implement(
         self, 
         project: interface.Project, 
@@ -541,75 +494,8 @@ class Component(ProjectNode, ProjectOptions, abc.ABC):
         except AttributeError:
             project = self.contents(project, **kwargs)
         return project   
-    
-            
-@dataclasses.dataclass
-class Worker(Component, abc.ABC):
-    """Keystone class for parts of a chrisjen workflow.
 
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
 
-    Attributes:
-        library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
-                              
-    """
-    name: Optional[str] = None
-    contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
-    iterations: Union[int, str] = 1
-
-    """ Public Methods """  
-    
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-        
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        return self._implement_in_serial(project = project, **kwargs)    
-
-    """ Private Methods """
-    
-    def _implement_in_serial(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies stored nodes to 'project' in order.
-
-        Args:
-            project (Project): chrisjen project to apply changes to and/or
-                gather needed data from.
-                
-        Returns:
-            Project: with possible alterations made.       
-        
-        """
-        for node in self.paths[0]:
-            project = node.execute(project = project, **kwargs)
-        return project 
-        
-   
 @dataclasses.dataclass   
 class Criteria(ProjectOptions):
     """Evaluates paths for use by Judge
@@ -632,4 +518,4 @@ class Criteria(ProjectOptions):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     catalog: ClassVar[amos.Catalog] = amos.Catalog()
-    
+

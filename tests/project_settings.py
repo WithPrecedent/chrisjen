@@ -11,7 +11,7 @@ settings = {
         'analysis_format': 'csv',
         'file_encoding': 'windows-1252'},
     'cool_project': {
-        'cool_project_design': 'laborer',
+        'cool_project_structure': 'pipeline',
         'cool_project_workers': ['reviewer', 'parser', 'munger']},
     'reviewer': {
         'reviewer_design': 'laborer',

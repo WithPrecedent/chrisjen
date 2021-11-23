@@ -49,9 +49,74 @@ from . import bases
 if TYPE_CHECKING:
     from . import interface
 
- 
+             
+@dataclasses.dataclass
+class Worker(bases.Component, abc.ABC):
+    """Keystone class for parts of a chrisjen workflow.
 
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+        iterations (Union[int, str]): number of times the 'implement' method 
+            should  be called. If 'iterations' is 'infinite', the 'implement' 
+            method will continue indefinitely unless the method stops further 
+            iteration. Defaults to 1.
 
+    Attributes:
+        library (ClassVar[Library]): library that stores concrete (non-abstract) 
+            subclasses and instances of Component. 
+                              
+    """
+    name: Optional[str] = None
+    contents: dict[str, list[str]] = dataclasses.field(default_factory = dict)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.Parameters)
+    iterations: Union[int, str] = 1
+
+    """ Public Methods """  
+    
+    def implement(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+        
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        return self._implement_in_serial(project = project, **kwargs)    
+
+    """ Private Methods """
+    
+    def _implement_in_serial(self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies stored nodes to 'project' in order.
+
+        Args:
+            project (Project): chrisjen project to apply changes to and/or
+                gather needed data from.
+                
+        Returns:
+            Project: with possible alterations made.       
+        
+        """
+        for node in self.paths[0]:
+            project = node.execute(project = project, **kwargs)
+        return project 
+        
+    
 @dataclasses.dataclass
 class Laborer(amos.Pipeline, Worker):
     """Keystone class for parts of a chrisjen workflow.
@@ -559,4 +624,35 @@ def create_pipelines(
             base = pipeline_base))  
     permutations = itertools.product(pipelines)
     return base(contents = permutations, **kwargs)
-   
+
+
+def create_test(
+    name: str, 
+    project: interface.Project,
+    **kwargs) -> Test:
+    """[summary]
+
+    Args:
+        name (str): [description]
+        project (interface.Project): [description]
+
+    Returns:
+        Test: [description]
+        
+    """    
+    design = project.settings.designs.get(name, None) 
+    kind = project.settings.kinds.get(name, None) 
+    lookups = _get_lookups(name = name, design = design, kind = kind)
+    base = project.components.withdraw(item = lookups)
+    parameters = amos.get_annotations(item = base)
+    attributes, initialization = _parse_initialization(
+        name = name,
+        settings = project.settings,
+        parameters = parameters)
+    initialization['parameters'] = _get_runtime(
+        lookups = lookups,
+        settings = project.settings)
+    component = base(name = name, **initialization)
+    for key, value in attributes.items():
+        setattr(component, key, value)
+    return component

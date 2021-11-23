@@ -59,7 +59,7 @@ def implement(
     if ancestors > descendants:
         method = closer_implement
     elif ancestors < descendants:
-        method = mananger_implement
+        method = test_implement
     elif ancestors == descendants:
         method = task_implement
     return method(node = node, project = project, **kwargs)
@@ -85,7 +85,7 @@ def closer_implement(
         project = node(project, **kwargs)
     return project    
 
-def mananger_implement(
+def test_implement(
     node: bases.ProjectNode,
     project: interface.Project, 
     **kwargs) -> interface.Project:
@@ -100,8 +100,20 @@ def mananger_implement(
         interface.Project: with possible changes made by 'node'.
         
     """
-    branches = project.workflow[node]
-    number = len(branches)     
+    connections = project.workflow[node]
+    # Makes copies of project for each pipeline in a test.
+    copies = [copy.deepcopy(project) for _ in connections]
+    # if project.settings['general']['parallelize']:
+    #     method = _test_implement_parallel
+    # else:
+    #     method = _test_implement_serial
+    results = []
+    for i, connection in enumerate(connections):
+        results.append(implement(
+            node = project.workflow[connection],
+            project = copies[i], 
+            **kwargs))
+         
     
 def task_implement(
     node: bases.ProjectNode,
