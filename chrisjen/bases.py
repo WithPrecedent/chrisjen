@@ -75,7 +75,7 @@ class ProjectOptions(object):
     """Mixin which registers subclasses and provides construction methods.
     
     Args:
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
             
     """
@@ -286,7 +286,7 @@ class Stage(ProjectOptions, abc.ABC):
             method. Defaults to None.
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing. Defaults to None.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
             
     """
@@ -312,7 +312,7 @@ class ProjectNode(ProjectOptions, abc.ABC):
             should  be called. If 'iterations' is 'infinite', the 'implement' 
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keyes 
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
               
     """
@@ -623,13 +623,13 @@ class Criteria(ProjectOptions):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        library (ClassVar[amos.Library]): a amos.Library instance storing both 
-            subclasses and instances. 
+        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
+            derived from the 'amos.get_name' function.
                       
     """
     name: Optional[str] = None
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    library: ClassVar[amos.Library] = amos.Library() 
+    catalog: ClassVar[amos.Catalog] = amos.Catalog()
     
