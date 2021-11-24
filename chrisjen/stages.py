@@ -64,18 +64,18 @@ class Workflow(object):
     
     """ Public Methods """
     
-    def create(self, project: interface.Project) -> interface.Project:
+    @classmethod
+    def create(cls, project: interface.Project) -> Workflow:
         """[summary]
 
         Args:
             project (interface.Project): [description]
 
         Returns:
-            interface.Project: [description]
+            Workflow: [description]
             
-        """
-        project.workflow = create_workflow(project = project)    
-        return project
+        """        
+        return create_workflow(project = project, base = cls)    
 
     # def execute(
     #     self, 
@@ -113,19 +113,18 @@ class Results(object):
     
     """ Public Methods """
 
-    def create(self, project: interface.Project) -> interface.Project:
+    @classmethod
+    def create(cls, project: interface.Project) -> Results:
         """[summary]
 
         Args:
+            project (interface.Project): [description]
 
         Returns:
-            Results: derived from 'item'.
+            Results: [description]
             
-        """
-        project.results = create_results(
-            project = project, 
-            base = self)
-        return project
+        """        
+        return create_results(project = project, base = cls)
 
     
 """ Public Functions """

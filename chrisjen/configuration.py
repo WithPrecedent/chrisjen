@@ -28,7 +28,6 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping, MutableMapping, Sequence
 import dataclasses
 import functools
-import importlib.util
 import itertools
 import pathlib
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
@@ -94,6 +93,48 @@ class ProjectSettings(amos.Settings):
         """
         return get_designs(project = self.project)
 
+    @property
+    def files(self) -> MutableMapping[Hashable, Any]:
+        """[summary]
+
+        Raises:
+            KeyError: [description]
+
+        Returns:
+            MutableMapping[Hashable, Any]: [description]
+            
+        """        
+        try:
+            return self['files']
+        except KeyError:
+            try:
+                return self['filer']
+            except KeyError:
+                try:
+                    return self['clerk']
+                except KeyError:
+                    raise KeyError(
+                        'ProjectSettings does not contain files-related '
+                        'configuration options')
+
+    @property
+    def general(self) -> MutableMapping[Hashable, Any]:
+        """[summary]
+
+        Raises:
+            KeyError: [description]
+
+        Returns:
+            MutableMapping[Hashable, Any]: [description]
+            
+        """        
+        try:
+            return self['general']
+        except KeyError:
+            raise KeyError(
+                'ProjectSettings does not contain general configuration '
+                'options')
+                                        
     @functools.cached_property
     def initialization(self) -> dict[str, dict[str, Any]]:
         """Returns initialization arguments and attributes for nodes.
@@ -153,11 +194,11 @@ def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """
     connections = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
             new_connections = _get_section_connections(
                 section = section,
                 name = key,
-                suffixes = project.nodes.suffixes)
+                plurals = project.nodes.plurals)
             for inner_key, inner_value in new_connections.items():
                 if inner_key in connections:
                     connections[inner_key].extend(inner_value)
@@ -177,7 +218,7 @@ def get_designs(project: interface.Project) -> dict[str, str]:
     """
     designs = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
             new_designs = _get_section_designs(section = section, name = key)
             designs.update(new_designs)
     return designs
@@ -196,7 +237,7 @@ def get_initialization(project: interface.Project) -> dict[str, dict[str, Any]]:
     for key, section in project.settings.items():   
         new_initialization = _get_section_initialization(
             section = section,
-            suffixes = project.nodes.suffixes)
+            plurals = project.nodes.plurals)
         initialization[key] = new_initialization
     return initialization
                           
@@ -212,10 +253,10 @@ def get_kinds(project: interface.Project) -> dict[str, str]:
     """
     kinds = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.suffixes) for k in section.keys()):
+        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
             new_kinds = _get_section_kinds(
                 section = section,
-                suffixes = project.nodes.suffixes)
+                plurals = project.nodes.plurals)
             kinds.update(new_kinds)  
     return kinds
 
@@ -257,38 +298,38 @@ def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
 
 def _get_section_initialization(
     section: MutableMapping[Hashable, Any],
-    suffixes: Sequence[str]) -> dict[str, Any]:
+    plurals: Sequence[str]) -> dict[str, Any]:
     """[summary]
 
     Args:
         section (MutableMapping[Hashable, Any]): [description]
-        suffixes (Sequence[str]): [description]
+        plurals (Sequence[str]): [description]
 
     Returns:
         dict[str, Any]: [description]
         
     """
-    all_suffixes = suffixes + ('design',)
+    all_plurals = plurals + ('design',)
     return {
-        k: v for k, v in section.items() if not k.endswith(all_suffixes)}
+        k: v for k, v in section.items() if not k.endswith(all_plurals)}
     
 def _get_section_connections(
     section: MutableMapping[Hashable, Any],
     name: str,
-    suffixes: Sequence[str]) -> dict[str, list[str]]:
+    plurals: Sequence[str]) -> dict[str, list[str]]:
     """[summary]
 
     Args:
         section (MutableMapping[Hashable, Any]): [description]
         name (str): [description]
-        suffixes (Sequence[str]): [description]
+        plurals (Sequence[str]): [description]
 
     Returns:
         dict[str, list[str]]: [description]
         
     """    
     connections = {}
-    keys = [k for k in section.keys() if k.endswith(suffixes)]
+    keys = [k for k in section.keys() if k.endswith(plurals)]
     for key in keys:
         prefix, suffix = amos.cleave_str(key)
         values = list(amos.iterify(section[key]))
@@ -329,19 +370,19 @@ def _get_section_designs(
 
 def _get_section_kinds(    
     section: MutableMapping[Hashable, Any],
-    suffixes: Sequence[str]) -> dict[str, str]: 
+    plurals: Sequence[str]) -> dict[str, str]: 
     """[summary]
 
     Args:
         section (MutableMapping[Hashable, Any]): [description]
-        suffixes (Sequence[str]): [description]
+        plurals (Sequence[str]): [description]
 
     Returns:
         dict[str, str]: [description]
         
     """         
     kinds = {}
-    keys = [k for k in section.keys() if k.endswith(suffixes)]
+    keys = [k for k in section.keys() if k.endswith(plurals)]
     for key in keys:
         _, suffix = amos.cleave_str(key)
         values = amos.iterify(section[key])

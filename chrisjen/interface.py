@@ -29,9 +29,10 @@ To Do:
     
 """
 from __future__ import annotations
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Hashable, MutableMapping
 import dataclasses
 import inspect
+import pathlib
 from typing import Any, ClassVar, Optional, Type, Union
 import warnings
 
@@ -64,7 +65,7 @@ class ProjectBases(object):
     criteria: Type[Any] = bases.Criteria
     workflow_design: amos.Composite = amos.Pipeline
     results_design: amos.Composite = amos.Pipelines
-    
+
     
 @dataclasses.dataclass
 class Project(object):
@@ -80,7 +81,7 @@ class Project(object):
         data (Optional[object]): any data object for the project to be applied. 
             If it is None, an instance will still execute its workflow, but it 
             won't apply it to any external data. Defaults to None.
-        workflow
+        workflow (amos.Composite)
         bases (ProjectBases): base classes for a project. Users can set
             different bases that will automatically be used by the Project
             framework. Defaults to a ProjectBases instance with the default 
@@ -95,15 +96,15 @@ class Project(object):
             Defaults to True.
     
     Attributes:
-        results
+        results (amos.Composite)
             
     """
+    settings: Optional[amos.Settings]
     name: Optional[str] = None
-    settings: Optional[amos.Settings] = None
     clerk: Optional[filing.Clerk] = None
+    bases: ProjectBases = ProjectBases()
     data: Optional[object] = None
     workflow: Optional[amos.Composite] = None
-    bases: ProjectBases = ProjectBases()
     identification: Optional[str] = None
     automatic: bool = True
     
@@ -147,6 +148,28 @@ class Project(object):
         
     """ Public Methods """
 
+    @classmethod
+    def create(
+        cls, 
+        settings: Union[pathlib.Path, str, amos.Settings],
+        **kwargs) -> Project:
+        """[summary]
+
+        Args:
+            settings (Union[pathlib.Path, str, amos.Settings]): [description]
+
+        Returns:
+            Project: [description]
+            
+        """        
+        if 'bases' in kwargs:
+            bases = kwargs['bases']
+        else:
+            bases = ProjectBases()
+            kwargs['bases'] = bases
+        settings: Optional[amos.Settings] = None
+        return cls(settings = settings, **kwargs)
+        
     def complete(self) -> None:
         """Iterates through all stages."""
         if inspect.isclass(self.workflow):

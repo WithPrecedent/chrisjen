@@ -43,7 +43,23 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
-
+    
+@dataclasses.dataclass
+class ProjectDeliverable(object):
+    
+    name: Optional[str] = None
+    workflow: Optional[object] = None
+    nodes: ProjectOptions = None
+    results: Optional[object] = None
+    runtime: MutableMapping[str, Any] = dataclasses.field(
+        default_factory = dict)
+    general: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+    files: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+    identification: Optional[str] = None
+    
+    
 @dataclasses.dataclass
 class ProjectOptions(object):
     """Mixin which registers subclasses and provides construction methods.
