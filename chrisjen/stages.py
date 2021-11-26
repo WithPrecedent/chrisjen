@@ -59,7 +59,7 @@ class Workflow(object):
             for storing the project workflow. Defaults to None.
                   
     """  
-    name: str = 'Workflow'
+    name: str = 'workflow'
     contents: Optional[amos.Composite] = None
     
     """ Public Methods """
@@ -144,10 +144,35 @@ def create_workflow(
         
     """    
     base = base or Workflow
+    if 'contents' not in kwargs:
+        kwargs['contents'] = _get_structure(project = project)
+    elif isinstance(kwargs['contents'], str):
+        kwargs['contents'] = amos.Composite.create(kwargs['contents'])
     workflow = base(**kwargs)
     return _settings_to_workflow(
         settings = project.settings,
-        catalog = project.nodes,
+        options = project.nodes,
+        workflow = workflow)
+    
+def create_workflow(
+    project: interface.Project,
+    base: Optional[Type[Workflow]] = None, 
+    **kwargs) -> Workflow:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+        base (Optional[Type[Workflow]]): [description]. Defaults to None.
+
+    Returns:
+        Workflow: [description]
+        
+    """    
+    base = base or Workflow
+    workflow = base(**kwargs)
+    return _settings_to_workflow(
+        settings = project.settings,
+        options = project.nodes,
         workflow = workflow)
 
 def create_results(
@@ -172,15 +197,34 @@ def create_results(
 
 """ Private Functions """
 
+def _get_structure(project: interface.Project) -> amos.Composite:
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        amos.Composite: [description]
+        
+    """
+    try:
+        structure = project.settings[project.name][f'{project.name}_structure']
+    except KeyError:
+        try:
+            structure = project.settings[project.name]['structure']
+        except KeyError:
+            structure = project.bases.default_workflow
+    return amos.Composite.create(structure)
+    
 def _settings_to_workflow(
     settings: configuration.ProjectSettings, 
-    catalog: amos.Catalog, 
+    options: amos.Catalog, 
     workflow: Workflow) -> Workflow:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        catalog (bases.LIBRARY): [description]
+        options (bases.LIBRARY): [description]
 
     Returns:
         Workflow: [description]
@@ -191,7 +235,7 @@ def _settings_to_workflow(
         components[name] = _settings_to_component(
             name = name,
             settings = settings,
-            catalog = catalog)
+            options = options)
     workflow = _settings_to_adjacency(
         settings = settings, 
         components = components,
@@ -201,13 +245,13 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: configuration.ProjectSettings,
-    catalog: amos.Catalog) -> bases.Projectbases.ProjectNode:
+    options: amos.Catalog) -> bases.Projectbases.ProjectNode:
     """[summary]
 
     Args:
         name (str): [description]
         settings (configuration.ProjectSettings): [description]
-        catalog (amos.Catalog): [description]
+        options (amos.Catalog): [description]
 
     Returns:
         bases.Projectbases.ProjectNode: [description]
@@ -216,7 +260,7 @@ def _settings_to_component(
     design = settings.designs.get(name, None) 
     kind = settings.kinds.get(name, None) 
     lookups = _get_lookups(name = name, design = design, kind = kind)
-    base = _get_base(lookups = lookups, catalog = catalog)
+    base = _get_base(lookups = lookups, options = options)
     parameters = amos.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
         name = name,
@@ -254,12 +298,12 @@ def _get_lookups(
 
 def _get_base(
     lookups: Sequence[str],
-    catalog: amos.Catalog) -> bases.Component:
+    options: amos.Catalog) -> bases.Component:
     """[summary]
 
     Args:
         lookups (Sequence[str]): [description]
-        catalog (amos.Catalog): [description]
+        options (amos.Catalog): [description]
 
     Raises:
         KeyError: [description]
@@ -270,10 +314,10 @@ def _get_base(
     """
     for lookup in lookups:
         try:
-            return catalog[lookup]
+            return options[lookup]
         except KeyError:
             pass
-    raise KeyError(f'No matches in the node catalog found for {lookups}')
+    raise KeyError(f'No matches in the node options found for {lookups}')
 
 def _get_runtime(
     lookups: list[str], 

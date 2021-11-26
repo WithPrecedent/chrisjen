@@ -105,6 +105,8 @@ class Project(object):
     bases: ProjectBases = ProjectBases()
     data: Optional[object] = None
     workflow: Optional[amos.Composite] = None
+    library: Optional[amos.Catalog] = dataclasses.field(
+        default_factory = amos.Catalog)
     identification: Optional[str] = None
     automatic: bool = True
     
@@ -137,14 +139,14 @@ class Project(object):
     """ Properties """
          
     @property
-    def nodes(self) -> bases.ProjectCatalog:
-        """Returns the current catalog of available workflow components.
+    def options(self) -> bases.ProjectCatalog:
+        """Returns the current options of available workflow components.
 
         Returns:
-            bases.ProjectCatalog: catalog of workflow components.
+            bases.ProjectCatalog: options of workflow components.
             
         """        
-        return self.bases.node.catalog
+        return self.bases.node.options
         
     """ Public Methods """
 

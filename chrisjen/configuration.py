@@ -70,7 +70,16 @@ class ProjectSettings(amos.Settings):
         str: 'path'}
 
     """ Properties """       
-    
+
+    def composites(self) -> list[str]:
+        """Returns names of sections in 'contents' that are for composites.
+
+        Returns:
+            list[str]: list of section names.
+            
+        """            
+        return get_composites(project = self.project)
+        
     @functools.cached_property
     def connections(self) -> dict[str, list[str]]:
         """Returns raw connections between nodes from 'settings'.
@@ -85,7 +94,7 @@ class ProjectSettings(amos.Settings):
 
     @functools.cached_property
     def designs(self) -> dict[str, str]:
-        """Returns structural designs of nodes based on 'settings'.
+        """Returns structural designs of nodes of 'contents'.
 
         Returns:
             dict[str, str]: keys are node names and values are design names.
@@ -151,7 +160,7 @@ class ProjectSettings(amos.Settings):
         
     @functools.cached_property
     def kinds(self) -> dict[str, str]:
-        """Returns kinds based on 'settings'.
+        """Returns kinds of 'contents'.
 
         Returns:
             dict[str, str]: keys are names of nodes and values are names of the
@@ -162,7 +171,7 @@ class ProjectSettings(amos.Settings):
     
     @functools.cached_property
     def labels(self) -> list[str]:
-        """Returns names of nodes based on 'settings'.
+        """Returns names of nodes of 'contents'.
 
         Returns:
             list[str]: names of all nodes that are listed in 'settings'.
@@ -172,7 +181,7 @@ class ProjectSettings(amos.Settings):
 
     @functools.cached_property
     def runtime(self) -> dict[str, dict[str, Any]]:
-        """Returns runtime parameters based on 'settings'
+        """Returns runtime parameters of 'contents'.
 
         Returns:
             dict[str, dict[str, Any]]: keys are node names and values are dicts
@@ -181,6 +190,25 @@ class ProjectSettings(amos.Settings):
         """
         return get_runtime(project = self.project)    
 
+
+def get_composites(project: interface.Project) -> list[str]: 
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        list[str]: [description]
+        
+    """
+    # composites = []
+    # for key, section in project.settings.items():
+    #     if any(k.endswith(project.nodes.plurals) for k in section.keys()):
+    #         composites.append(key)
+    # return composites
+    return [
+        k for k, v in project.settings.contents.items() 
+        if any(i.endswith(project.nodes.plurals) for i in v.keys())]
 
 def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """[summary]

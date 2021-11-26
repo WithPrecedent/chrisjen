@@ -43,33 +43,17 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
-    
-@dataclasses.dataclass
-class ProjectDeliverable(object):
-    
-    name: Optional[str] = None
-    workflow: Optional[object] = None
-    nodes: ProjectOptions = None
-    results: Optional[object] = None
-    runtime: MutableMapping[str, Any] = dataclasses.field(
-        default_factory = dict)
-    general: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    files: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-    identification: Optional[str] = None
-    
-    
+
 @dataclasses.dataclass
 class ProjectOptions(object):
     """Mixin which registers subclasses and provides construction methods.
     
     Args:
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
+        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
             
     """
-    catalog: ClassVar[amos.Catalog] = amos.Catalog()
+    options: ClassVar[amos.Catalog] = amos.Catalog()
     
     """ Initialization Methods """
     
@@ -83,7 +67,7 @@ class ProjectOptions(object):
         except AttributeError:
             pass
         name = amos.get_name(item = cls)
-        cls.catalog[name] = cls
+        cls.options[name] = cls
 
     """ Properties """
     
@@ -110,14 +94,14 @@ class ProjectOptions(object):
         Args:
             item (Any): any supported data structure which acts as a source for
                 creating a ProjectOptions or a str which matches a key in 
-                'catalog''.
+                'options''.
                                 
         Returns:
             ProjectOptions: a ProjectOptions subclass instance created based 
                 on 'item' and any passed arguments.
                 
         """
-        return cls.catalog[item](**kwargs)
+        return cls.options[item](**kwargs)
 
     @classmethod
     def select(cls, item: Union[str, Sequence[str]]) -> Type[ProjectOptions]:
@@ -126,13 +110,13 @@ class ProjectOptions(object):
         Args:
             item (Any): any supported data structure which acts as a source for
                 creating a ProjectOptions or a str which matches a key in 
-                'catalog''.
+                'options''.
                                 
         Returns:
             Type[ProjectOptions]: a ProjectOptions subclass.
                 
         """
-        return cls.catalog[item]   
+        return cls.options[item]   
     
  
 @dataclasses.dataclass
@@ -145,13 +129,13 @@ class ProjectNode(ProjectOptions, abc.ABC):
             Defaults to None.
         contents (Optional[Any]): stored item(s) that has/have an 'implement' 
             method. Defaults to None.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
+        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
-    catalog: ClassVar[amos.Catalog] = amos.Catalog()
+    options: ClassVar[amos.Catalog] = amos.Catalog()
     
     """ Initialization Methods """
     
@@ -219,7 +203,7 @@ class ProjectNode(ProjectOptions, abc.ABC):
         """
         return (
             amos.is_node(subclass) 
-            and amos.has_attributes(subclass, ['name', 'contents', 'catalog'])
+            and amos.has_attributes(subclass, ['name', 'contents', 'options'])
             and amos.has_method(subclass, 'execute'))
                
     @classmethod
@@ -448,7 +432,7 @@ class Component(ProjectNode):
             iteration. Defaults to 1.
             
     Attributes:
-        catalog (ClassVar[amos.Catalog]): ProjectNode subclasses stored with str 
+        options (ClassVar[amos.Catalog]): ProjectNode subclasses stored with str 
             keys derived from the 'amos.get_name' function.
               
     """
@@ -525,7 +509,7 @@ class Criteria(ProjectOptions):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        catalog (ClassVar[amos.Catalog]): subclasses stored with str keys 
+        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
             derived from the 'amos.get_name' function.
                       
     """
@@ -533,5 +517,5 @@ class Criteria(ProjectOptions):
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    catalog: ClassVar[amos.Catalog] = amos.Catalog()
+    options: ClassVar[amos.Catalog] = amos.Catalog()
 
