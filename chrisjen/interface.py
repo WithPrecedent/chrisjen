@@ -120,10 +120,10 @@ class Project(object):
         except AttributeError:
             pass
         # Validates core attributes.
+        self._validate_settings()
         self._validate_name()
         self._validate_identification()
         self._validate_bases()
-        self._validate_settings()
         self._validate_clerk()
         self._validate_workflow()
         self._validate_results()
@@ -188,10 +188,28 @@ class Project(object):
         return self
           
     """ Private Methods """
-    
+            
+    def _validate_settings(self) -> None:
+        """Creates or validates 'settings'."""
+        if inspect.isclass(self.settings):
+            self.settings = self.settings(project = self)
+        if (self.settings is None 
+                or not isinstance(self.settings, self.bases.settings)):
+            self.settings = self.bases.settings.create(
+                item = self.settings,
+                project = self)
+        elif isinstance(self.settings, self.bases.settings):
+            self.settings.project = self
+        return self
+              
     def _validate_name(self) -> None:
         """Creates or validates 'name'."""
-        self.name = self.name or amos.get_name(item = self)
+        if self.name is None:
+            settings_name = configuration.get_project_name(project = self)
+            if settings_name is None:
+                self.name = self.name or amos.get_name(item = self)
+            else:
+                self.name = settings_name
         return self  
          
     def _validate_identification(self) -> None:
@@ -224,20 +242,7 @@ class Project(object):
                     'workflow'])):
             self.bases = ProjectBases()
         return self
-            
-    def _validate_settings(self) -> None:
-        """Creates or validates 'settings'."""
-        if inspect.isclass(self.settings):
-            self.settings = self.settings(project = self)
-        if (self.settings is None 
-                or not isinstance(self.settings, self.bases.settings)):
-            self.settings = self.bases.settings.create(
-                item = self.settings,
-                project = self)
-        elif isinstance(self.settings, self.bases.settings):
-            self.settings.project = self
-        return self
-          
+
     def _validate_clerk(self) -> None:
         """Creates or validates 'clerk'."""
         if inspect.isclass(self.clerk):

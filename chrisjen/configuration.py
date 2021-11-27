@@ -304,7 +304,27 @@ def get_labels(project: interface.Project) -> list[str]:
         itertools.chain.from_iterable(project.settings.connections.values()))
     all_nodes = key_nodes + value_nodes
     return amos.deduplicate_list(item = all_nodes)     
-      
+
+def get_project_name(project: interface.Project) -> Optional[str]:
+    """Tries to infer project name from settings contents.
+    
+    Args:
+        project (interface.Project): an instance of Project with 'settings'.
+        
+    Returns:
+        Optional[str]: project name or None, if none is found.
+                
+    """
+    name = None    
+    for key, section in project.settings.items():
+        if (
+            key not in ['general', 'files', 'filer', 'clerk'] 
+            and any(k.endswith(project.nodes.plurals) for k in section.keys())):
+            name = key
+            break
+    return name
+        
+        
 def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
