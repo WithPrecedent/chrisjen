@@ -19,7 +19,6 @@ License: Apache-2.0
 Contents:
     amos.Library
     Parameters
-    Component
     Worker
     Laborer
     Manager
@@ -70,7 +69,7 @@ class Worker(bases.Component, abc.ABC):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                               
     """
     name: Optional[str] = None
@@ -137,7 +136,7 @@ class Laborer(amos.Pipeline, Worker):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                               
     """
     name: Optional[str] = None
@@ -198,12 +197,12 @@ class Manager(Worker, abc.ABC):
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.Component in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                           
     """
     name: Optional[str] = None
@@ -297,12 +296,12 @@ class Contest(Manager):
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.Component in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                           
     """
     name: Optional[str] = None
@@ -335,12 +334,12 @@ class Study(Manager):
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.Component in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                         
     """
     name: Optional[str] = None
@@ -373,12 +372,12 @@ class Survey(Manager):
             method will continue indefinitely unless the method stops further 
             iteration. Defaults to 1.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a Component in 
+            parallel branches of the workflow or the name of a bases.Component in 
             'library' to use. Defaults to None.
             
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                             
     """
     name: Optional[str] = None
@@ -391,7 +390,7 @@ class Survey(Manager):
 
 
 @dataclasses.dataclass
-class Task(Component):
+class Task(bases.Component):
     """Node type for chrisjen Workflows.
 
     Args:
@@ -463,7 +462,7 @@ class Step(Task):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                                                  
     """
     name: Optional[str] = None
@@ -527,7 +526,7 @@ class Technique(Task):
 
     Attributes:
         library (ClassVar[Library]): library that stores concrete (non-abstract) 
-            subclasses and instances of Component. 
+            subclasses and instances of bases.Component. 
                                                  
     """
     name: Optional[str] = None

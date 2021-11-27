@@ -204,12 +204,12 @@ def get_composites(project: interface.Project) -> list[str]:
     """
     # composites = []
     # for key, section in project.settings.items():
-    #     if any(k.endswith(project.nodes.plurals) for k in section.keys()):
+    #     if any(k.endswith(project.options.plurals) for k in section.keys()):
     #         composites.append(key)
     # return composites
     return [
         k for k, v in project.settings.contents.items() 
-        if any(i.endswith(project.nodes.plurals) for i in v.keys())]
+        if any(i.endswith(project.options.plurals) for i in v.keys())]
 
 def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """[summary]
@@ -223,11 +223,11 @@ def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """
     connections = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
+        if any(k.endswith(project.options.plurals) for k in section.keys()):
             new_connections = _get_section_connections(
                 section = section,
                 name = key,
-                plurals = project.nodes.plurals)
+                plurals = project.options.plurals)
             for inner_key, inner_value in new_connections.items():
                 if inner_key in connections:
                     connections[inner_key].extend(inner_value)
@@ -247,7 +247,7 @@ def get_designs(project: interface.Project) -> dict[str, str]:
     """
     designs = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
+        if any(k.endswith(project.options.plurals) for k in section.keys()):
             new_designs = _get_section_designs(section = section, name = key)
             designs.update(new_designs)
     return designs
@@ -266,7 +266,7 @@ def get_initialization(project: interface.Project) -> dict[str, dict[str, Any]]:
     for key, section in project.settings.items():   
         new_initialization = _get_section_initialization(
             section = section,
-            plurals = project.nodes.plurals)
+            plurals = project.options.plurals)
         initialization[key] = new_initialization
     return initialization
                           
@@ -282,10 +282,10 @@ def get_kinds(project: interface.Project) -> dict[str, str]:
     """
     kinds = {}
     for key, section in project.settings.items():
-        if any(k.endswith(project.nodes.plurals) for k in section.keys()):
+        if any(k.endswith(project.options.plurals) for k in section.keys()):
             new_kinds = _get_section_kinds(
                 section = section,
-                plurals = project.nodes.plurals)
+                plurals = project.options.plurals)
             kinds.update(new_kinds)  
     return kinds
 
@@ -305,27 +305,7 @@ def get_labels(project: interface.Project) -> list[str]:
         itertools.chain.from_iterable(project.settings.connections.values()))
     all_nodes = key_nodes + value_nodes
     return amos.deduplicate_list(item = all_nodes)     
-
-def get_project_name(project: interface.Project) -> Optional[str]:
-    """Tries to infer project name from settings contents.
-    
-    Args:
-        project (interface.Project): an instance of Project with 'settings'.
-        
-    Returns:
-        Optional[str]: project name or None, if none is found.
-                
-    """
-    name = None    
-    for key, section in project.settings.items():
-        if (
-            key not in ['general', 'files', 'filer', 'clerk'] 
-            and any(k.endswith(project.nodes.plurals) for k in section.keys())):
-            name = key
-            break
-    return name
-        
-        
+         
 def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
@@ -441,3 +421,22 @@ def _get_section_kinds(
             kind = suffix            
         kinds.update(dict.fromkeys(values, kind))
     return kinds  
+
+def infer_project_name(project: interface.Project) -> Optional[str]:
+    """Tries to infer project name from settings contents.
+    
+    Args:
+        project (interface.Project): an instance of Project with 'settings'.
+        
+    Returns:
+        Optional[str]: project name or None, if none is found.
+                
+    """
+    name = None    
+    for key, section in project.settings.items():
+        if (
+            key not in ['general', 'files', 'filer', 'clerk'] 
+            and any(k.endswith(project.options.plurals) for k in section.keys())):
+            name = key
+            break
+    return name

@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Workflow
+    bases.Workflow
     Results
     create_workflow
     create_results
@@ -41,200 +41,54 @@ import amos
 from . import bases
 
 if TYPE_CHECKING:
+    from . import bases
     from . import configuration
     from . import interface
     
 
-""" Public Classes """
-
-@dataclasses.dataclass
-class Workflow(object):
-    """Project workflow composite object.
-    
-    Args:
-    Args:
-        name (str): name of class used for internal referencing and logging.
-            Defaults to 'worfklow'.
-        contents (Optional[amos.Composite]): iterable composite data structure 
-            for storing the project workflow. Defaults to None.
-                  
-    """  
-    name: str = 'workflow'
-    contents: Optional[amos.Composite] = None
-    
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, project: interface.Project) -> Workflow:
-        """[summary]
-
-        Args:
-            project (interface.Project): [description]
-
-        Returns:
-            Workflow: [description]
-            
-        """        
-        return create_workflow(project = project, base = cls)    
-
-    # def execute(
-    #     self, 
-    #     project: interface.Project, 
-    #     **kwargs) -> interface.Project:
-    #     """Calls the 'implement' method the number of times in 'iterations'.
-
-    #     Args:
-    #         project (interface.Project): instance from which data needed for 
-    #             implementation should be derived and all results be added.
-
-    #     Returns:
-    #         interface.Project: with possible changes made.
-            
-    #     """
-    #     if self.contents not in [None, 'None', 'none']:
-    #         for node in self:
-    #             project = node.execute(project = project, **kwargs)
-    #     return project
-    
-    
-@dataclasses.dataclass
-class Results(object):
-    """Project workflow after it has been implemented.
-    
-    Args:
-        name (str): name of class used for internal referencing and logging.
-            Defaults to 'results'.
-        contents (Optional[amos.Composite]): iterable composite data structure 
-            for storing the project results. Defaults to None.
-                  
-    """  
-    name: str = 'results'
-    contents: Optional[amos.Composite] = None
-    
-    """ Public Methods """
-
-    @classmethod
-    def create(cls, project: interface.Project) -> Results:
-        """[summary]
-
-        Args:
-            project (interface.Project): [description]
-
-        Returns:
-            Results: [description]
-            
-        """        
-        return create_results(project = project, base = cls)
-
-    
 """ Public Functions """
 
 def create_workflow(
     project: interface.Project,
-    base: Optional[Type[Workflow]] = None, 
-    **kwargs) -> Workflow:
+    base: Optional[Type[bases.Workflow]] = None, 
+    **kwargs) -> bases.Workflow:
     """[summary]
 
     Args:
         project (interface.Project): [description]
-        base (Optional[Type[Workflow]]): [description]. Defaults to None.
+        base (Optional[Type[bases.Workflow]]): [description]. Defaults to None.
 
     Returns:
-        Workflow: [description]
+        bases.Workflow: [description]
         
-    """
-    
-    base = base or Workflow
-    if 'contents' not in kwargs:
-        kwargs['contents'] = _get_structure(project = project)
-    elif isinstance(kwargs['contents'], str):
-        kwargs['contents'] = amos.Composite.create(kwargs['contents'])
+    """    
+    base = base or project.bases.default_workflow
     workflow = base(**kwargs)
     return _settings_to_workflow(
         settings = project.settings,
         options = project.options,
         workflow = workflow)
-    
-def create_workflow(
-    project: interface.Project,
-    base: Optional[Type[Workflow]] = None, 
-    **kwargs) -> Workflow:
-    """[summary]
-
-    Args:
-        project (interface.Project): [description]
-        base (Optional[Type[Workflow]]): [description]. Defaults to None.
-
-    Returns:
-        Workflow: [description]
-        
-    """    
-    print('test settings kinds', project.settings.kinds) 
-    base = base or Workflow
-    workflow = base(**kwargs)
-    return _settings_to_workflow(
-        settings = project.settings,
-        options = project.options,
-        workflow = workflow)
-
-def create_results(
-    project: interface.Project,
-    base: Optional[Type[Results]] = None, 
-    **kwargs) -> Results:
-    """[summary]
-
-    Args:
-        project (interface.Project): [description]
-        base (Optional[Type[Results]]): [description]. Defaults to None.
-
-    Returns:
-        Results: [description]
-        
-    """    
-    base = base or Results
-    results = base(**kwargs)
-    for path in project.workflow.paths:
-        results.add(_path_to_result(path = path, project = project))
-    return results
 
 """ Private Functions """
-
-def _get_structure(project: interface.Project) -> amos.Composite:
-    """[summary]
-
-    Args:
-        project (interface.Project): [description]
-
-    Returns:
-        amos.Composite: [description]
-        
-    """
-    try:
-        structure = project.settings[project.name][f'{project.name}_structure']
-    except KeyError:
-        try:
-            structure = project.settings[project.name]['structure']
-        except KeyError:
-            structure = project.bases.default_workflow
-    return amos.Composite.create(structure)
-    
+   
 def _settings_to_workflow(
     settings: configuration.ProjectSettings, 
     options: amos.Catalog, 
-    workflow: Workflow) -> Workflow:
+    workflow: bases.Workflow) -> bases.Workflow:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        options (bases.LIBRARY): [description]
+        options (amos.Catalog): [description]
+        workflow (bases.Workflow): [description]
 
     Returns:
-        Workflow: [description]
+        bases.Workflow: [description]
         
-    """
-    components = {}
-    for name in settings.labels:
-        components[name] = _settings_to_component(
+    """    
+    composites = {}
+    for name in settings.composites:
+        composites[name] = _settings_to_composite(
             name = name,
             settings = settings,
             options = options)
@@ -244,7 +98,7 @@ def _settings_to_workflow(
         system = workflow)
     return workflow 
 
-def _settings_to_component(
+def _settings_to_composite(
     name: str, 
     settings: configuration.ProjectSettings,
     options: amos.Catalog) -> bases.Projectbases.ProjectNode:
@@ -374,16 +228,16 @@ def _parse_initialization(
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
     components: dict[str, bases.Projectbases.ProjectNode],
-    system: Workflow) -> amos.Pipeline:
+    system: bases.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
         components (dict[str, bases.Projectbases.ProjectNode]): [description]
-        system (Workflow): [description]
+        system (bases.Workflow): [description]
 
     Returns:
-        Workflow: [description]
+        bases.Workflow: [description]
         
     """    
     for node, connects in settings.connections.items():
@@ -410,3 +264,22 @@ def _path_to_result(
         for node in path:
             result.append(node.execute(project = project, *kwargs))
     return result
+
+# def _get_workflow_structure(project: interface.Project) -> amos.Composite:
+#     """[summary]
+
+#     Args:
+#         project (interface.Project): [description]
+
+#     Returns:
+#         amos.Composite: [description]
+        
+#     """
+#     try:
+#         structure = project.settings[project.name][f'{project.name}_structure']
+#     except KeyError:
+#         try:
+#             structure = project.settings[project.name]['structure']
+#         except KeyError:
+#             structure = project.bases.workflow_structure
+#     return amos.Composite.create(structure)

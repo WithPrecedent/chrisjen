@@ -63,8 +63,6 @@ class ProjectBases(object):
     results: Type[Any] = stages.Results
     node: Type[amos.LibraryFactory] = bases.ProjectNode
     criteria: Type[Any] = bases.Criteria
-    workflow_design: amos.Composite = amos.System
-    results_design: amos.Composite = amos.Pipelines
 
     
 @dataclasses.dataclass
@@ -206,7 +204,7 @@ class Project(object):
     def _validate_name(self) -> None:
         """Creates or validates 'name'."""
         if self.name is None:
-            settings_name = configuration.get_project_name(project = self)
+            settings_name = configuration.infer_project_name(project = self)
             if settings_name is None:
                 self.name = self.name or amos.get_name(item = self)
             else:
@@ -263,7 +261,7 @@ class Project(object):
 
     def _validate_results(self) -> None:
         """Creates or validates 'results'."""
-        if self.results is None:
+        if not hasattr(self, 'results'):
             self.results = self.bases.results
         return self
     

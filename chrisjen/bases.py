@@ -43,31 +43,28 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
-
 @dataclasses.dataclass
-class ProjectOptions(object):
+class ProjectCatalog(amos.Catalog):
     """Mixin which registers subclasses and provides construction methods.
     
     Args:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-            
+        contents (Mapping[str, Any]]): stored dictionary. Defaults to an empty 
+            dict.
+        default_factory (Any): default value to return when the 'get' method is 
+            used.
+        default (Sequence[Any]]): a list of keys in 'contents' which will be 
+            used to return items when 'default' is sought. If not passed, 
+            'default' will be set to all keys.
+        always_return_list (bool): whether to return a list even when the key 
+            passed is not a list or special access key (True) or to return a 
+            list only when a list or special access key is used (False). 
+            Defaults to False.
+                     
     """
-    options: ClassVar[amos.Catalog] = amos.Catalog()
-    
-    """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass."""
-        # Because ProjectOptions is used as a mixin, it is important to
-        # call other base class '__init_subclass__' methods, if they exist.
-        try:
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        name = amos.get_name(item = cls)
-        cls.options[name] = cls
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    default_factory: Optional[Any] = None
+    default: Optional[Any] = 'all'
+    always_return_list: bool = False
 
     """ Properties """
     
@@ -83,12 +80,11 @@ class ProjectOptions(object):
         return tuple([key + 's' for key in self.contents.keys()])
         
     """ Public Methods """
-
-    @classmethod
+    
     def instance(
-        cls, 
+        self, 
         item: Union[str, Sequence[str]], 
-        **kwargs: Any) -> ProjectOptions:
+        **kwargs: Any) -> object:
         """Creates an instance of a ProjectOptions subclass from 'item'.
         
         Args:
@@ -101,10 +97,9 @@ class ProjectOptions(object):
                 on 'item' and any passed arguments.
                 
         """
-        return cls.options[item](**kwargs)
+        return self[item](**kwargs)
 
-    @classmethod
-    def select(cls, item: Union[str, Sequence[str]]) -> Type[ProjectOptions]:
+    def select(self, item: Union[str, Sequence[str]]) -> Type[Any]:
         """Returns a ProjectOptions subclass based on 'item'.
         
         Args:
@@ -116,11 +111,37 @@ class ProjectOptions(object):
             Type[ProjectOptions]: a ProjectOptions subclass.
                 
         """
-        return cls.options[item]   
+        return self[item]   
+    
+    
+@dataclasses.dataclass
+class ProjectRegistrar(object):
+    """Mixin which registers subclasses.
+    
+    Args:
+        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
+            derived from the 'amos.get_name' function.
+            
+    """
+    options: ClassVar[ProjectCatalog] = ProjectCatalog()
+    
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass."""
+        # Because ProjectOptions is used as a mixin, it is important to
+        # call other base class '__init_subclass__' methods, if they exist.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        name = amos.get_name(item = cls)
+        cls.options[name] = cls
     
  
 @dataclasses.dataclass
-class ProjectNode(ProjectOptions, abc.ABC):
+class ProjectNode(ProjectRegistrar, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -135,7 +156,7 @@ class ProjectNode(ProjectOptions, abc.ABC):
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
-    options: ClassVar[amos.Catalog] = amos.Catalog()
+    options: ClassVar[ProjectCatalog] = ProjectCatalog()
     
     """ Initialization Methods """
     
@@ -497,7 +518,7 @@ class Component(ProjectNode):
 
 
 @dataclasses.dataclass   
-class Criteria(ProjectOptions):
+class Criteria(ProjectRegistrar):
     """Evaluates paths for use by Judge
     
     Args:
@@ -517,5 +538,82 @@ class Criteria(ProjectOptions):
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    options: ClassVar[amos.Catalog] = amos.Catalog()
+    options: ClassVar[ProjectCatalog] = ProjectCatalog()
 
+
+@dataclasses.dataclass
+class Workflow(amos.System):
+    """Project workflow composite object.
+    
+    Args:
+        contents (MutableMapping[str, Set[str]]): keys are names of nodes and
+            values are sets of names of nodes. Defaults to a defaultdict that 
+            has a set for its value format.
+                  
+    """  
+    contents: MutableMapping[str, Set[str]] = dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set))
+    
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, project: interface.Project) -> Workflow:
+        """[summary]
+
+        Args:
+            project (interface.Project): [description]
+
+        Returns:
+            Workflow: [description]
+            
+        """        
+        return create_workflow(project = project, base = cls)    
+
+    # def execute(
+    #     self, 
+    #     project: interface.Project, 
+    #     **kwargs) -> interface.Project:
+    #     """Calls the 'implement' method the number of times in 'iterations'.
+
+    #     Args:
+    #         project (interface.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
+
+    #     Returns:
+    #         interface.Project: with possible changes made.
+            
+    #     """
+    #     if self.contents not in [None, 'None', 'none']:
+    #         for node in self:
+    #             project = node.execute(project = project, **kwargs)
+    #     return project
+    
+    
+@dataclasses.dataclass
+class Results(object):
+    """Project workflow after it has been implemented.
+    
+    Args:
+        name (str): name of class used for internal referencing and logging.
+            Defaults to 'results'.
+        contents (Optional[amos.Composite]): iterable composite data structure 
+            for storing the project results. Defaults to None.
+                  
+    """  
+    name: str = 'results'
+    contents: Optional[amos.Composite] = None
+    
+    """ Public Methods """
+
+    @classmethod
+    def create(cls, project: interface.Project) -> Results:
+        """[summary]
+
+        Args:
+            project (interface.Project): [description]
+
+        Returns:
+            Results: [description]
+            
+        """        
+        return create_results(project = project, base = cls)
