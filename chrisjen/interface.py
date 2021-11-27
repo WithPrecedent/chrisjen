@@ -105,8 +105,6 @@ class Project(object):
     bases: ProjectBases = ProjectBases()
     data: Optional[object] = None
     workflow: Optional[amos.Composite] = None
-    library: Optional[amos.Catalog] = dataclasses.field(
-        default_factory = amos.Catalog)
     identification: Optional[str] = None
     automatic: bool = True
     
