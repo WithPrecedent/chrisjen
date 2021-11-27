@@ -63,13 +63,13 @@ class ProjectBases(object):
     results: Type[Any] = stages.Results
     node: Type[amos.LibraryFactory] = bases.ProjectNode
     criteria: Type[Any] = bases.Criteria
-    workflow_design: amos.Composite = amos.Pipeline
+    workflow_design: amos.Composite = amos.System
     results_design: amos.Composite = amos.Pipelines
 
     
 @dataclasses.dataclass
 class Project(object):
-    """Interface for a chrisjen project.
+    """User interface for a chrisjen project.
     
     Args:
         name (Optional[str]): designates the name of a class instance that is 
@@ -78,14 +78,14 @@ class Project(object):
             project. Defaults to None.
         clerk (Optional[filing.Clerk]): a filing clerk for loading and saving 
             files throughout a chrisjen project. Defaults to None.
-        data (Optional[object]): any data object for the project to be applied. 
-            If it is None, an instance will still execute its workflow, but it 
-            won't apply it to any external data. Defaults to None.
-        workflow (amos.Composite)
         bases (ProjectBases): base classes for a project. Users can set
             different bases that will automatically be used by the Project
             framework. Defaults to a ProjectBases instance with the default 
             base classes.
+        data (Optional[object]): any data object for the project to be applied. 
+            If it is None, an instance will still execute its workflow, but it 
+            won't apply it to any external data. Defaults to None.
+        workflow (amos.Composite): workflow process for executing the project.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
             folders related to the project. If it is None, a str will be created 
@@ -96,10 +96,11 @@ class Project(object):
             Defaults to True.
     
     Attributes:
-        results (amos.Composite)
+        results (amos.Composite): stored results from the execution of the
+            project 'workflow'.
             
     """
-    settings: Optional[amos.Settings]
+    settings: Optional[amos.Settings] = None
     name: Optional[str] = None
     clerk: Optional[filing.Clerk] = None
     bases: ProjectBases = ProjectBases()

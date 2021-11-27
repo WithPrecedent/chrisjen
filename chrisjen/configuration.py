@@ -17,8 +17,8 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    ProjectSettings (amos.Settings): stores configuration settings after either 
-        loading them from disk or by the passed arguments.
+    ProjectSettings (amos.Settings): stores configuration settings from a file,
+        passed arguments, or manual user addition. 
 
 ToDo:
        
@@ -71,6 +71,7 @@ class ProjectSettings(amos.Settings):
 
     """ Properties """       
 
+    @functools.cached_property
     def composites(self) -> list[str]:
         """Returns names of sections in 'contents' that are for composites.
 
