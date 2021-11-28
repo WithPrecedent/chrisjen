@@ -41,15 +41,37 @@ if TYPE_CHECKING:
 """
  
 Test:
-    Foundry (Splitter/Repeater)
-    Worker
+    Distributor (Splitter/Repeater)
+    Manager
     
 Comparison (Test):
+    Distributor (Splitter/Repeater)
+    Manager
     Judge
-    
+
+Manager:
+    Workers    
 
 """
 
+@dataclasses.dataclass
+class Distributor(bases.Component):
+    """Divides or copies passed data for use by later nodes."""
+    name: Optional[str] = None
+    contents: amos.Pipelines = dataclasses.field(
+        default_factory = amos.Pipelines)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.Parameters)   
+ 
+@dataclasses.dataclass
+class Converger(bases.Component):
+    """Divides or copies passed data for use by later nodes."""
+    name: Optional[str] = None
+    contents: amos.Pipelines = dataclasses.field(
+        default_factory = amos.Pipelines)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = bases.Parameters)      
+    
 
 @dataclasses.dataclass   
 class Test(bases.Component):
