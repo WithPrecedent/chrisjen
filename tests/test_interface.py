@@ -72,19 +72,20 @@ class Dynamite(chrisjen.Technique):
 
 
 def test_project():
+    settings = chrisjen.ProjectSettings.create(
+        item = pathlib.Path('tests') / 'cancer_settings.ini')
+    
     project = chrisjen.Project(
-        name = 'wisconsin_cancer_project',
-        settings = pathlib.Path('tests') / 'cancer_settings.ini',
-        automatic = True)
+        # name = 'wisconsin_cancer_project',
+        settings = settings,
+        automatic = False)
+    print('test settings properties', project.settings.composites)
+    project.draft()
     # Tests base libraries.
-    assert 'parser' in project.options.classes
-    dynamite = Dynamite()
-    print('test instances', project.options.instances)
-    assert 'annihilate' in project.options.instances
     # Tests workflow construction.
-    print('test project workflow', project.workflow)
-    print('test workflow endpoints', str(project.workflow.endpoints))
-    print('test workflow roots', str(project.workflow.roots))
+    # print('test project workflow', project.workflow)
+    # print('test workflow endpoints', str(project.workflow.endpoint))
+    # print('test workflow roots', str(project.workflow.root))
     return
 
 

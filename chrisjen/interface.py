@@ -31,6 +31,7 @@ To Do:
 from __future__ import annotations
 from collections.abc import Hashable, MutableMapping
 import dataclasses
+import functools
 import inspect
 import pathlib
 from typing import Any, ClassVar, Optional, Type, Union
@@ -41,8 +42,7 @@ import amos
 from . import bases
 from . import configuration
 from . import filing
-from . import stages
-
+from . import workshop
     
 @dataclasses.dataclass
 class ProjectBases(object):
@@ -54,14 +54,14 @@ class ProjectBases(object):
         settings (Type[Any]): base class for project configuration settings.
             Defaults to amos.Settings.
         node (Type[amos.LibraryFactory]): base class for nodes in a project
-            workflow. Defaults to bases.ProjectNode.
+            workflow. Defaults to bases.Component.
       
     """
     clerk: Type[Any] = filing.Clerk
     settings: Type[Any] = configuration.ProjectSettings
-    workflow: Type[Any] = stages.Workflow
-    results: Type[Any] = stages.Results
-    node: Type[amos.LibraryFactory] = bases.ProjectNode
+    workflow: Type[Any] = bases.Workflow
+    results: Type[Any] = bases.Results
+    node: Type[amos.LibraryFactory] = bases.Component
     criteria: Type[Any] = bases.Criteria
 
     
@@ -83,7 +83,6 @@ class Project(object):
         data (Optional[object]): any data object for the project to be applied. 
             If it is None, an instance will still execute its workflow, but it 
             won't apply it to any external data. Defaults to None.
-        workflow (amos.Composite): workflow process for executing the project.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
             folders related to the project. If it is None, a str will be created 
@@ -96,6 +95,7 @@ class Project(object):
     Attributes:
         results (amos.Composite): stored results from the execution of the
             project 'workflow'.
+        workflow (amos.Composite): workflow process for executing the project.
             
     """
     settings: Optional[amos.Settings] = None
@@ -103,9 +103,10 @@ class Project(object):
     clerk: Optional[filing.Clerk] = None
     bases: ProjectBases = ProjectBases()
     data: Optional[object] = None
-    workflow: Optional[amos.Composite] = None
     identification: Optional[str] = None
     automatic: bool = True
+    _temp: MutableMapping[str, Any] = dataclasses.field(
+        default_factory = dict)
     
     """ Initialization Methods """
 
@@ -124,8 +125,8 @@ class Project(object):
         self._validate_identification()
         self._validate_bases()
         self._validate_clerk()
-        self._validate_workflow()
-        self._validate_results()
+        # self._validate_workflow()
+        # self._validate_results()
         self._validate_data()
         # Sets multiprocessing technique, if necessary.
         self._set_parallelization()
@@ -144,7 +145,17 @@ class Project(object):
             
         """        
         return self.bases.node.options
-        
+    
+    @functools.cached_property
+    def workflow(self) -> bases.Workflow:
+        """Returns workflow based on 'settings'
+
+        Returns:
+            bases.Workflow: the workflow derived from 'settings'.
+            
+        """        
+        return workshop.create_workflow(project = self)
+       
     """ Public Methods """
 
     @classmethod
@@ -166,25 +177,22 @@ class Project(object):
         else:
             bases = ProjectBases()
             kwargs['bases'] = bases
-        settings: Optional[amos.Settings] = None
         return cls(settings = settings, **kwargs)
         
     def complete(self) -> None:
         """Iterates through all stages."""
-        if inspect.isclass(self.workflow):
-            self.draft()
-        self.execute()
-        return self
-     
-    def draft(self) -> None:
-        """Creates a workflow instance based on 'settings'."""
-        self.workflow = self.workflow.create(project = self)
-        return self
-        
-    def execute(self) -> None:
-        """Creates a results instance based on 'workflow'."""
         self.results = self.results.create(project = self)
         return self
+     
+    # def draft(self) -> None:
+    #     """Creates a workflow instance based on 'settings'."""
+    #     self.workflow = self.workflow.create(project = self)
+    #     return self
+        
+    # def execute(self) -> None:
+    #     """Creates a results instance based on 'workflow'."""
+    #     self.results = self.results.create(project = self)
+    #     return self
           
     """ Private Methods """
             
@@ -253,17 +261,17 @@ class Project(object):
             self.clerk.settings = self.settings
         return self
     
-    def _validate_workflow(self) -> None:
-        """Creates or validates 'workflow'."""
-        if self.workflow is None:
-            self.workflow = self.bases.workflow
-        return self
+    # def _validate_workflow(self) -> None:
+    #     """Creates or validates 'workflow'."""
+    #     if self.workflow is None:
+    #         self.workflow = self.bases.workflow
+    #     return self
 
-    def _validate_results(self) -> None:
-        """Creates or validates 'results'."""
-        if not hasattr(self, 'results'):
-            self.results = self.bases.results
-        return self
+    # def _validate_results(self) -> None:
+    #     """Creates or validates 'results'."""
+    #     if not hasattr(self, 'results'):
+    #         self.results = self.bases.results
+    #     return self
     
     def _validate_data(self) -> None:
         """Creates or validates 'data'.

@@ -78,8 +78,13 @@ class ProjectSettings(amos.Settings):
         Returns:
             list[str]: list of section names.
             
-        """            
-        return get_composites(project = self.project)
+        """
+        try:            
+            return get_composites(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
         
     @functools.cached_property
     def connections(self) -> dict[str, list[str]]:
@@ -91,8 +96,13 @@ class ProjectSettings(amos.Settings):
                 do not include any structure or design.
             
         """
-        return get_connections(project = self.project)
-
+        try:
+            return get_connections(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
+            
     @functools.cached_property
     def designs(self) -> dict[str, str]:
         """Returns structural designs of nodes of 'contents'.
@@ -101,7 +111,12 @@ class ProjectSettings(amos.Settings):
             dict[str, str]: keys are node names and values are design names.
             
         """
-        return get_designs(project = self.project)
+        try:
+            return get_designs(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
 
     @property
     def files(self) -> MutableMapping[Hashable, Any]:
@@ -157,18 +172,28 @@ class ProjectSettings(amos.Settings):
                 of the initialization arguments and attributes.
             
         """
-        return get_initialization(project = self.project)
+        try:
+            return get_initialization(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
         
     @functools.cached_property
     def kinds(self) -> dict[str, str]:
-        """Returns kinds of 'contents'.
+        """Returns kinds of ndoes in 'contents'.
 
         Returns:
             dict[str, str]: keys are names of nodes and values are names of the
                 associated base kind types.
             
         """
-        return get_kinds(project = self.project)
+        try:
+            return get_kinds(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
     
     @functools.cached_property
     def labels(self) -> list[str]:
@@ -178,7 +203,12 @@ class ProjectSettings(amos.Settings):
             list[str]: names of all nodes that are listed in 'settings'.
             
         """
-        return get_labels(project = self.project)
+        try:
+            return get_labels(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
 
     @functools.cached_property
     def runtime(self) -> dict[str, dict[str, Any]]:
@@ -189,7 +219,12 @@ class ProjectSettings(amos.Settings):
                 of runtime parameters.
             
         """
-        return get_runtime(project = self.project)    
+        try:
+            return get_runtime(project = self.project)    
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
 
 
 def get_composites(project: interface.Project) -> list[str]: 

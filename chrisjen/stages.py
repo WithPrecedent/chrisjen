@@ -247,7 +247,7 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: configuration.ProjectSettings,
-    options: amos.Catalog) -> bases.Projectbases.ProjectNode:
+    options: amos.Catalog) -> bases.Projectbases.Component:
     """[summary]
 
     Args:
@@ -256,7 +256,7 @@ def _settings_to_component(
         options (amos.Catalog): [description]
 
     Returns:
-        bases.Projectbases.ProjectNode: [description]
+        bases.Projectbases.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -373,13 +373,13 @@ def _parse_initialization(
 
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
-    components: dict[str, bases.Projectbases.ProjectNode],
+    components: dict[str, bases.Projectbases.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        components (dict[str, bases.Projectbases.ProjectNode]): [description]
+        components (dict[str, bases.Projectbases.Component]): [description]
         system (Workflow): [description]
 
     Returns:

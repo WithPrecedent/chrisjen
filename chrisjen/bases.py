@@ -17,13 +17,13 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    ProjectNode (amos.Node, abc.ABC):
-    ProjectComponent (ProjectOptions, ProjectNode, abc.ABC):
-    ProjectStage (ProjectOptions, ProjectNode, abc.ABC):
+    Component (amos.Node, abc.ABC):
+    ProjectComponent (ProjectOptions, Component, abc.ABC):
+    ProjectStage (ProjectOptions, Component, abc.ABC):
     ProjectDirector (ProjectOptions, Iterator):
 
 To Do:
-    Make ProjectNode a subclass of amos.Node by fixing the proxy access methods
+    Make Component a subclass of amos.Node by fixing the proxy access methods
         that currently return errors.
             
 """
@@ -31,11 +31,12 @@ from __future__ import annotations
 import abc
 import collections
 from collections.abc import (
-    Callable, Hashable, Mapping, MutableMapping, Sequence, Set)
+    Callable, Hashable, Iterable, Mapping, MutableMapping, Sequence, Set)
 import copy
 import dataclasses
 import functools
 import itertools
+import multiprocessing
 import pathlib
 from typing import Any, ClassVar, MutableSequence, Optional, Type, TYPE_CHECKING, Union
 
@@ -142,7 +143,7 @@ class ProjectRegistrar(object):
     
  
 @dataclasses.dataclass
-class ProjectNode(ProjectRegistrar, abc.ABC):
+class Component(ProjectRegistrar, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -162,7 +163,7 @@ class ProjectNode(ProjectRegistrar, abc.ABC):
     """ Initialization Methods """
     
     def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Forces subclasses to use the same hash methods as ProjectNode.
+        """Forces subclasses to use the same hash methods as Component.
         
         This is necessary because dataclasses, by design, do not automatically 
         inherit the hash and equivalance dunder methods from their super 
@@ -175,9 +176,9 @@ class ProjectNode(ProjectRegistrar, abc.ABC):
         except AttributeError:
             pass
         # Copies hashing related methods to a subclass.
-        cls.__hash__ = ProjectNode.__hash__ # type: ignore
-        cls.__eq__ = ProjectNode.__eq__ # type: ignore
-        cls.__ne__ = ProjectNode.__ne__ # type: ignore
+        cls.__hash__ = Component.__hash__ # type: ignore
+        cls.__eq__ = Component.__eq__ # type: ignore
+        cls.__ne__ = Component.__ne__ # type: ignore
 
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
@@ -433,89 +434,6 @@ class Parameters(amos.Dictionary):
                 except (KeyError, AttributeError):
                     pass
         return self
-
-               
-@dataclasses.dataclass
-class Component(ProjectNode):
-    """Base class for nodes in a project workflow.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
-            
-    Attributes:
-        options (ClassVar[amos.Catalog]): ProjectNode subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
-              
-    """
-    name: Optional[str] = None
-    contents: Optional[Any] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
-    iterations: Union[int, str] = 1
-    
-    """ Public Methods """
-    
-    def execute(self, 
-        project: interface.Project, 
-        iterations: Optional[Union[int, str]] = None, 
-        **kwargs) -> interface.Project:
-        """Calls the 'implement' method the number of times in 'iterations'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        iterations = iterations or self.iterations
-        if self.contents not in [None, 'None', 'none']:
-            if self.parameters:
-                if hasattr(self.parameters, 'finalize'):
-                    self.parameters.finalize(project = project)
-                parameters = self.parameters
-                parameters.update(kwargs)
-            else:
-                parameters = kwargs
-            if iterations in ['infinite']:
-                while True:
-                    project = self.implement(project = project, **parameters)
-            else:
-                for _ in range(iterations):
-                    project = self.implement(project = project, **parameters)
-        return project
-    
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        try:
-            project = self.contents.execute(project = project, **kwargs)
-        except AttributeError:
-            project = self.contents(project, **kwargs)
-        return project   
 
 
 @dataclasses.dataclass   

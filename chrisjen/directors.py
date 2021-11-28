@@ -40,13 +40,13 @@ if TYPE_CHECKING:
 
 
 def implement(
-    node: bases.ProjectNode,
+    node: bases.Component,
     project: interface.Project, 
     **kwargs) -> interface.Project:
     """Applies 'node' to 'project'.
 
     Args:
-        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        node (bases.Component): node in a workflow to apply to 'project'.
         project (interface.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
@@ -65,13 +65,13 @@ def implement(
     return method(node = node, project = project, **kwargs)
     
 def closer_implement(
-    node: bases.ProjectNode,
+    node: bases.Component,
     project: interface.Project, 
     **kwargs) -> interface.Project:
     """Applies 'node' to 'project'.
 
     Args:
-        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        node (bases.Component): node in a workflow to apply to 'project'.
         project (interface.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
@@ -86,13 +86,13 @@ def closer_implement(
     return project    
 
 def test_implement(
-    node: bases.ProjectNode,
+    node: bases.Component,
     project: interface.Project, 
     **kwargs) -> interface.Project:
     """Applies 'node' to 'project'.
 
     Args:
-        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        node (bases.Component): node in a workflow to apply to 'project'.
         project (interface.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
@@ -116,13 +116,13 @@ def test_implement(
          
     
 def task_implement(
-    node: bases.ProjectNode,
+    node: bases.Component,
     project: interface.Project, 
     **kwargs) -> interface.Project:
     """Applies 'node' to 'project'.
 
     Args:
-        node (bases.ProjectNode): node in a workflow to apply to 'project'.
+        node (bases.Component): node in a workflow to apply to 'project'.
         project (interface.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
@@ -136,7 +136,7 @@ def task_implement(
         project = node(project, **kwargs)
     return project    
 
-def count_ancestors(node: bases.ProjectNode, workflow: bases.Stage) -> int:
+def count_ancestors(node: bases.Component, workflow: bases.Stage) -> int:
     connections = list(more_itertools.collapse(workflow.values()))
     return connections.count(node)
     

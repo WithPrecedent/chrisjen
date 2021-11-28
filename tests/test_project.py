@@ -13,19 +13,19 @@ import chrisjen
 
 
 @dataclasses.dataclass
-class Something(chrisjen.ProjectNode):
+class Something(chrisjen.Component):
     
     pass
 
 
 @dataclasses.dataclass
-class AnotherThing(chrisjen.ProjectNode):
+class AnotherThing(chrisjen.Component):
     
     pass
 
 
 @dataclasses.dataclass
-class EvenAnother(chrisjen.ProjectNode):
+class EvenAnother(chrisjen.Component):
     
     pass
 

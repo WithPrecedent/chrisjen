@@ -28,17 +28,12 @@ To Do:
         
 """
 from __future__ import annotations
-import abc
-import collections
+
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Sequence, Set)
-import dataclasses
-import itertools
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
-
-from . import bases
 
 if TYPE_CHECKING:
     from . import bases
@@ -69,6 +64,11 @@ def create_workflow(
         options = project.options,
         workflow = workflow)
 
+def create_worker(
+    name: str,
+    project: interface.Project) -> bases.Worker:
+    
+    
 """ Private Functions """
    
 def _settings_to_workflow(
@@ -101,7 +101,7 @@ def _settings_to_workflow(
 def _settings_to_composite(
     name: str, 
     settings: configuration.ProjectSettings,
-    options: amos.Catalog) -> bases.Projectbases.ProjectNode:
+    options: amos.Catalog) -> bases.Projectbases.Component:
     """[summary]
 
     Args:
@@ -110,7 +110,7 @@ def _settings_to_composite(
         options (amos.Catalog): [description]
 
     Returns:
-        bases.Projectbases.ProjectNode: [description]
+        bases.Projectbases.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -227,13 +227,13 @@ def _parse_initialization(
 
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
-    components: dict[str, bases.Projectbases.ProjectNode],
+    components: dict[str, bases.Projectbases.Component],
     system: bases.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        components (dict[str, bases.Projectbases.ProjectNode]): [description]
+        components (dict[str, bases.Projectbases.Component]): [description]
         system (bases.Workflow): [description]
 
     Returns:
