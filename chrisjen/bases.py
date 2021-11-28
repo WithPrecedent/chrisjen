@@ -35,8 +35,9 @@ from collections.abc import (
 import copy
 import dataclasses
 import functools
+import itertools
 import pathlib
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, MutableSequence, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
@@ -569,24 +570,44 @@ class Workflow(amos.System):
         """        
         return create_workflow(project = project, base = cls)    
 
-    # def execute(
-    #     self, 
-    #     project: interface.Project, 
-    #     **kwargs) -> interface.Project:
-    #     """Calls the 'implement' method the number of times in 'iterations'.
+    def append_depth(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
 
-    #     Args:
-    #         project (interface.Project): instance from which data needed for 
-    #             implementation should be derived and all results be added.
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
 
-    #     Returns:
-    #         interface.Project: with possible changes made.
+        Returns:
+            [type]: [description]
             
-    #     """
-    #     if self.contents not in [None, 'None', 'none']:
-    #         for node in self:
-    #             project = node.execute(project = project, **kwargs)
-    #     return project
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        for node in item[first_key]:
+            self.append(item[node])
+        return self   
+    
+    def append_product(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
+
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
+
+        Returns:
+            [type]: [description]
+            
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        possible = [v for k, v in item.items() if k in item[first_key]]
+        combos = list(itertools.product(*possible))
+        self.append(combos)
+        return self
     
     
 @dataclasses.dataclass
@@ -617,3 +638,22 @@ class Results(object):
             
         """        
         return create_results(project = project, base = cls)
+
+    # def execute(
+    #     self, 
+    #     project: interface.Project, 
+    #     **kwargs) -> interface.Project:
+    #     """Calls the 'implement' method the number of times in 'iterations'.
+
+    #     Args:
+    #         project (interface.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
+
+    #     Returns:
+    #         interface.Project: with possible changes made.
+            
+    #     """
+    #     if self.contents not in [None, 'None', 'none']:
+    #         for node in self:
+    #             project = node.execute(project = project, **kwargs)
+    #     return project
