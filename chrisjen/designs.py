@@ -37,7 +37,20 @@ from . import bases
 if TYPE_CHECKING:
     from . import interface
     
+
+"""
+ 
+Test:
+    Foundry (Splitter/Repeater)
+    Worker
     
+Comparison (Test):
+    Judge
+    
+
+"""
+
+
 @dataclasses.dataclass   
 class Test(bases.Component):
     """Same data, different nodes"""

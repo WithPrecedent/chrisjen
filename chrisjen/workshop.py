@@ -37,6 +37,7 @@ import amos
 
 if TYPE_CHECKING:
     from . import bases
+    from . import components
     from . import configuration
     from . import interface
     
@@ -66,9 +67,39 @@ def create_workflow(
 
 def create_worker(
     name: str,
-    project: interface.Project) -> bases.Worker:
-    
-    
+    project: interface.Project,
+    base: Optional[Type[components.Worker]] = None,  
+    **kwargs) -> components.Worker:
+    return
+
+def create_manager(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[components.Manager]] = None,  
+    **kwargs) -> components.Manager:
+    return
+
+def create_judge(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[components.Judge]] = None,  
+    **kwargs) -> components.Judge:
+    return
+
+def create_step(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[components.Step]] = None,  
+    **kwargs) -> components.Step:
+    return   
+
+def create_technique(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[components.Technique]] = None,  
+    **kwargs) -> components.Technique:
+    return  
+ 
 """ Private Functions """
    
 def _settings_to_workflow(
