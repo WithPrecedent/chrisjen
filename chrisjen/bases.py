@@ -45,6 +45,7 @@ import amos
 if TYPE_CHECKING:
     from . import interface
 
+
 @dataclasses.dataclass
 class ProjectCatalog(amos.Catalog):
     """Mixin which registers subclasses and provides construction methods.
@@ -140,168 +141,6 @@ class ProjectRegistrar(object):
             pass
         name = amos.get_name(item = cls)
         cls.options[name] = cls
-    
- 
-@dataclasses.dataclass
-class Component(ProjectRegistrar, abc.ABC):
-    """Base class for nodes in a chrisjen project.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-              
-    """
-    name: Optional[str] = None
-    contents: Optional[Any] = None
-    options: ClassVar[ProjectCatalog] = ProjectCatalog()
-    
-    """ Initialization Methods """
-    
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Forces subclasses to use the same hash methods as Component.
-        
-        This is necessary because dataclasses, by design, do not automatically 
-        inherit the hash and equivalance dunder methods from their super 
-        classes.
-        
-        """
-        # Calls other '__init_subclass__' methods for parent and mixin classes.
-        try:
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        # Copies hashing related methods to a subclass.
-        cls.__hash__ = Component.__hash__ # type: ignore
-        cls.__eq__ = Component.__eq__ # type: ignore
-        cls.__ne__ = Component.__ne__ # type: ignore
-
-    def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
-        # Sets 'name' attribute if 'name' is None.
-        self.name = self.name or amos.get_name(item = self)
-        # Calls other '__post_init__' methods for parent and mixin classes.
-        try:
-            super().__post_init__() # type: ignore
-        except AttributeError:
-            pass
-        
-    """ Required Subclass Methods """
-
-    @abc.abstractmethod
-    def execute(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
-
-        Subclasses must provide their own methods.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        pass
-            
-    """ Dunder Methods """
-    
-    @classmethod
-    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-        """Returns whether 'subclass' is a virtual or real subclass.
-
-        Args:
-            subclass (Type[Any]): item to test as a subclass.
-
-        Returns:
-            bool: whether 'subclass' is a real or virtual subclass.
-            
-        """
-        return (
-            amos.is_node(subclass) 
-            and amos.has_attributes(subclass, ['name', 'contents', 'options'])
-            and amos.has_method(subclass, 'execute'))
-               
-    @classmethod
-    def __instancecheck__(cls, instance: object) -> bool:
-        """Returns whether 'instances' is an instance of this class.
-
-        Args:
-            instance (object): item to test as an instance.
-
-        Returns:
-            bool: whether 'instance' is an instance of this class.
-            
-        """
-        return (
-            issubclass(instance.__class__, cls)
-            and isinstance(instance.name, str))
-    
-    def __hash__(self) -> int:
-        """Makes Node hashable so that it can be used as a key in a dict.
-
-        Rather than using the object ID, this method prevents two Nodes with
-        the same name from being used in a composite object that uses a dict as
-        its base storage type.
-        
-        Returns:
-            int: hashable of 'name'.
-            
-        """
-        return hash(self.name)
-
-    def __eq__(self, other: object) -> bool:
-        """Makes Node hashable so that it can be used as a key in a dict.
-
-        Args:
-            other (object): other object to test for equivalance.
-            
-        Returns:
-            bool: whether 'name' is the same as 'other.name'.
-            
-        """
-        try:
-            return str(self.name) == str(other.name) # type: ignore
-        except AttributeError:
-            return str(self.name) == other
-
-    def __ne__(self, other: object) -> bool:
-        """Completes equality test dunder methods.
-
-        Args:
-            other (object): other object to test for equivalance.
-           
-        Returns:
-            bool: whether 'name' is not the same as 'other.name'.
-            
-        """
-        return not(self == other)
-
-    def __contains__(self, item: Any) -> bool:
-        """Returns whether 'item' is in or equal to 'contents'.
-
-        Args:
-            item (Any): item to check versus 'contents'
-            
-        Returns:
-            bool: if 'item' is in or equal to 'contents' (True). Otherwise, it
-                returns False.
-
-        """
-        try:
-            return item in self.contents
-        except TypeError:
-            try:
-                return item is self.contents
-            except TypeError:
-                return item == self.contents 
 
 
 @dataclasses.dataclass    
@@ -434,6 +273,215 @@ class Parameters(amos.Dictionary):
                 except (KeyError, AttributeError):
                     pass
         return self
+
+    
+ 
+@dataclasses.dataclass
+class Component(ProjectRegistrar, abc.ABC):
+    """Base class for nodes in a chrisjen project.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) to be applied to 'project'
+            passed to the 'execute' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
+            derived from the 'amos.get_name' function.
+              
+    """
+    name: Optional[str] = None
+    contents: Optional[Any] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = Parameters)  
+    options: ClassVar[ProjectCatalog] = ProjectCatalog()
+    
+    """ Initialization Methods """
+    
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Forces subclasses to use the same hash methods as Component.
+        
+        This is necessary because dataclasses, by design, do not automatically 
+        inherit the hash and equivalance dunder methods from their super 
+        classes.
+        
+        """
+        # Calls other '__init_subclass__' methods for parent and mixin classes.
+        try:
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        except AttributeError:
+            pass
+        # Copies hashing related methods to a subclass.
+        cls.__hash__ = Component.__hash__ # type: ignore
+        cls.__eq__ = Component.__eq__ # type: ignore
+        cls.__ne__ = Component.__ne__ # type: ignore
+
+    def __post_init__(self) -> None:
+        """Initializes class instance attributes."""
+        # Sets 'name' attribute if 'name' is None.
+        self.name = self.name or amos.get_name(item = self)
+        # Calls other '__post_init__' methods for parent and mixin classes.
+        try:
+            super().__post_init__() # type: ignore
+        except AttributeError:
+            pass
+        
+    """ Required Subclass Methods """
+
+    @abc.abstractmethod
+    def implement(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Applies 'contents' to 'project'.
+
+        Subclasses must provide their own methods.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        pass
+
+    """ Public Methods """
+    
+    def execute(self, 
+        project: interface.Project, 
+        **kwargs) -> interface.Project:
+        """Calls the 'implement' method after finalizing parameters.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            interface.Project: with possible changes made.
+            
+        """
+        if self.contents not in [None, 'None', 'none']:
+            self.finalize(project = project, **kwargs)
+            project = self.implement(project = project, **self.parameters)
+        return project 
+       
+    def finalize(
+        self, 
+        project: interface.Project, 
+        **kwargs) -> None:
+        """Finalizes the parameters for implementation of the node.
+
+        Args:
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived for finalizing parameters.
+            
+        """
+        if self.parameters:
+            if hasattr(self.parameters, 'finalize'):
+                self.parameters.finalize(project = project)
+            parameters = self.parameters
+            parameters.update(kwargs)
+        else:
+            parameters = kwargs
+        self.parameters = parameters
+        return self
+           
+    """ Dunder Methods """
+    
+    @classmethod
+    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
+        """Returns whether 'subclass' is a virtual or real subclass.
+
+        Args:
+            subclass (Type[Any]): item to test as a subclass.
+
+        Returns:
+            bool: whether 'subclass' is a real or virtual subclass.
+            
+        """
+        return (
+            amos.is_node(subclass) 
+            and amos.has_attributes(subclass, ['name', 'contents', 'options'])
+            and amos.has_method(subclass, 'execute'))
+               
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        """Returns whether 'instances' is an instance of this class.
+
+        Args:
+            instance (object): item to test as an instance.
+
+        Returns:
+            bool: whether 'instance' is an instance of this class.
+            
+        """
+        return (
+            issubclass(instance.__class__, cls)
+            and isinstance(instance.name, str))
+    
+    def __hash__(self) -> int:
+        """Makes Node hashable so that it can be used as a key in a dict.
+
+        Rather than using the object ID, this method prevents two Nodes with
+        the same name from being used in a composite object that uses a dict as
+        its base storage type.
+        
+        Returns:
+            int: hashable of 'name'.
+            
+        """
+        return hash(self.name)
+
+    def __eq__(self, other: object) -> bool:
+        """Makes Node hashable so that it can be used as a key in a dict.
+
+        Args:
+            other (object): other object to test for equivalance.
+            
+        Returns:
+            bool: whether 'name' is the same as 'other.name'.
+            
+        """
+        try:
+            return str(self.name) == str(other.name) # type: ignore
+        except AttributeError:
+            return str(self.name) == other
+
+    def __ne__(self, other: object) -> bool:
+        """Completes equality test dunder methods.
+
+        Args:
+            other (object): other object to test for equivalance.
+           
+        Returns:
+            bool: whether 'name' is not the same as 'other.name'.
+            
+        """
+        return not(self == other)
+
+    def __contains__(self, item: Any) -> bool:
+        """Returns whether 'item' is in or equal to 'contents'.
+
+        Args:
+            item (Any): item to check versus 'contents'
+            
+        Returns:
+            bool: if 'item' is in or equal to 'contents' (True). Otherwise, it
+                returns False.
+
+        """
+        try:
+            return item in self.contents
+        except TypeError:
+            try:
+                return item is self.contents
+            except TypeError:
+                return item == self.contents 
 
 
 @dataclasses.dataclass   

@@ -53,10 +53,6 @@ class Worker(bases.Component, amos.Pipeline):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
 
     Attributes:
         registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
@@ -69,13 +65,11 @@ class Worker(bases.Component, amos.Pipeline):
         default_factory = list)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-    iterations: Union[int, str] = 1
 
     """ Public Methods """  
     
     def execute(self, 
         project: interface.Project, 
-        iterations: Optional[Union[int, str]] = None, 
         **kwargs) -> interface.Project:
         """Calls the 'implement' method the number of times in 'iterations'.
 
@@ -87,21 +81,9 @@ class Worker(bases.Component, amos.Pipeline):
             interface.Project: with possible changes made.
             
         """
-        iterations = iterations or self.iterations
         if self.contents not in [None, 'None', 'none']:
-            if self.parameters:
-                if hasattr(self.parameters, 'finalize'):
-                    self.parameters.finalize(project = project)
-                parameters = self.parameters
-                parameters.update(kwargs)
-            else:
-                parameters = kwargs
-            if iterations in ['infinite']:
-                while True:
-                    project = self.implement(project = project, **parameters)
-            else:
-                for _ in range(iterations):
-                    project = self.implement(project = project, **parameters)
+            self.finalize(project = project, **kwargs)
+            project = self.implement(project = project, **self.parameters)
         return project
            
     def implement(
@@ -155,10 +137,6 @@ class Manager(Worker, amos.Pipelines):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        iterations (Union[int, str]): number of times the 'implement' method 
-            should  be called. If 'iterations' is 'infinite', the 'implement' 
-            method will continue indefinitely unless the method stops further 
-            iteration. Defaults to 1.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
             parallel branches of the workflow or the name of a bases.Component in 
             'library' to use. Defaults to None.
@@ -174,7 +152,6 @@ class Manager(Worker, amos.Pipelines):
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-    iterations: Union[int, str] = 1
     critera: Union[Callable, str] = None
               
     """ Public Methods """ 
@@ -293,31 +270,6 @@ class Task(bases.Component):
         except AttributeError:
             project = self.contents(project, **kwargs)
         return project   
-
-
-@dataclasses.dataclass   
-class Judge(Task):
-    """Selects one or more Worker instances from a Manager.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[bases.Criteria]): technique for selecting one or more
-            Worker instances. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-
-    Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
-                                                 
-    """
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
 
 
 @dataclasses.dataclass
