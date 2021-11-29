@@ -55,9 +55,8 @@ class Worker(bases.Component, amos.Pipeline):
             empty dict.
 
     Attributes:
-        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
-            names of a subclass (snake_case by default) and values are the 
-            subclasses. Defaults to an empty dict.  
+        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
+            keys derived from the 'amos.get_name' function.
                               
     """
     name: Optional[str] = None
@@ -142,9 +141,8 @@ class Manager(Worker, amos.Pipelines):
             'library' to use. Defaults to None.
             
     Attributes:
-        registry (ClassVar[MutableMapping[str, Type[Any]]]): key names are str
-            names of a subclass (snake_case by default) and values are the 
-            subclasses. Defaults to an empty dict.  
+        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
+            keys derived from the 'amos.get_name' function.
                           
     """
     name: Optional[str] = None
@@ -152,53 +150,52 @@ class Manager(Worker, amos.Pipelines):
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-    critera: Union[Callable, str] = None
               
     """ Public Methods """ 
            
-    def implement(
-        self,
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
+    # def implement(
+    #     self,
+    #     project: interface.Project, 
+    #     **kwargs) -> interface.Project:
+    #     """Applies 'contents' to 'project'.
         
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+    #     Args:
+    #         project (interface.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
 
-        Returns:
-            interface.Project: with possible changes made.
+    #     Returns:
+    #         interface.Project: with possible changes made.
             
-        """
-        if len(self.contents) > 1 and project.settings.general['parallelize']:
-            project = self._implement_in_parallel(project = project, **kwargs)
-        else:
-            project = self._implement_in_serial(project = project, **kwargs)
-        return project      
+    #     """
+    #     if len(self.contents) > 1 and project.settings.general['parallelize']:
+    #         project = self._implement_in_parallel(project = project, **kwargs)
+    #     else:
+    #         project = self._implement_in_serial(project = project, **kwargs)
+    #     return project      
 
-    """ Private Methods """
+    # """ Private Methods """
    
-    def _implement_in_parallel(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'implementation' to 'project' using multiple cores.
+    # def _implement_in_parallel(
+    #     self, 
+    #     project: interface.Project, 
+    #     **kwargs) -> interface.Project:
+    #     """Applies 'implementation' to 'project' using multiple cores.
 
-        Args:
-            project (Project): chrisjen project to apply changes to and/or
-                gather needed data from.
+    #     Args:
+    #         project (Project): chrisjen project to apply changes to and/or
+    #             gather needed data from.
                 
-        Returns:
-            Project: with possible alterations made.       
+    #     Returns:
+    #         Project: with possible alterations made.       
         
-        """
-        if project.parallelize:
-            with multiprocessing.Pool() as pool:
-                project = pool.starmap(
-                    self._implement_in_serial, 
-                    project, 
-                    **kwargs)
-        return project 
+    #     """
+    #     if project.parallelize:
+    #         with multiprocessing.Pool() as pool:
+    #             project = pool.starmap(
+    #                 self._implement_in_serial, 
+    #                 project, 
+    #                 **kwargs)
+    #     return project 
 
                
 @dataclasses.dataclass
@@ -226,30 +223,6 @@ class Task(bases.Component):
         default_factory = bases.Parameters)
     
     """ Public Methods """
-    
-    def execute(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Calls the 'implement' method the number of times in 'iterations'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        if self.contents not in [None, 'None', 'none']:
-            if self.parameters:
-                if hasattr(self.parameters, 'finalize'):
-                    self.parameters.finalize(project = project)
-                parameters = self.parameters
-                parameters.update(kwargs)
-            else:
-                parameters = kwargs
-            self.implement(project = project, **parameters)
-        return project
     
     def implement(
         self, 
@@ -389,4 +362,4 @@ class Technique(Task):
     def algorithm(self) -> None:
         self.contents = None
         return self
-   
+

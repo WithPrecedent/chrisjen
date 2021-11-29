@@ -38,64 +38,11 @@ from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
+    from . import tasks
     
 
 @dataclasses.dataclass
-class Proctor(components.Task, abc.ABC):
-    """Base class for making multiple instances of a project.
-    
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'project'
-            passed to the 'execute' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
-            
-    Attributes:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-    
-    """
-    name: Optional[str] = None
-    contents: Optional[components.Technique] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)   
- 
-    """ Public Methods """
-
-
-    
-    
-@dataclasses.dataclass
-class Judge(components.Task):
-    """Base class for selecting a node or path.
-    
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow
-            Defaults to None.
-        contents (bases.Criteria]): stored criteria to be used to select from 
-            several nodes or paths. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
-            
-    Attributes:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-    
-    """
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)      
-    
-
-@dataclasses.dataclass
-class Test(components.Manager, abc.ABC):
+class Experiment(components.Manager, abc.ABC):
     """Base class for node containing branching and parallel Workers.
         
     Args:
@@ -113,8 +60,8 @@ class Test(components.Manager, abc.ABC):
             stored in 'contents'.
                        
     Attributes:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
+        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
+            keys derived from the 'amos.get_name' function.
                           
     """
     name: Optional[str] = None
@@ -122,30 +69,36 @@ class Test(components.Manager, abc.ABC):
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-    proctor: Optional[Proctor] = None
+    proctor: Optional[tasks.Proctor] = None
 
-    """ Required Subclass Methods """
+    """ Public Methods """
     
-    @abc.abstractmethod
-    def test(
-        self,
+    def implement(
+        self, 
         project: interface.Project, 
-        **kwargs) -> dict[str, interface.Project]:
-        """Returns multiple instances of 'project'.
-        
+        **kwargs) -> MutableMapping[Hashable, interface.Project]:
+        """Applies 'contents' to 'project'.
+
+        Subclasses must provide their own methods.
+
         Args:
             project (interface.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            dict[str, interface.Project]: a dict of Project isntances. 
+            MutableMapping[Hashable, interface.Project]: dict of project 
+                instances, with possible changes made.
             
         """
-        pass
-    
-    
+        projects = self.proctor.execute(project = project)
+        results = {}
+        for i, (key, worker) in enumerate(self.contents.items()):
+            results[key] = worker.execute(project = projects[i], **kwargs)
+        return results
+            
+
 @dataclasses.dataclass
-class Comparison(Test, abc.ABC):
+class Comparison(Experiment, abc.ABC):
     """Base class for tests that return one result from a Pipelines.
         
     Args:
@@ -161,12 +114,12 @@ class Comparison(Test, abc.ABC):
         proctor (Optional[Distributor]): node for copying, splitting, or
             otherwise creating multiple projects for use by the Workers 
             stored in 'contents'.
-        combiner (Optional[Combine]): node for reducing the set of Workers
+        judge (Optional[Judge]): node for reducing the set of Workers
             in 'contents' to a single Worker or Node.
                                    
     Attributes:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
+        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
+            keys derived from the 'amos.get_name' function.
                           
     """
     name: Optional[str] = None
@@ -174,73 +127,36 @@ class Comparison(Test, abc.ABC):
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-    proctor: Optional[Proctor] = None
-    judge: Optional[Judge] = None
+    proctor: Optional[tasks.Proctor] = None
+    judge: Optional[tasks.Judge] = None
 
-    """ Required Subclass Methods """
+    """ Public Methods """
     
-    @abc.abstractmethod
-    def evaluate(
+    def implement(
         self, 
-        projects: dict[str, interface.Project], 
+        project: interface.Project, 
         **kwargs) -> interface.Project:
-        """Returns one project instance among 'projects'.
-        
+        """Applies 'contents' to 'project'.
+
+        Subclasses must provide their own methods.
+
         Args:
-            projects (dict[str, interface.Project]): dict of Project instances
-                from which this method should select one.
+            project (interface.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: selected project, with possible changes made. 
+            interface.Project: with possible changes made.
             
         """
-        pass    
+        results = super().implement(project = project, **kwargs)
+        project = self.judge.execute(projects = results)  
+        return project
 
 
-""" Single Nodes """
-
-@dataclasses.dataclass   
-class Judge(object):
-    """Reduces paths"""
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-
-   
-@dataclasses.dataclass   
-class Contest(Judge):
-    """Reduces paths by selecting the best path based on a criteria score."""
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-
-   
-@dataclasses.dataclass   
-class Survey(Judge):
-    """Reduces paths by averaging the results of a criteria score."""
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-
-
-@dataclasses.dataclass   
-class Validation(Judge):
-    """Reduces paths based on each test meeting a minimum criteria score."""
-    name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-
-
-
-
-def create_test(
+def create_experiment(
     name: str, 
     project: interface.Project,
-    **kwargs) -> Test:
+    **kwargs) -> Experiment:
     """[summary]
 
     Args:
@@ -248,7 +164,7 @@ def create_test(
         project (interface.Project): [description]
 
     Returns:
-        Test: [description]
+        Experiment: [description]
         
     """    
     design = project.settings.designs.get(name, None) 

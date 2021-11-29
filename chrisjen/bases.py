@@ -195,11 +195,11 @@ class Parameters(amos.Dictionary):
       
     """ Public Methods """
 
-    def finalize(self, project: interface.Project, **kwargs) -> None:
+    def finalize(self, item: Any, **kwargs) -> None:
         """Combines and selects final parameters into 'contents'.
 
         Args:
-            project (interface.Project): instance from which implementation and 
+            item (interface.Project): instance from which implementation and 
                 settings parameters can be derived.
             
         """
@@ -207,12 +207,12 @@ class Parameters(amos.Dictionary):
         parameters = self.default
         # Adds any parameters from 'settings'.
         try:
-            parameters.update(self._from_settings(project = project))
+            parameters.update(self._from_settings(item = item))
         except AttributeError:
             pass
         # Adds any implementation parameters.
         if self.implementation:
-            parameters.update(self._at_runtime(project = project))
+            parameters.update(self._at_runtime(item = item))
         # Adds any parameters already stored in 'contents'.
         parameters.update(self.contents)
         # Adds any passed kwargs, which will override any other parameters.
@@ -225,7 +225,7 @@ class Parameters(amos.Dictionary):
 
     """ Private Methods """
      
-    def _from_settings(self, project: interface.Project) -> dict[str, Any]: 
+    def _from_settings(self, item: Any) -> dict[str, Any]: 
         """Returns any applicable parameters from 'settings'.
 
         Args:
@@ -236,28 +236,28 @@ class Parameters(amos.Dictionary):
             dict[str, Any]: any applicable settings parameters or an empty dict.
             
         """
-        if hasattr(project, 'outline'):
-            parameters = project.outline.runtime[self.name]
+        if hasattr(item, 'outline'):
+            parameters = item.outline.runtime[self.name]
         else:
             try:
-                parameters = project.settings[f'{self.name}_parameters']
+                parameters = item.settings[f'{self.name}_parameters']
             except KeyError:
                 suffix = self.name.split('_')[-1]
                 prefix = self.name[:-len(suffix) - 1]
                 try:
-                    parameters = project.settings[f'{prefix}_parameters']
+                    parameters = item.settings[f'{prefix}_parameters']
                 except KeyError:
                     try:
-                        parameters = project.settings[f'{suffix}_parameters']
+                        parameters = item.settings[f'{suffix}_parameters']
                     except KeyError:
                         parameters = {}
         return parameters
    
-    def _at_runtime(self, project: interface.Project) -> dict[str, Any]:
+    def _at_runtime(self, item: Any) -> dict[str, Any]:
         """Adds implementation parameters to 'contents'.
 
         Args:
-            project (interface.Project): instance from which implementation 
+            item (interface.Project): instance from which implementation 
                 parameters can be derived.
 
         Returns:
@@ -266,16 +266,15 @@ class Parameters(amos.Dictionary):
         """    
         for parameter, attribute in self.implementation.items():
             try:
-                self.contents[parameter] = getattr(project, attribute)
+                self.contents[parameter] = getattr(item, attribute)
             except AttributeError:
                 try:
-                    self.contents[parameter] = project.contents[attribute]
+                    self.contents[parameter] = item.contents[attribute]
                 except (KeyError, AttributeError):
                     pass
         return self
 
     
- 
 @dataclasses.dataclass
 class Component(ProjectRegistrar, abc.ABC):
     """Base class for nodes in a chrisjen project.
@@ -332,48 +331,42 @@ class Component(ProjectRegistrar, abc.ABC):
     """ Required Subclass Methods """
 
     @abc.abstractmethod
-    def implement(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Applies 'contents' to 'project'.
+    def implement(self, item: Any, **kwargs) -> Any:
+        """Applies 'contents' to 'item'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'interface.Project'.
 
         Returns:
-            interface.Project: with possible changes made.
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'interface.Project'.
             
         """
         pass
 
     """ Public Methods """
     
-    def execute(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+    def execute(self, item: Any, **kwargs) -> Any:
         """Calls the 'implement' method after finalizing parameters.
 
         Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'interface.Project'.
 
         Returns:
-            interface.Project: with possible changes made.
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'interface.Project'.
             
         """
         if self.contents not in [None, 'None', 'none']:
-            self.finalize(project = project, **kwargs)
-            project = self.implement(project = project, **self.parameters)
-        return project 
+            self.finalize(item = item, **kwargs)
+            result = self.implement(item = item, **self.parameters)
+        return result 
        
-    def finalize(
-        self, 
-        project: interface.Project, 
-        **kwargs) -> None:
+    def finalize(self, item: Any, **kwargs) -> None:
         """Finalizes the parameters for implementation of the node.
 
         Args:
@@ -383,7 +376,7 @@ class Component(ProjectRegistrar, abc.ABC):
         """
         if self.parameters:
             if hasattr(self.parameters, 'finalize'):
-                self.parameters.finalize(project = project)
+                self.parameters.finalize(item = item)
             parameters = self.parameters
             parameters.update(kwargs)
         else:
