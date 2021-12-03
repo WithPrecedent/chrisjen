@@ -1,5 +1,5 @@
 """
-interface: primary access point and interface for a chrisjen project
+interface: primary access point and user interface for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2021, Corey Rayburn Yung
 License: Apache-2.0
@@ -19,7 +19,7 @@ License: Apache-2.0
 Contents:
     ProjectBases (object): contains base class for a chrisjen project. Users
         can set or pass different attributes to use different base classes.
-    Project (object): primary interface for chrisjen projects.
+    Project (object): primary user interface for chrisjen projects.
 
 To Do:
     Improve validator methods in Project for certain attributes yo handle more
@@ -44,6 +44,7 @@ from . import configuration
 from . import filing
 from . import workshop
     
+    
 @dataclasses.dataclass
 class ProjectBases(object):
     """Base classes for a chrisjen Project.
@@ -53,8 +54,11 @@ class ProjectBases(object):
             filing.Clerk.
         settings (Type[Any]): base class for project configuration settings.
             Defaults to amos.Settings.
+        workflow
+        results
         node (Type[amos.LibraryFactory]): base class for nodes in a project
             workflow. Defaults to bases.Component.
+        criteria
       
     """
     clerk: Type[Any] = filing.Clerk
@@ -93,6 +97,7 @@ class Project(object):
             Defaults to True.
     
     Attributes:
+        options 
         results (amos.Composite): stored results from the execution of the
             project 'workflow'.
         workflow (amos.Composite): workflow process for executing the project.
