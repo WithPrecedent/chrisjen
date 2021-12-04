@@ -17,9 +17,12 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    bases.Workflow
-    Results
     create_workflow
+    create_worker
+    create_manager
+    create_judge
+    create_step
+    create_technique
     create_results
 
 To Do:
@@ -28,9 +31,7 @@ To Do:
         
 """
 from __future__ import annotations
-
-from collections.abc import (
-    Hashable, Mapping, MutableMapping, MutableSequence, Sequence, Set)
+from collections.abc import Hashable, Sequence
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
@@ -58,7 +59,7 @@ def create_workflow(
         bases.Workflow: [description]
         
     """    
-    base = base or project.bases.default_workflow
+    base = base or project.bases.workflow
     workflow = base(**kwargs)
     return _settings_to_workflow(
         settings = project.settings,
@@ -70,6 +71,7 @@ def create_worker(
     project: interface.Project,
     base: Optional[Type[components.Worker]] = None,  
     **kwargs) -> components.Worker:
+    base = base or project.bases.node.options['worker']
     return
 
 def create_manager(
@@ -77,6 +79,7 @@ def create_manager(
     project: interface.Project,
     base: Optional[Type[components.Manager]] = None,  
     **kwargs) -> components.Manager:
+    base = base or project.bases.node.options['manager']
     return
 
 def create_judge(
@@ -84,6 +87,7 @@ def create_judge(
     project: interface.Project,
     base: Optional[Type[components.Judge]] = None,  
     **kwargs) -> components.Judge:
+    base = base or project.bases.node.options['judge']
     return
 
 def create_step(
@@ -91,6 +95,7 @@ def create_step(
     project: interface.Project,
     base: Optional[Type[components.Step]] = None,  
     **kwargs) -> components.Step:
+    base = base or project.bases.node.options['step']
     return   
 
 def create_technique(
@@ -98,6 +103,7 @@ def create_technique(
     project: interface.Project,
     base: Optional[Type[components.Technique]] = None,  
     **kwargs) -> components.Technique:
+    base = base or project.bases.node.options['technique']
     return  
  
 """ Private Functions """

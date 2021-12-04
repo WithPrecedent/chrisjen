@@ -17,10 +17,13 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Component (amos.Node, abc.ABC):
-    ProjectComponent (ProjectOptions, Component, abc.ABC):
-    ProjectStage (ProjectOptions, Component, abc.ABC):
-    ProjectDirector (ProjectOptions, Iterator):
+    ProjectCatalog (amos.Catalog):
+    ProjectRegistrar (object):
+    Parameters (amos.Dictionary):
+    Component (ProjectRegistrar, abc.ABC):
+    Criteria (ProjectRegistrar):
+    Workflow (amos.System):
+    Resutls (object):
 
 To Do:
     Make Component a subclass of amos.Node by fixing the proxy access methods
@@ -31,14 +34,15 @@ from __future__ import annotations
 import abc
 import collections
 from collections.abc import (
-    Callable, Hashable, Iterable, Mapping, MutableMapping, Sequence, Set)
+    Callable, Hashable, Mapping, MutableMapping, Sequence, Set)
 import copy
 import dataclasses
 import functools
 import itertools
 import multiprocessing
 import pathlib
-from typing import Any, ClassVar, MutableSequence, Optional, Type, TYPE_CHECKING, Union
+from typing import (
+    Any, ClassVar, MutableSequence, Optional, Type, TYPE_CHECKING, Union)
 
 import amos
 
@@ -616,3 +620,5 @@ class Results(object):
     #         for node in self:
     #             project = node.execute(project = project, **kwargs)
     #     return project
+    
+    

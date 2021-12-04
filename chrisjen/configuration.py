@@ -38,6 +38,9 @@ if TYPE_CHECKING:
     from . import interface
     
 
+_DESIGN_SUFFIXES: tuple[str, ...] = tuple(['_design'])
+
+
 @dataclasses.dataclass
 class ProjectSettings(amos.Settings):
     """Loads and stores configuration settings.
@@ -54,7 +57,10 @@ class ProjectSettings(amos.Settings):
             datatypes (True) or left alone (False). If 'contents' was imported 
             from an .ini file, all values will be strings. Defaults to True.
         project (interface.Project): a related project instance which has data
-            that the properties can be derived.
+            from which the properties of ProjectSettings can be derived.
+        sources (ClassVar[Mapping[Type[Any], str]]): keys are types for sources 
+            for creating an instance and values are the suffix for the 
+            classmethod to be called using the matching key type.
 
     """
     contents: MutableMapping[Hashable, Any] = dataclasses.field(
@@ -226,9 +232,10 @@ class ProjectSettings(amos.Settings):
                 'ProjectSettings needs to be linked to a project to access '
                 'that information.')
 
-
+""" Public Functions """
+   
 def get_composites(project: interface.Project) -> list[str]: 
-    """[summary]
+    """Returns names of sections containing data for composite creation.
 
     Args:
         project (interface.Project): [description]
@@ -237,14 +244,10 @@ def get_composites(project: interface.Project) -> list[str]:
         list[str]: [description]
         
     """
-    # composites = []
-    # for key, section in project.settings.items():
-    #     if any(k.endswith(project.options.plurals) for k in section.keys()):
-    #         composites.append(key)
-    # return composites
+    suffixes = project.options.plurals
     return [
         k for k, v in project.settings.contents.items() 
-        if any(i.endswith(project.options.plurals) for i in v.keys())]
+        if is_composite_section(section = v, suffixes = suffixes)]
 
 def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """[summary]
@@ -360,23 +363,50 @@ def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
             runtime[new_key] = section
     return runtime
 
-def _get_section_initialization(
-    section: MutableMapping[Hashable, Any],
-    plurals: Sequence[str]) -> dict[str, Any]:
+def is_composite_section(
+    section: MutableMapping[Hashable, Any], 
+    suffixes: tuple[str, ...]) -> bool:
     """[summary]
 
     Args:
         section (MutableMapping[Hashable, Any]): [description]
-        plurals (Sequence[str]): [description]
+        suffixes (tuple[str, ...]): [description]
 
     Returns:
-        dict[str, Any]: [description]
+        bool: [description]
         
-    """
-    all_plurals = plurals + ('design',)
-    return {
-        k: v for k, v in section.items() if not k.endswith(all_plurals)}
-    
+    """ 
+    return any(
+        is_connections(key = k, suffixes = suffixes) for k in section.keys())
+
+def is_connections(key: str, suffixes: tuple[str, ...]) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (tuple[str, ...]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith(suffixes)
+
+def is_design(key: str) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (list[str]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith(_DESIGN_SUFFIXES)
+
+""" Private Functions """   
+ 
 def _get_section_connections(
     section: MutableMapping[Hashable, Any],
     name: str,
@@ -393,7 +423,9 @@ def _get_section_connections(
         
     """    
     connections = {}
-    keys = [k for k in section.keys() if k.endswith(plurals)]
+    keys = [
+        k for k in section.keys() 
+        if is_connections(key = k, suffixes = plurals)]
     for key in keys:
         prefix, suffix = amos.cleave_str(key)
         values = list(amos.iterify(section[key]))
@@ -409,6 +441,23 @@ def _get_section_connections(
                 connections[prefix] = values
     return connections
       
+def _get_section_initialization(
+    section: MutableMapping[Hashable, Any],
+    plurals: Sequence[str]) -> dict[str, Any]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        plurals (Sequence[str]): [description]
+
+    Returns:
+        dict[str, Any]: [description]
+        
+    """
+    all_plurals = plurals + ('design',)
+    return {
+        k: v for k, v in section.items() if not k.endswith(all_plurals)}
+
 def _get_section_designs(
     section: MutableMapping[Hashable, Any],
     name: str) -> dict[str, str]:

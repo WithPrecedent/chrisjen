@@ -29,12 +29,12 @@ To Do:
     
 """
 from __future__ import annotations
-from collections.abc import Hashable, MutableMapping
+from collections.abc import MutableMapping
 import dataclasses
 import functools
 import inspect
 import pathlib
-from typing import Any, ClassVar, Optional, Type, Union
+from typing import Any, Optional, Type, Union
 import warnings
 
 import amos
@@ -97,26 +97,30 @@ class Project(object):
             Defaults to True.
     
     Attributes:
-        options 
+        options (bases.ProjectCatalog): a catalog of all available node classes
+            that can be used in a project workflow. By default, it is a
+            property that points to 'bases.node.options'.
         results (amos.Composite): stored results from the execution of the
-            project 'workflow'.
+            project 'workflow'. It is created when the 'complete' method is
+            called.
         workflow (amos.Composite): workflow process for executing the project.
+            It is a cached property that calls the 'create_workflow' function
+            the first time it is called and becomes an attribute with a 
+            workflow after that.
             
     """
-    settings: Optional[amos.Settings] = None
     name: Optional[str] = None
+    settings: Optional[amos.Settings] = None
     clerk: Optional[filing.Clerk] = None
     bases: ProjectBases = ProjectBases()
     data: Optional[object] = None
     identification: Optional[str] = None
     automatic: bool = True
-    _temp: MutableMapping[str, Any] = dataclasses.field(
-        default_factory = dict)
     
     """ Initialization Methods """
 
     def __post_init__(self) -> None:
-        """Initializes class instance attributes."""
+        """Initializes and validates class instance attributes."""
         # Removes various python warnings from console output.
         warnings.filterwarnings('ignore')
         # Calls parent and/or mixin initialization method(s).
@@ -150,7 +154,18 @@ class Project(object):
             
         """        
         return self.bases.node.options
-    
+  
+    @options.setter
+    def options(self, value: bases.ProjectCatalog) -> None:
+        """Sets the current options of available workflow components.
+
+        Arguments:
+            value (bases.ProjectCatalog): new options for workflow components.
+            
+        """        
+        self.bases.node.options = value
+        return self
+     
     @functools.cached_property
     def workflow(self) -> bases.Workflow:
         """Returns workflow based on 'settings'
@@ -161,28 +176,26 @@ class Project(object):
         """        
         return workshop.create_workflow(project = self)
        
-    """ Public Methods """
+    """ Class Methods """
 
     @classmethod
     def create(
         cls, 
         settings: Union[pathlib.Path, str, amos.Settings],
         **kwargs) -> Project:
-        """[summary]
+        """Returns a Project instance based on 'settings' and kwargs.
 
         Args:
-            settings (Union[pathlib.Path, str, amos.Settings]): [description]
+            settings (Union[pathlib.Path, str, amos.Settings]): a path to a file
+                containing configuration settings or a Settings instance.
 
         Returns:
-            Project: [description]
+            Project: an instance based on 'settings' and kwargs.
             
         """        
-        if 'bases' in kwargs:
-            bases = kwargs['bases']
-        else:
-            bases = ProjectBases()
-            kwargs['bases'] = bases
         return cls(settings = settings, **kwargs)
+       
+    """ Public Methods """
         
     def complete(self) -> None:
         """Iterates through all stages."""
@@ -290,7 +303,10 @@ class Project(object):
     
     def _set_parallelization(self) -> None:
         """Sets multiprocessing method based on 'settings'."""
-        if self.settings['general']['parallelize']:
+        if (
+            'general' in self.settings
+                and 'parallelize' in self.settings['general'] 
+                and self.settings['general']['parallelize']):
             if not globals()['multiprocessing']:
                 import multiprocessing
             multiprocessing.set_start_method('spawn') 
