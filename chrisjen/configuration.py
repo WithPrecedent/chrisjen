@@ -78,21 +78,6 @@ class ProjectSettings(amos.Settings):
     """ Properties """       
 
     @functools.cached_property
-    def composites(self) -> list[str]:
-        """Returns names of sections in 'contents' that are for composites.
-
-        Returns:
-            list[str]: list of section names.
-            
-        """
-        try:            
-            return get_composites(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'ProjectSettings needs to be linked to a project to access '
-                'that information.')
-        
-    @functools.cached_property
     def connections(self) -> dict[str, list[str]]:
         """Returns raw connections between nodes from 'settings'.
 
@@ -232,22 +217,23 @@ class ProjectSettings(amos.Settings):
                 'ProjectSettings needs to be linked to a project to access '
                 'that information.')
 
-""" Public Functions """
-   
-def get_composites(project: interface.Project) -> list[str]: 
-    """Returns names of sections containing data for composite creation.
+    @functools.cached_property
+    def workers(self) -> dict[str, dict[Hashable, Any]]:
+        """Returns sections in 'contents' that are for workers.
 
-    Args:
-        project (interface.Project): [description]
-
-    Returns:
-        list[str]: [description]
+        Returns:
+            dict[str, dict[Hashable, Any]]: keys are the names of worker 
+                sections and values are those sections.
+            
+        """
+        try:            
+            return get_workers(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
         
-    """
-    suffixes = project.options.plurals
-    return [
-        k for k, v in project.settings.contents.items() 
-        if is_composite_section(section = v, suffixes = suffixes)]
+""" Public Functions """
 
 def get_connections(project: interface.Project) -> dict[str, list[str]]:
     """[summary]
@@ -259,18 +245,18 @@ def get_connections(project: interface.Project) -> dict[str, list[str]]:
         dict[str, list[str]]: [description]
         
     """
+    suffixes = project.options.plurals
     connections = {}
-    for key, section in project.settings.items():
-        if any(k.endswith(project.options.plurals) for k in section.keys()):
-            new_connections = _get_section_connections(
-                section = section,
-                name = key,
-                plurals = project.options.plurals)
-            for inner_key, inner_value in new_connections.items():
-                if inner_key in connections:
-                    connections[inner_key].extend(inner_value)
-                else:
-                    connections[inner_key] = inner_value
+    for key, section in project.settings.workers.items():
+        new_connections = _get_section_connections(
+            section = section,
+            name = key,
+            plurals = suffixes)
+        for inner_key, inner_value in new_connections.items():
+            if inner_key in connections:
+                connections[inner_key].extend(inner_value)
+            else:
+                connections[inner_key] = inner_value
     return connections
 
 def get_designs(project: interface.Project) -> dict[str, str]:
@@ -362,8 +348,23 @@ def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
                 suffix = '_parameters')
             runtime[new_key] = section
     return runtime
+   
+def get_workers(project: interface.Project) -> dict[str, dict[Hashable, Any]]: 
+    """Returns names of sections containing data for worker creation.
 
-def is_composite_section(
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        dict[str, dict[Hashable, Any]]: [description]
+        
+    """
+    suffixes = project.options.plurals
+    return {
+        k: v for k, v in project.settings.items() 
+        if is_worker_section(section = v, suffixes = suffixes)}
+
+def is_worker_section(
     section: MutableMapping[Hashable, Any], 
     suffixes: tuple[str, ...]) -> bool:
     """[summary]

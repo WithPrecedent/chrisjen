@@ -46,6 +46,8 @@ from typing import (
 
 import amos
 
+from . import workshop
+
 if TYPE_CHECKING:
     from . import interface
 
@@ -379,7 +381,7 @@ class Component(ProjectRegistrar, abc.ABC):
             
         """
         if self.parameters:
-            if hasattr(self.parameters, 'finalize'):
+            if amos.has_method(self.parameters, 'finalize'):
                 self.parameters.finalize(item = item)
             parameters = self.parameters
             parameters.update(kwargs)
@@ -531,7 +533,7 @@ class Workflow(amos.System):
             Workflow: [description]
             
         """        
-        return create_workflow(project = project, base = cls)    
+        return workshop.create_workflow(project = project, base = cls)    
 
     def append_depth(
         self, 
@@ -600,7 +602,7 @@ class Results(object):
             Results: [description]
             
         """        
-        return create_results(project = project, base = cls)
+        return workshop.create_results(project = project, base = cls)
 
     # def execute(
     #     self, 
