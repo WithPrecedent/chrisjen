@@ -38,7 +38,10 @@ if TYPE_CHECKING:
     from . import interface
     
 
-_DESIGN_SUFFIXES: tuple[str, ...] = tuple(['_design'])
+_DESIGN_SUFFIXES: tuple[str, ...] = tuple(['design'])
+_FILES_SECTIONS: tuple[str, ...] = tuple(['clerk', 'filer', 'files'])
+_GENERAL_SECTIONS: tuple[str, ...] = tuple(['general'])
+_PARAMETERS_SUFFIXES: tuple[str, ...] = tuple(['_parameters'])
 
 
 @dataclasses.dataclass
@@ -119,19 +122,15 @@ class ProjectSettings(amos.Settings):
         Returns:
             MutableMapping[Hashable, Any]: [description]
             
-        """        
-        try:
-            return self['files']
-        except KeyError:
+        """  
+        for name in _FILES_SECTIONS:
             try:
-                return self['filer']
+                return self[name]
             except KeyError:
-                try:
-                    return self['clerk']
-                except KeyError:
-                    raise KeyError(
-                        'ProjectSettings does not contain files-related '
-                        'configuration options')
+                pass      
+        raise KeyError(
+            'ProjectSettings does not contain files-related '
+            'configuration options')
 
     @property
     def general(self) -> MutableMapping[Hashable, Any]:
@@ -144,12 +143,14 @@ class ProjectSettings(amos.Settings):
             MutableMapping[Hashable, Any]: [description]
             
         """        
-        try:
-            return self['general']
-        except KeyError:
-            raise KeyError(
-                'ProjectSettings does not contain general configuration '
-                'options')
+        for name in _GENERAL_SECTIONS:
+            try:
+                return self[name]
+            except KeyError:
+                pass  
+        raise KeyError(
+            'ProjectSettings does not contain general configuration '
+            'options')
                                         
     @functools.cached_property
     def initialization(self) -> dict[str, dict[str, Any]]:
@@ -270,10 +271,9 @@ def get_designs(project: interface.Project) -> dict[str, str]:
         
     """
     designs = {}
-    for key, section in project.settings.items():
-        if any(k.endswith(project.options.plurals) for k in section.keys()):
-            new_designs = _get_section_designs(section = section, name = key)
-            designs.update(new_designs)
+    for key, section in project.settings.workers.items():
+        new_designs = _get_section_designs(section = section, name = key)
+        designs.update(new_designs)
     return designs
 
 def get_initialization(project: interface.Project) -> dict[str, dict[str, Any]]:
@@ -342,10 +342,10 @@ def get_runtime(project: interface.Project) -> dict[str, dict[str, Any]]:
     """
     runtime = {}
     for key, section in project.settings.items():
-        if key.endswith('_parameters'):
+        if key.endswith(_PARAMETERS_SUFFIXES):
             new_key = amos.drop_suffix_from_str(
                 item = key, 
-                suffix = '_parameters')
+                suffix = _PARAMETERS_SUFFIXES)
             runtime[new_key] = section
     return runtime
    
@@ -406,6 +406,19 @@ def is_design(key: str) -> bool:
     """    
     return key.endswith(_DESIGN_SUFFIXES)
 
+def is_parameters(key: str) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (list[str]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith(_PARAMETERS_SUFFIXES)
+
 """ Private Functions """   
  
 def _get_section_connections(
@@ -455,7 +468,7 @@ def _get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_plurals = plurals + ('design',)
+    all_plurals = plurals + _DESIGN_SUFFIXES
     return {
         k: v for k, v in section.items() if not k.endswith(all_plurals)}
 
@@ -473,7 +486,7 @@ def _get_section_designs(
         
     """    
     designs = {}
-    design_keys = [k for k in section.keys() if k.endswith('design')]
+    design_keys = [k for k in section.keys() if k.endswith(_DESIGN_SUFFIXES)]
     for key in design_keys:
         prefix, suffix = amos.cleave_str(key)
         if prefix == suffix:
@@ -517,11 +530,12 @@ def infer_project_name(project: interface.Project) -> Optional[str]:
         Optional[str]: project name or None, if none is found.
                 
     """
+    suffixes = project.options.plurals
     name = None    
     for key, section in project.settings.items():
         if (
             key not in ['general', 'files', 'filer', 'clerk'] 
-            and any(k.endswith(project.options.plurals) for k in section.keys())):
+                and any(k.endswith(suffixes) for k in section.keys())):
             name = key
             break
     return name
