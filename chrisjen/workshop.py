@@ -47,11 +47,11 @@ if TYPE_CHECKING:
 
 """ Public Functions """
 
-def create_putline(
+def create_outline(
     project: interface.Project,
     base: Optional[Type[bases.Outline]] = None, 
     **kwargs) -> bases.Outline:
-    """Creates workflow based on 'project' and 'kwargs'.
+    """Creates outline based on 'project' and 'kwargs'.
 
     Args:
         project (interface.Project): [description]
@@ -80,10 +80,11 @@ def create_workflow(
     """    
     base = base or project.bases.workflow
     workflow = base(**kwargs)
-    return _settings_to_workflow(
-        settings = project.settings,
-        options = project.options,
-        workflow = workflow)
+    for node, connects in settings.connections.items():
+        component = components[node]
+        system = component.integrate(item = system)    
+    return workflow    
+        
 
 def create_worker(
     name: str,
@@ -124,6 +125,32 @@ def create_manager(
     """ 
     base = base or project.bases.node.options['manager']
     return
+
+def create_researcher(
+    name: str,
+    project: interface.Project,
+    base: Optional[Type[components.Researcher]] = None,  
+    **kwargs) -> components.Researcher:
+    """Creates worker based on 'name', 'project', and 'kwargs'.
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[components.Researcher]]): [description]. Defaults to 
+            None.
+
+    Returns:
+        components.Researcher: [description]
+        
+    """ 
+    base = base or project.bases.node.options['researcher']
+    section = project.settings[name]
+    first_key = list(item.keys())[0]
+    self.append(first_key)
+    possible = [v for k, v in item.items() if k in item[first_key]]
+    combos = list(itertools.product(*possible))
+    self.append(combos)
+    return components.Experiment
 
 def create_judge(
     name: str,
@@ -185,28 +212,30 @@ def create_technique(
     base = base or project.bases.node.options['technique']
     return  
 
-def get_connections(project: interface.Project) -> dict[str, list[str]]:
+def get_connections(
+    project: interface.Project) -> dict[str, dict[str, list[str]]]:
     """[summary]
 
     Args:
         project (interface.Project): [description]
 
     Returns:
-        dict[str, list[str]]: [description]
+        dict[str, dict[str, list[str]]]: [description]
         
     """
     suffixes = project.options.plurals
     connections = {}
-    for key, section in project.settings.workers.items():
+    for key, section in project.settings.components.items():
+        connections[key] = {}
         new_connections = _get_section_connections(
             section = section,
             name = key,
             plurals = suffixes)
         for inner_key, inner_value in new_connections.items():
             if inner_key in connections:
-                connections[inner_key].extend(inner_value)
+                connections[key][inner_key].extend(inner_value)
             else:
-                connections[inner_key] = inner_value
+                connections[key][inner_key] = inner_value
     return connections
 
 def get_designs(project: interface.Project) -> dict[str, str]:

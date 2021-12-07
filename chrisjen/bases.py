@@ -18,10 +18,10 @@ License: Apache-2.0
 
 Contents:
     ProjectCatalog (amos.Catalog):
-    ProjectRegistrar (object):
+    amos.LibraryFactory (object):
     Parameters (amos.Dictionary):
-    Component (ProjectRegistrar, abc.ABC):
-    Criteria (ProjectRegistrar):
+    Component (amos.LibraryFactory, abc.ABC):
+    Criteria (amos.LibraryFactory):
     Workflow (amos.System):
     Resutls (object):
 
@@ -38,6 +38,7 @@ from collections.abc import (
 import copy
 import dataclasses
 import functools
+import inspect
 import itertools
 import multiprocessing
 import pathlib
@@ -122,32 +123,86 @@ class ProjectCatalog(amos.Catalog):
         """
         return self[item]   
     
+
+@dataclasses.dataclass  # type: ignore
+class ProjectLibrary(amos.Library):
+    """Stores classes and class instances.
     
-@dataclasses.dataclass
-class ProjectRegistrar(object):
-    """Mixin which registers subclasses.
+    When searching for matches, instances are prioritized over classes.
     
     Args:
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
-            
+        classes (ProjectCatalog[str, Type[Any]]): a catalog of stored 
+            subclasses. Defaults to any empty ProjectCatalog.
+        instances (ProjectCatalog[str, object]): a catalog of stored subclass 
+            instances. Defaults to an empty ProjectCatalog.
+        kinds (ProjectCatalog[str, Type[Any]]): a catalog of stored subclasses
+            which are base subtypes. Defaults to any empty ProjectCatalog.        
+                 
     """
-    options: ClassVar[ProjectCatalog] = ProjectCatalog()
-    
-    """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass."""
-        # Because ProjectOptions is used as a mixin, it is important to
-        # call other base class '__init_subclass__' methods, if they exist.
-        try:
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        except AttributeError:
-            pass
-        name = amos.get_name(item = cls)
-        cls.options[name] = cls
+    classes: ProjectCatalog[str, Type[Any]] = dataclasses.field(
+        default_factory = ProjectCatalog)
+    instances: ProjectCatalog[str, object] = dataclasses.field(
+        default_factory = ProjectCatalog)
+    kinds: ProjectCatalog[str, object] = dataclasses.field(
+        default_factory = ProjectCatalog)
 
+    """ Properties """
+    
+    @property
+    def plurals(self) -> tuple[str]:
+        """Returns all stored names and naive plurals of those names.
+        
+        Returns:
+            tuple[str]: all names with an 's' added in order to create simple 
+                plurals combined with the stored keys.
+                
+        """
+        suffixes = []
+        for catalog in ['classes', 'instances', 'kinds']:
+            suffixes.append(catalog.plurals)
+        return tuple(suffixes)
+      
+    """ Public Methods """
+    
+    def deposit(
+        self, 
+        item: Union[Type[Any], object],
+        name: Optional[Hashable] = None) -> None:
+        """Adds 'item' to 'classes', 'instances', and/or 'kinds'.
+
+        If 'item' is a class, it is added to 'classes.' If it is an object, it
+        is added to 'instances' and its class is added to 'classes'.
+        
+        Args:
+            item (Union[Type, object]): class or instance to add to the Library
+                instance.
+            name (Optional[Hashable]): key to use to store 'item'. If not
+                passed, a key will be created using the 'get_name' method.
+                
+        """
+        if abc.ABC in item.__bases__:
+            key = name or amos.get_name(item = item)
+            self.kinds[key] = item
+        else:
+            super().deposit(item = item, name = name)
+        return
+    
+    def remove(self, item: Hashable) -> None:
+        """Removes an item from 'instances', 'classes', or 'kinds'.
+
+        Args:
+            item (Hashable): key name of item to remove.
+            
+        Raises:
+            KeyError: if 'item' is neither found in 'instances' or 'classes'.
+
+        """
+        if item in self.kinds:
+            del self.kinds[item]
+        else:
+            super().deposit(item = item)
+        return    
+    
 
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary):
@@ -282,7 +337,7 @@ class Parameters(amos.Dictionary):
 
     
 @dataclasses.dataclass
-class Component(ProjectRegistrar, abc.ABC):
+class Component(amos.LibraryFactory, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -294,15 +349,16 @@ class Component(ProjectRegistrar, abc.ABC):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
+        library (ClassVar[ProjectLibrary]): subclasses, instances, and base 
+            kinds stored with str keys derived from the 'amos.get_name' 
+            function.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = Parameters)  
-    options: ClassVar[ProjectCatalog] = ProjectCatalog()
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
     
     """ Initialization Methods """
     
@@ -484,7 +540,7 @@ class Component(ProjectRegistrar, abc.ABC):
 
 
 @dataclasses.dataclass   
-class Criteria(ProjectRegistrar):
+class Criteria(amos.LibraryFactory):
     """Evaluates paths for use by Judge
     
     Args:
@@ -496,15 +552,16 @@ class Criteria(ProjectRegistrar):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        options (ClassVar[amos.Catalog]): subclasses stored with str keys 
-            derived from the 'amos.get_name' function.
+        library (ClassVar[ProjectLibrary]): subclasses, instances, and base 
+            kinds stored with str keys derived from the 'amos.get_name' 
+            function.
                       
     """
     name: Optional[str] = None
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    options: ClassVar[ProjectCatalog] = ProjectCatalog()
+    library: ClassVar[ProjectLibrary] = ProjectLibrary()
 
 
 @dataclasses.dataclass
@@ -521,13 +578,12 @@ class Outline(object):
     """ Properties """       
 
     @functools.cached_property
-    def connections(self) -> dict[str, list[str]]:
+    def connections(self) -> dict[str, dict[str, list[str]]]:
         """Returns raw connections between nodes from 'project'.
         
         Returns:
-            dict[str, list[str]]: keys are node names and values are lists of
-                nodes to which the key node is connection. These connections
-                do not include any structure or design.
+            dict[str, dict[str, list[str]]]: keys are worker names and values 
+                node connections for that worker.
             
         """
         try:
@@ -705,6 +761,9 @@ class Workflow(amos.System):
         self.append(combos)
         return self
     
+    """ Private Methods """
+    
+    def _append_serial(self, connections)
     
 @dataclasses.dataclass
 class Results(object):

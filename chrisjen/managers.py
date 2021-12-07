@@ -71,6 +71,25 @@ class Experiment(components.Manager, abc.ABC):
         default_factory = bases.Parameters)
     proctor: Optional[tasks.Proctor] = None
 
+    """ Class Methods """
+    
+    @classmethod
+    def create(cls, name: str, project: interface.Project) -> Experiment:
+        """[summary]
+
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
+
+        Returns:
+            [type]: [description]
+            
+        """
+        return workshop.create_experiment(
+            name = name, 
+            project = project,
+            base = cls)   
+
     """ Public Methods """
     
     def implement(
