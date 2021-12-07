@@ -63,6 +63,7 @@ class ProjectBases(object):
     """
     clerk: Type[Any] = filing.Clerk
     settings: Type[Any] = configuration.ProjectSettings
+    outline: Type[Any] = bases.Outline
     workflow: Type[Any] = bases.Workflow
     results: Type[Any] = bases.Results
     node: Type[amos.LibraryFactory] = bases.Component
@@ -230,7 +231,7 @@ class Project(object):
     def _validate_name(self) -> None:
         """Creates or validates 'name'."""
         if self.name is None:
-            settings_name = configuration.infer_project_name(project = self)
+            settings_name = workshop.infer_project_name(project = self)
             if settings_name is None:
                 self.name = self.name or amos.get_name(item = self)
             else:

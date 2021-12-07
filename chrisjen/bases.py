@@ -508,6 +508,137 @@ class Criteria(ProjectRegistrar):
 
 
 @dataclasses.dataclass
+class Outline(object):
+    """Loads and stores configuration settings.
+
+    Args:
+        project (interface.Project): a related project instance which has data
+            from which the properties of an Outline can be derived.
+
+    """
+    project: interface.Project
+
+    """ Properties """       
+
+    @functools.cached_property
+    def connections(self) -> dict[str, list[str]]:
+        """Returns raw connections between nodes from 'project'.
+        
+        Returns:
+            dict[str, list[str]]: keys are node names and values are lists of
+                nodes to which the key node is connection. These connections
+                do not include any structure or design.
+            
+        """
+        try:
+            return workshop.get_connections(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
+                        
+    @functools.cached_property
+    def designs(self) -> dict[str, str]:
+        """Returns structural designs of nodes of 'contents'.
+
+        Returns:
+            dict[str, str]: keys are node names and values are design names.
+            
+        """
+        try:
+            return workshop.get_designs(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+                                        
+    @functools.cached_property
+    def implementation(self) -> dict[str, dict[str, Any]]:
+        """Returns implementation arguments and attributes for nodes.
+        
+        These values will be parsed into arguments and attributes once the nodes
+        are instanced. They are derived from 'settings'.
+
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of the initialization arguments and attributes.
+            
+        """
+        try:
+            return workshop.get_implementation(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')    
+                                                
+    @functools.cached_property
+    def initialization(self) -> dict[str, dict[str, Any]]:
+        """Returns initialization arguments and attributes for nodes.
+        
+        These values will be parsed into arguments and attributes once the nodes
+        are instanced. They are derived from 'settings'.
+
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of the initialization arguments and attributes.
+            
+        """
+        try:
+            return workshop.get_initialization(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+        
+    @functools.cached_property
+    def kinds(self) -> dict[str, str]:
+        """Returns kinds of ndoes in 'contents'.
+
+        Returns:
+            dict[str, str]: keys are names of nodes and values are names of the
+                associated base kind types.
+            
+        """
+        try:
+            return workshop.get_kinds(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+    
+    @functools.cached_property
+    def labels(self) -> list[str]:
+        """Returns names of nodes of 'contents'.
+
+        Returns:
+            list[str]: names of all nodes that are listed in 'settings'.
+            
+        """
+        try:
+            return workshop.get_labels(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+
+    @functools.cached_property
+    def workers(self) -> dict[str, dict[Hashable, Any]]:
+        """Returns sections in 'contents' that are for workers.
+
+        Returns:
+            dict[str, dict[Hashable, Any]]: keys are the names of worker 
+                sections and values are those sections.
+            
+        """
+        try:            
+            return workshop.get_worker_sections(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+        
+        
+@dataclasses.dataclass
 class Workflow(amos.System):
     """Project workflow composite object.
     
