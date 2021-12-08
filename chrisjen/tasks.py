@@ -49,8 +49,9 @@ class Proctor(components.Task, abc.ABC):
             empty bases.Parameters instance.
             
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
     
     """
     name: Optional[str] = None
@@ -91,8 +92,9 @@ class Judge(components.Task, abc.ABC):
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
         
     
     """
@@ -117,8 +119,9 @@ class Scorer(components.Task):
             empty dict.
             
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
               
     """
     name: Optional[str] = None
@@ -167,8 +170,9 @@ class Contest(Judge):
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
     
     """
     name: Optional[str] = None
@@ -219,8 +223,9 @@ class Survey(Judge):
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
     
     """
     name: Optional[str] = None
@@ -246,8 +251,9 @@ class Validation(Judge):
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
     
     """
     name: Optional[str] = None

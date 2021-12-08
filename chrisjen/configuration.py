@@ -140,10 +140,7 @@ class ProjectSettings(amos.Settings):
         parameter_sections = {}      
         for name, section in self.items():
             if name.endswith(_PARAMETERS_SUFFIX):
-                key = amos.drop_suffix_from_str(
-                    item = name, 
-                    suffix = '_' + _PARAMETERS_SUFFIX)
-                parameter_sections[key] = section
+                parameter_sections[name] = section
         return parameter_sections
         
     @property

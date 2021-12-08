@@ -31,6 +31,7 @@ import multiprocessing
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
+import more_itertools
 
 from . import bases
 from . import components
@@ -42,7 +43,7 @@ if TYPE_CHECKING:
     
 
 @dataclasses.dataclass
-class Experiment(components.Manager, abc.ABC):
+class Researcher(components.Manager):
     """Base class for node containing branching and parallel Workers.
         
     Args:
@@ -60,8 +61,9 @@ class Experiment(components.Manager, abc.ABC):
             stored in 'contents'.
                        
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                           
     """
     name: Optional[str] = None
@@ -85,7 +87,7 @@ class Experiment(components.Manager, abc.ABC):
             [type]: [description]
             
         """
-        return workshop.create_experiment(
+        return workshop.create_researcher(
             name = name, 
             project = project,
             base = cls)   
@@ -117,7 +119,7 @@ class Experiment(components.Manager, abc.ABC):
             
 
 @dataclasses.dataclass
-class Comparison(Experiment, abc.ABC):
+class Analyst(Researcher, abc.ABC):
     """Base class for tests that return one result from a Pipelines.
         
     Args:
@@ -137,8 +139,9 @@ class Comparison(Experiment, abc.ABC):
             in 'contents' to a single Worker or Node.
                                    
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                           
     """
     name: Optional[str] = None
@@ -172,10 +175,45 @@ class Comparison(Experiment, abc.ABC):
         return project
 
 
-def create_experiment(
+# @dataclasses.dataclass
+# class Pollster(Researcher):
+#     """Runs test to select average from 2+ pipelines.
+        
+#     Args:
+#         name (Optional[str]): designates the name of a class instance that is 
+#             used for internal and external referencing in a project workflow
+#             Defaults to None.
+#         contents (MutableMapping[Hashable, components.Worker]): keys are the 
+#             names or other identifiers for the stored Worker instances and 
+#             values are Worker instances. Defaults to an empty dict.
+#         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+#             'contents' when the 'implement' method is called. Defaults to an
+#             empty bases.Parameters instance.
+#         proctor (Optional[Distributor]): node for copying, splitting, or
+#             otherwise creating multiple projects for use by the Workers 
+#             stored in 'contents'.
+#         judge (Optional[Judge]): node for reducing the set of Workers
+#             in 'contents' to a single Worker or Node.
+                                   
+#     Attributes:
+#         library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+#             instances stored with str keys derived from the 'amos.get_name' 
+#             function.
+                          
+#     """
+#     name: Optional[str] = None
+#     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
+#         default_factory = dict)
+#     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+#         default_factory = bases.Parameters)
+#     proctor: Optional[tasks.Proctor] = None
+#     judge: Optional[tasks.Judge] = None
+    
+    
+def create_researcher(
     name: str, 
     project: interface.Project,
-    **kwargs) -> Experiment:
+    **kwargs) -> Researcher:
     """[summary]
 
     Args:
@@ -202,3 +240,107 @@ def create_experiment(
     for key, value in attributes.items():
         setattr(component, key, value)
     return component
+
+
+def implement(
+    node: bases.Component,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.Component): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    ancestors = count_ancestors(node = node, workflow = project.workflow)
+    descendants = len(project.workflow[node])
+    if ancestors > descendants:
+        method = closer_implement
+    elif ancestors < descendants:
+        method = test_implement
+    elif ancestors == descendants:
+        method = task_implement
+    return method(node = node, project = project, **kwargs)
+    
+def closer_implement(
+    node: bases.Component,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.Component): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    try:
+        project = node.execute(project = project, **kwargs)
+    except AttributeError:
+        project = node(project, **kwargs)
+    return project    
+
+def test_implement(
+    node: bases.Component,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.Component): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    connections = project.workflow[node]
+    # Makes copies of project for each pipeline in a test.
+    copies = [copy.deepcopy(project) for _ in connections]
+    # if project.settings['general']['parallelize']:
+    #     method = _test_implement_parallel
+    # else:
+    #     method = _test_implement_serial
+    results = []
+    for i, connection in enumerate(connections):
+        results.append(implement(
+            node = project.workflow[connection],
+            project = copies[i], 
+            **kwargs))
+         
+def task_implement(
+    node: bases.Component,
+    project: interface.Project, 
+    **kwargs) -> interface.Project:
+    """Applies 'node' to 'project'.
+
+    Args:
+        node (bases.Component): node in a workflow to apply to 'project'.
+        project (interface.Project): instance from which data needed for 
+            implementation should be derived and all results be added.
+
+    Returns:
+        interface.Project: with possible changes made by 'node'.
+        
+    """
+    try:
+        project = node.execute(project = project, **kwargs)
+    except AttributeError:
+        project = node(project, **kwargs)
+    return project    
+
+def count_ancestors(node: bases.Component, workflow: bases.Stage) -> int:
+    connections = list(more_itertools.collapse(workflow.values()))
+    return connections.count(node)
+    
+    
+    

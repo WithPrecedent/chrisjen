@@ -55,8 +55,9 @@ class Worker(bases.Component, amos.Pipeline):
             empty dict.
 
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                               
     """
     name: Optional[str] = None
@@ -141,8 +142,9 @@ class Manager(Worker, amos.Pipelines):
             'library' to use. Defaults to None.
             
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                           
     """
     name: Optional[str] = None
@@ -213,8 +215,9 @@ class Task(bases.Component):
             empty dict.
             
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
               
     """
     name: Optional[str] = None
@@ -265,8 +268,9 @@ class Step(Task):
             empty dict.
 
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                                                  
     """
     name: Optional[str] = None
@@ -337,8 +341,9 @@ class Technique(Task):
             empty dict.
 
     Attributes:
-        options (ClassVar[amos.Catalog]): Component subclasses stored with str 
-            keys derived from the 'amos.get_name' function.
+        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
                                                  
     """
     name: Optional[str] = None

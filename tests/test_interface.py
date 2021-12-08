@@ -74,13 +74,33 @@ class Dynamite(chrisjen.Technique):
 def test_project():
     settings = chrisjen.ProjectSettings.create(
         item = pathlib.Path('tests') / 'cancer_settings.ini')
-    
     project = chrisjen.Project(
-        # name = 'wisconsin_cancer_project',
         settings = settings,
         automatic = False)
-    print('test settings properties', project.settings.composites)
-    project.draft()
+    assert project.outline.connections['wrangler'] == {'wrangler': ['none']}
+    assert project.outline.connections['analyst']['scale'] == [
+        'minmax', 
+        'robust', 
+        'normalize']
+    assert project.outline.designs == {
+        'analyst': 'researcher', 
+        'critic': 'researcher'}
+    assert project.outline.implementation['cleaver'] == {'include_all': True}
+    assert project.outline.initialization['analyst'] == {
+        'model_type': 'classify', 
+        'label': 'target', 
+        'default_package': 'sklearn', 
+        'search_method': 'random'}
+    assert project.outline.kinds['scale'] == 'step'
+    assert project.outline.kinds['logit'] == 'technique'
+    assert 'train_test' in project.outline.labels
+    assert 'random_forest' in project.outline.labels
+    assert 'critic' in project.outline.labels
+    assert project.outline.workers['wisconsin_cancer_project'][
+        'wisconsin_cancer_project_workers'] == [
+            'analyst', 
+            'critic']
+    print('test workflow', project.workflow)
     # Tests base libraries.
     # Tests workflow construction.
     # print('test project workflow', project.workflow)

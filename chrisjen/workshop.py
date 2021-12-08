@@ -36,6 +36,7 @@ import itertools
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
+import more_itertools
 
 from . import configuration
 
@@ -80,12 +81,11 @@ def create_workflow(
     """    
     base = base or project.bases.workflow
     workflow = base(**kwargs)
-    for node, connects in settings.connections.items():
+    for node, connects in project.settings.connections.items():
         component = components[node]
         system = component.integrate(item = system)    
     return workflow    
         
-
 def create_worker(
     name: str,
     project: interface.Project,
@@ -232,7 +232,7 @@ def get_connections(
             name = key,
             plurals = suffixes)
         for inner_key, inner_value in new_connections.items():
-            if inner_key in connections:
+            if inner_key in connections[key]:
                 connections[key][inner_key].extend(inner_value)
             else:
                 connections[key][inner_key] = inner_value
@@ -266,9 +266,7 @@ def get_implementation(project: interface.Project) -> dict[str, dict[str, Any]]:
     """
     implementation = {}
     for key, section in project.settings.parameters.items():
-        new_key = amos.drop_suffix_from_str(
-            item = key, 
-            suffix = configuration._PARAMETERS_SUFFIX)
+        new_key = key.removesuffix('_' + configuration._PARAMETERS_SUFFIX)
         implementation[new_key] = section
     return implementation
    
@@ -319,11 +317,14 @@ def get_labels(project: interface.Project) -> list[str]:
         list[str]: names of all nodes that are listed in 'project.settings'.
         
     """ 
+    labels = []
     connections = get_connections(project = project)       
-    key_nodes = list(connections.keys())
-    value_nodes = list(itertools.chain.from_iterable(connections.values()))
-    all_nodes = key_nodes + value_nodes
-    return amos.deduplicate_list(item = all_nodes)     
+    for key, section in connections.items():
+        labels.append(key)
+        for inner_key, inner_values in section.items():
+            labels.append(inner_key)
+            labels.extend(list(itertools.chain(inner_values)))
+    return amos.deduplicate_list(item = labels)     
 
 def get_worker_sections(
     project: interface.Project) -> dict[str, dict[Hashable, Any]]: 
@@ -340,6 +341,26 @@ def get_worker_sections(
     return {
         k: v for k, v in project.settings.items() 
         if is_worker_section(section = v, suffixes = suffixes)}
+
+def infer_project_name(project: interface.Project) -> Optional[str]:
+    """Tries to infer project name from settings contents.
+    
+    Args:
+        project (interface.Project): an instance of Project with 'settings'.
+        
+    Returns:
+        Optional[str]: project name or None, if none is found.
+                
+    """
+    suffixes = project.options.plurals
+    name = None    
+    for key, section in project.settings.items():
+        if (
+            key not in ['general', 'files', 'filer', 'clerk'] 
+                and any(k.endswith(suffixes) for k in section.keys())):
+            name = key
+            break
+    return name
 
 def is_worker_section(
     section: MutableMapping[Hashable, Any], 
@@ -381,7 +402,7 @@ def is_design(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith(configuration._DESIGN_SUFFIX)
+    return key.endswith('_' + configuration._DESIGN_Library)
 
 def is_parameters(key: str) -> bool:
     """[summary]
@@ -394,7 +415,7 @@ def is_parameters(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith(configuration._PARAMETERS_SUFFIX)
+    return key.endswith('_' + configuration._PARAMETERS_Library)
  
 """ Private Functions """
  
@@ -447,7 +468,8 @@ def _get_section_designs(
     """    
     designs = {}
     design_keys = [
-        k for k in section.keys() if k.endswith(configuration._DESIGN_SUFFIX)]
+        k for k in section.keys() 
+        if k.endswith(configuration._DESIGN_SUFFIX)]
     for key in design_keys:
         prefix, suffix = amos.cleave_str(key)
         if prefix == suffix:
@@ -469,7 +491,7 @@ def _get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_plurals = plurals + tuple(configuration._DESIGN_SUFFIX, )
+    all_plurals = plurals + tuple([configuration._DESIGN_SUFFIX])
     return {
         k: v for k, v in section.items() if not k.endswith(all_plurals)}
 
@@ -490,33 +512,14 @@ def _get_section_kinds(
     keys = [k for k in section.keys() if k.endswith(plurals)]
     for key in keys:
         _, suffix = amos.cleave_str(key)
-        values = amos.iterify(section[key])
-        if suffix.endswith('s'):
-            kind = suffix[:-1]
-        else:
-            kind = suffix            
-        kinds.update(dict.fromkeys(values, kind))
+        values = list(amos.iterify(section[key]))
+        if values not in [['none'], ['None'], ['NONE']]:
+            if suffix.endswith('s'):
+                kind = suffix[:-1]
+            else:
+                kind = suffix            
+            kinds.update(dict.fromkeys(values, kind))
     return kinds  
-
-def _infer_project_name(project: interface.Project) -> Optional[str]:
-    """Tries to infer project name from settings contents.
-    
-    Args:
-        project (interface.Project): an instance of Project with 'settings'.
-        
-    Returns:
-        Optional[str]: project name or None, if none is found.
-                
-    """
-    suffixes = project.options.plurals
-    name = None    
-    for key, section in project.settings.items():
-        if (
-            key not in ['general', 'files', 'filer', 'clerk'] 
-                and any(k.endswith(suffixes) for k in section.keys())):
-            name = key
-            break
-    return name
 
 def _settings_to_workflow(
     settings: configuration.ProjectSettings, 
