@@ -98,12 +98,16 @@ class Project(object):
             Defaults to True.
     
     Attributes:
-        options (bases.ProjectCatalog): a catalog of all available node classes
+        library (bases.ProjectLibrary): a library of all available node classes
             that can be used in a project workflow. By default, it is a
-            property that points to 'bases.node.options'.
+            property that points to 'bases.node.library'.
         results (amos.Composite): stored results from the execution of the
             project 'workflow'. It is created when the 'complete' method is
             called.
+        outline (bases.Outline): high-level view of the project in a different
+            format than 'settings'. It is a cached property that calls the 
+            'create_outline' function the first time it is called and becomes an 
+            attribute with an outline after that.
         workflow (amos.Composite): workflow process for executing the project.
             It is a cached property that calls the 'create_workflow' function
             the first time it is called and becomes an attribute with a 
@@ -147,26 +151,36 @@ class Project(object):
     """ Properties """
          
     @property
-    def options(self) -> bases.ProjectCatalog:
+    def options(self) -> bases.ProjectLibrary:
         """Returns the current options of available workflow components.
 
         Returns:
-            bases.ProjectCatalog: options of workflow components.
+            bases.ProjectLibrary: options of workflow components.
             
         """        
-        return self.bases.node.options
+        return self.bases.node.library
   
     @options.setter
-    def options(self, value: bases.ProjectCatalog) -> None:
+    def options(self, value: bases.ProjectLibrary) -> None:
         """Sets the current options of available workflow components.
 
         Arguments:
-            value (bases.ProjectCatalog): new options for workflow components.
+            value (bases.ProjectLibrary): new options for workflow components.
             
         """        
-        self.bases.node.options = value
+        self.bases.node.library = value
         return self
-     
+    
+    @functools.cached_property
+    def outline(self) -> bases.Outline:
+        """Returns project outline based on 'settings'
+
+        Returns:
+            bases.Outline: the outline derived from 'settings'.
+            
+        """        
+        return workshop.create_outline(project = self)
+    
     @functools.cached_property
     def workflow(self) -> bases.Workflow:
         """Returns workflow based on 'settings'

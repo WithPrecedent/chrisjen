@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    ProjectCatalog (amos.Catalog):
+    amos.Catalog (amos.Catalog):
     amos.LibraryFactory (object):
     Parameters (amos.Dictionary):
     Component (amos.LibraryFactory, abc.ABC):
@@ -51,77 +51,6 @@ from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
-
-
-@dataclasses.dataclass
-class ProjectCatalog(amos.Catalog):
-    """Mixin which registers subclasses and provides construction methods.
-    
-    Args:
-        contents (Mapping[str, Any]]): stored dictionary. Defaults to an empty 
-            dict.
-        default_factory (Any): default value to return when the 'get' method is 
-            used.
-        default (Sequence[Any]]): a list of keys in 'contents' which will be 
-            used to return items when 'default' is sought. If not passed, 
-            'default' will be set to all keys.
-        always_return_list (bool): whether to return a list even when the key 
-            passed is not a list or special access key (True) or to return a 
-            list only when a list or special access key is used (False). 
-            Defaults to False.
-                     
-    """
-    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    default_factory: Optional[Any] = None
-    default: Optional[Any] = 'all'
-    always_return_list: bool = False
-
-    """ Properties """
-    
-    @property
-    def plurals(self) -> tuple[str]:
-        """Returns all stored names and naive plurals of those names.
-        
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
-        """
-        return tuple([key + 's' for key in self.contents.keys()])
-        
-    """ Public Methods """
-    
-    def instance(
-        self, 
-        item: Union[str, Sequence[str]], 
-        **kwargs: Any) -> object:
-        """Creates an instance of a ProjectOptions subclass from 'item'.
-        
-        Args:
-            item (Any): any supported data structure which acts as a source for
-                creating a ProjectOptions or a str which matches a key in 
-                'options''.
-                                
-        Returns:
-            ProjectOptions: a ProjectOptions subclass instance created based 
-                on 'item' and any passed arguments.
-                
-        """
-        return self[item](**kwargs)
-
-    def select(self, item: Union[str, Sequence[str]]) -> Type[Any]:
-        """Returns a ProjectOptions subclass based on 'item'.
-        
-        Args:
-            item (Any): any supported data structure which acts as a source for
-                creating a ProjectOptions or a str which matches a key in 
-                'options''.
-                                
-        Returns:
-            Type[ProjectOptions]: a ProjectOptions subclass.
-                
-        """
-        return self[item]   
     
 
 @dataclasses.dataclass  # type: ignore
@@ -131,26 +60,22 @@ class ProjectLibrary(amos.Library):
     When searching for matches, instances are prioritized over classes.
     
     Args:
-        classes (ProjectCatalog[str, Type[Any]]): a catalog of stored 
-            subclasses. Defaults to any empty ProjectCatalog.
-        instances (ProjectCatalog[str, object]): a catalog of stored subclass 
-            instances. Defaults to an empty ProjectCatalog.
-        kinds (ProjectCatalog[str, Type[Any]]): a catalog of stored subclasses
-            which are base subtypes. Defaults to any empty ProjectCatalog.        
+        classes (amos.Catalog[str, Type[Any]]): a catalog of stored 
+            subclasses. Defaults to any empty amos.Catalog.
+        instances (amos.Catalog[str, object]): a catalog of stored subclass 
+            instances. Defaults to an empty amos.Catalog.    
                  
     """
-    classes: ProjectCatalog[str, Type[Any]] = dataclasses.field(
-        default_factory = ProjectCatalog)
-    instances: ProjectCatalog[str, object] = dataclasses.field(
-        default_factory = ProjectCatalog)
-    kinds: ProjectCatalog[str, object] = dataclasses.field(
-        default_factory = ProjectCatalog)
+    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
+        default_factory = amos.Catalog)
+    instances: amos.Catalog[str, object] = dataclasses.field(
+        default_factory = amos.Catalog)
 
     """ Properties """
     
     @property
     def plurals(self) -> tuple[str]:
-        """Returns all stored names and naive plurals of those names.
+        """Returns all stored names as naive plurals of those names.
         
         Returns:
             tuple[str]: all names with an 's' added in order to create simple 
@@ -158,51 +83,11 @@ class ProjectLibrary(amos.Library):
                 
         """
         suffixes = []
-        for catalog in ['classes', 'instances', 'kinds']:
-            suffixes.append(catalog.plurals)
+        for catalog in ['classes', 'instances']:
+            plurals = [k + 's' for k in getattr(self, catalog).keys()]
+            suffixes.extend(plurals)
         return tuple(suffixes)
-      
-    """ Public Methods """
-    
-    def deposit(
-        self, 
-        item: Union[Type[Any], object],
-        name: Optional[Hashable] = None) -> None:
-        """Adds 'item' to 'classes', 'instances', and/or 'kinds'.
-
-        If 'item' is a class, it is added to 'classes.' If it is an object, it
-        is added to 'instances' and its class is added to 'classes'.
-        
-        Args:
-            item (Union[Type, object]): class or instance to add to the Library
-                instance.
-            name (Optional[Hashable]): key to use to store 'item'. If not
-                passed, a key will be created using the 'get_name' method.
-                
-        """
-        if abc.ABC in item.__bases__:
-            key = name or amos.get_name(item = item)
-            self.kinds[key] = item
-        else:
-            super().deposit(item = item, name = name)
-        return
-    
-    def remove(self, item: Hashable) -> None:
-        """Removes an item from 'instances', 'classes', or 'kinds'.
-
-        Args:
-            item (Hashable): key name of item to remove.
-            
-        Raises:
-            KeyError: if 'item' is neither found in 'instances' or 'classes'.
-
-        """
-        if item in self.kinds:
-            del self.kinds[item]
-        else:
-            super().deposit(item = item)
-        return    
-    
+       
 
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary):
@@ -349,9 +234,10 @@ class Component(amos.LibraryFactory, abc.ABC):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        library (ClassVar[ProjectLibrary]): subclasses, instances, and base 
-            kinds stored with str keys derived from the 'amos.get_name' 
-            function.
+            
+    Attributes:
+        library (ClassVar[ProjectLibrary]): subclasses and instances stored with 
+            str keys derived from the 'amos.get_name' function.
               
     """
     name: Optional[str] = None
@@ -552,10 +438,11 @@ class Criteria(amos.LibraryFactory):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
-        library (ClassVar[ProjectLibrary]): subclasses, instances, and base 
-            kinds stored with str keys derived from the 'amos.get_name' 
-            function.
-                      
+            
+    Attributes:
+        library (ClassVar[ProjectLibrary]): subclasses and instances stored with 
+            str keys derived from the 'amos.get_name' function.
+            
     """
     name: Optional[str] = None
     contents: Optional[Callable] = None
@@ -761,10 +648,7 @@ class Workflow(amos.System):
         self.append(combos)
         return self
     
-    """ Private Methods """
-    
-    def _append_serial(self, connections)
-    
+
 @dataclasses.dataclass
 class Results(object):
     """Project workflow after it has been implemented.
