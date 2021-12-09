@@ -453,7 +453,12 @@ class Criteria(amos.LibraryFactory):
 
 @dataclasses.dataclass
 class Outline(object):
-    """Loads and stores configuration settings.
+    """Provides a different view of data stored in 'project.settings'.
+    
+    The properties in Outline are used in the construction of a Workflow. So,
+    even if you do not have any interest in using its view of the configuration
+    settings, it shouldn't be cut out of a Project (unless you also replace the
+    functions for creating a Workflow). 
 
     Args:
         project (interface.Project): a related project instance which has data
@@ -482,7 +487,7 @@ class Outline(object):
                         
     @functools.cached_property
     def designs(self) -> dict[str, str]:
-        """Returns structural designs of nodes of 'contents'.
+        """Returns structural designs of nodes in 'project'.
 
         Returns:
             dict[str, str]: keys are node names and values are design names.
@@ -535,7 +540,7 @@ class Outline(object):
         
     @functools.cached_property
     def kinds(self) -> dict[str, str]:
-        """Returns kinds of ndoes in 'contents'.
+        """Returns kinds of ndoes in 'project'.
 
         Returns:
             dict[str, str]: keys are names of nodes and values are names of the
@@ -551,7 +556,7 @@ class Outline(object):
     
     @functools.cached_property
     def labels(self) -> list[str]:
-        """Returns names of nodes of 'contents'.
+        """Returns names of nodes in 'project'.
 
         Returns:
             list[str]: names of all nodes that are listed in 'settings'.
@@ -566,7 +571,7 @@ class Outline(object):
 
     @functools.cached_property
     def workers(self) -> dict[str, dict[Hashable, Any]]:
-        """Returns sections in 'contents' that are for workers.
+        """Returns sections in 'project.settings' that are related to workers.
 
         Returns:
             dict[str, dict[Hashable, Any]]: keys are the names of worker 

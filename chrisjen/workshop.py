@@ -32,6 +32,7 @@ To Do:
 """
 from __future__ import annotations
 from collections.abc import Hashable, MutableMapping, Sequence
+import copy
 import itertools
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
@@ -64,7 +65,7 @@ def create_outline(
     """    
     base = base or project.bases.outline
     return base(project = project, **kwargs)
-    
+
 def create_workflow(
     project: interface.Project,
     base: Optional[Type[bases.Workflow]] = None, 
@@ -81,15 +82,64 @@ def create_workflow(
     """    
     base = base or project.bases.workflow
     workflow = base(**kwargs)
-    for node, connects in project.settings.connections.items():
-        component = components[node]
-        system = component.integrate(item = system)    
+    worker_names = _get_worker_names(project = project)
+    for name in worker_names:
+        worker = create_worker(name = name, project = project)
+        workflow.append(worker)  
     return workflow    
+
+def create_component(
+    name: str,
+    project: interface.Project,
+    base: Optional[str] = None,  
+    **kwargs) -> bases.Component:
+    """Creates worker based on 'name', 'project', and 'kwargs'.
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+        base (Optional[Type[components.Worker]]): [description]. Defaults to 
+            None.
+
+    Returns:
+        bases.Component: [description]
         
+    """  
+    # Determines the str names of the class to instance for the component.
+    lookups = _get_lookups(name = name, project = project, base = base)
+    # Gets the class for the component based on 'lookups'.
+    component = _get_component(lookups = lookups, project = project)
+    # This check allows users to manually override implementation parameters 
+    # from the project settings.
+    if 'parameters' in kwargs:
+        implementation = kwargs.pop('parameters')
+    else:
+        implementation = {}
+    # Divides initialization parameters in 'project' into those that can be 
+    # passed to the new component ('initialization') and those that must be 
+    # added as attributes after initialization ('attributes').
+    attributes, initialization = _finalize_initializaton(
+        lookups = lookups,
+        project = project,
+        **kwargs)
+    if not implementation:
+        # If 'parameters' wasn't in kwargs, this tries to find them in 
+        # 'project' (and adds them to 'initialization' if found).
+        implementation = _finalize_implementation(
+            lookups = lookups, 
+            project = project)
+        if implementation:
+            initialization['parameters'] = implementation
+    instance = component(**initialization)
+    # Adds any attributes found in the project settings to 'instance'.
+    for key, value in attributes.items():
+        setattr(instance, key, value)
+    return
+
 def create_worker(
     name: str,
     project: interface.Project,
-    base: Optional[Type[components.Worker]] = None,  
+    base: Optional[str] = None,  
     **kwargs) -> components.Worker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
@@ -103,7 +153,16 @@ def create_worker(
         components.Worker: [description]
         
     """  
-    base = base or project.bases.node.options['worker']
+    worker = create_component(
+        name = name, 
+        project = project, 
+        base = base,
+        **kwargs)
+    connections = project.outline.connections[name]
+    starting = connections[list[connections.keys()[0]]]
+    worker = _finalize_worker(worker = worker, project = project)
+    for node in starting:
+        component = create_component(name = name)
     return
 
 def create_manager(
@@ -123,7 +182,7 @@ def create_manager(
         components.Manager: [description]
         
     """ 
-    base = base or project.bases.node.options['manager']
+    base = base or project.bases.node.library['manager']
     return
 
 def create_researcher(
@@ -143,7 +202,7 @@ def create_researcher(
         components.Researcher: [description]
         
     """ 
-    base = base or project.bases.node.options['researcher']
+    base = base or project.bases.node.library['researcher']
     section = project.settings[name]
     first_key = list(item.keys())[0]
     self.append(first_key)
@@ -169,7 +228,7 @@ def create_judge(
         components.Judge: [description]
         
     """ 
-    base = base or project.bases.node.options['judge']
+    base = base or project.bases.node.library['judge']
     return
 
 def create_step(
@@ -189,7 +248,7 @@ def create_step(
         components.Step: [description]
         
     """ 
-    base = base or project.bases.node.options['step']
+    base = base or project.bases.node.library['step']
     return   
 
 def create_technique(
@@ -209,7 +268,7 @@ def create_technique(
         components.Technique: [description]
         
     """ 
-    base = base or project.bases.node.options['technique']
+    base = base or project.bases.node.library['technique']
     return  
 
 def get_connections(
@@ -418,7 +477,7 @@ def is_parameters(key: str) -> bool:
     return key.endswith('_' + configuration._PARAMETERS_Library)
  
 """ Private Functions """
- 
+    
 def _get_section_connections(
     section: MutableMapping[Hashable, Any],
     name: str,
@@ -521,6 +580,26 @@ def _get_section_kinds(
             kinds.update(dict.fromkeys(values, kind))
     return kinds  
 
+def _get_worker_names(project: interface.Project) -> list[str]: 
+    """[summary]
+
+    Args:
+        project (interface.Project): [description]
+
+    Returns:
+        list[str]: [description]
+        
+    """            
+    try:
+        return project.outline.workers.pop(project.name)
+    except KeyError:
+        try:
+            return project.outline.workers.pop(project.name + '_workers')
+        except KeyError:
+            raise KeyError(
+                f'Could not find workers for {project.name} in the project '
+                f'outline')
+        
 def _settings_to_workflow(
     settings: configuration.ProjectSettings, 
     options: amos.Catalog, 
@@ -582,8 +661,8 @@ def _settings_to_composite(
 
 def _get_lookups(
     name: str, 
-    design: Optional[str], 
-    kind: Optional[str]) -> list[str]:
+    project: interface.Project,
+    base: Optional[str] = None) -> list[str]:
     """[summary]
 
     Args:
@@ -596,84 +675,87 @@ def _get_lookups(
         
     """    
     lookups = [name]
-    if design:
-        lookups.append(design)
-    if kind:
-        lookups.append(kind)
+    if name in project.outline.designs:
+        lookups.append(project.outline.designs[name])
+    if name in project.outline.kinds:
+        lookups.append(project.outline.kinds[name])
+    if base is not None:
+        lookups.append(base)
     return lookups
 
-def _get_base(
-    lookups: Sequence[str],
-    options: amos.Catalog) -> bases.Component:
-    """[summary]
-
-    Args:
-        lookups (Sequence[str]): [description]
-        options (amos.Catalog): [description]
-
-    Raises:
-        KeyError: [description]
-
-    Returns:
-        bases.Component: [description]
-        
-    """
-    for lookup in lookups:
-        try:
-            return options[lookup]
-        except KeyError:
-            pass
-    raise KeyError(f'No matches in the node options found for {lookups}')
-
-def _get_implementation(
+def _finalize_implementation(
     lookups: list[str], 
-    settings: configuration.ProjectSettings) -> dict[Hashable, Any]:
+    project: interface.Project) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        settings (configuration.ProjectSettings): [description]
+        project (interface.Project): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
         
-    """    
-    implementation = {}
+    """        
+    parameters = {}
     for key in lookups:
         try:
-            match = settings.implementation[key]
-            implementation[lookups[0]] = match
+            parameters = copy.deepcopy(project.outline.implementation[key])
             break
         except KeyError:
             pass
-    return implementation
+    return parameters
 
-def _parse_initialization(
-    name: str,
-    settings: configuration.ProjectSettings, 
-    parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+def _finalize_initializaton(
+    lookups: list[str], 
+    project: interface.Project,
+    **kwargs) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
-        name (str): [description]
-        settings (configuration.ProjectSettings): [description]
-        parameters (list[str]): [description]
+        lookups (list[str]): [description]
+        project (interface.Project): [description]
 
     Returns:
-        tuple[dict[str, Any], dict[str, Any]]: [description]
+        dict[Hashable, Any]: [description]
         
-    """
-    if name in settings.initialization:
-        attributes = {}
-        initialization = {}
-        for key, value in settings.initialization[name].items(): 
-            if key in parameters:
-                initialization[key] = value
-            else:
-                attributes[key] = value
-        return attributes, initialization
+    """  
+    parameters = {}
+    for key in lookups:
+        try:
+            parameters = copy.deepcopy(project.outline.initialization[key])
+            break
+        except KeyError:
+            pass 
+    if parameters:
+        kwargs_added = parameters
+        kwargs_added.update(**kwargs)
     else:
-        return {}, {}  
+        kwargs_added = kwargs
+    component = _get_component(lookups = lookups, project = project)
+    needed = amos.get_annotations(item = component)
+    attributes = {}
+    initialization = {}
+    for key, value in kwargs_added.items():
+        if key in needed:
+            initialization[key] = value
+        else:
+            attributes[key] = value
+    return attributes, initialization 
+
+def _get_component(
+    lookups: list[str], 
+    project: interface.Project) -> bases.Component:
+    """[summary]
+
+    Args:
+        lookups (list[str]): [description]
+        project (interface.Project): [description]
+
+    Returns:
+        bases.Component: [description]
+        
+    """    
+    return project.bases.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
