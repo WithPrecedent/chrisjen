@@ -88,12 +88,28 @@ def create_workflow(
         workflow.append(worker)  
     return workflow    
 
+def create_node(
+    name: str,
+    project: interface.Project,
+    **kwargs) -> bases.Component:
+    """Creates node based on 'name', 'project', and 'kwargs'.
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+
+    Returns:
+        bases.Component: [description]
+        
+    """  
+    return node
+
 def create_component(
     name: str,
     project: interface.Project,
     base: Optional[str] = None,  
     **kwargs) -> bases.Component:
-    """Creates worker based on 'name', 'project', and 'kwargs'.
+    """Creates component based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
@@ -134,7 +150,7 @@ def create_component(
     # Adds any attributes found in the project settings to 'instance'.
     for key, value in attributes.items():
         setattr(instance, key, value)
-    return
+    return instance
 
 def create_worker(
     name: str,
@@ -741,6 +757,26 @@ def _finalize_initializaton(
         else:
             attributes[key] = value
     return attributes, initialization 
+
+def _finalize_worker(
+    worker: components.Worker,
+    project: interface.Project) -> components.Worker:
+    """[summary]
+
+    Args:
+        worker (components.Worker): [description]
+        project (interface.Project): [description]
+
+    Returns:
+        components.Worker: [description]
+        
+    """    
+    connections = project.outline.connections[worker.name]
+    starting = connections[list[connections.keys()[0]]]
+    for node in starting:
+        component = create_node(name = node, project = project)
+        worker.append(component)
+    return worker
 
 def _get_component(
     lookups: list[str], 
