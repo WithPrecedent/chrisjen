@@ -152,7 +152,14 @@ class Manager(Worker, amos.Pipelines):
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = bases.Parameters)
-              
+    _worker_prefix: str = 'worker'
+    
+    """ Properties """
+    
+    @property
+    def workers(self) -> MutableMapping[Hashable, Worker]:
+        return {self._name_worker: i for i in self.contents}
+           
     """ Public Methods """ 
            
     # def implement(
@@ -199,6 +206,19 @@ class Manager(Worker, amos.Pipelines):
     #                 **kwargs)
     #     return project 
 
+    """ Private Methods """
+    
+    def _name_worker(self) -> str:
+        """[summary]
+
+        Returns:
+            str: [description]
+            
+        """
+        return amos.uniqify(
+            key = self._worker_prefix, 
+            dictionary = self.contents)
+        
                
 @dataclasses.dataclass
 class Task(bases.Component):
@@ -367,4 +387,3 @@ class Technique(Task):
     def algorithm(self) -> None:
         self.contents = None
         return self
-
