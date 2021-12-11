@@ -101,8 +101,10 @@ def create_node(
     Returns:
         bases.Component: [description]
         
-    """  
-    return node
+    """
+    design = project.outline.designs.get(name, 'component')
+    builder = locals()[f'create_{design}']
+    return builder(name = name, project = project, **kwargs)
 
 def create_component(
     name: str,
