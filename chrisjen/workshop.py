@@ -49,6 +49,24 @@ if TYPE_CHECKING:
 
 """ Public Functions """
 
+def create_node(
+    name: str,
+    project: interface.Project,
+    **kwargs) -> bases.Component:
+    """Creates node based on 'name', 'project', and 'kwargs'.
+
+    Args:
+        name (str):
+        project (interface.Project): [description]
+
+    Returns:
+        bases.Component: [description]
+        
+    """
+    design = project.outline.designs.get(name, 'component')
+    builder = locals()[f'create_{design}']
+    return builder(name = name, project = project, **kwargs)
+
 def create_outline(
     project: interface.Project,
     base: Optional[Type[bases.Outline]] = None, 
@@ -88,23 +106,6 @@ def create_workflow(
         workflow.append(worker)  
     return workflow    
 
-def create_node(
-    name: str,
-    project: interface.Project,
-    **kwargs) -> bases.Component:
-    """Creates node based on 'name', 'project', and 'kwargs'.
-
-    Args:
-        name (str):
-        project (interface.Project): [description]
-
-    Returns:
-        bases.Component: [description]
-        
-    """
-    design = project.outline.designs.get(name, 'component')
-    builder = locals()[f'create_{design}']
-    return builder(name = name, project = project, **kwargs)
 
 def create_component(
     name: str,

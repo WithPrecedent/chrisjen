@@ -51,7 +51,19 @@ from . import workshop
 
 if TYPE_CHECKING:
     from . import interface
-    
+
+
+@dataclasses.dataclass  # type: ignore
+class ProjectBase(amos.Library):
+
+    @abc.abstractclassmethod
+    def create(cls, source: Any, project: interface.Project) -> ProjectBase:
+        return 
+         
+    @abc.abstractclassmethod
+    def validate(cls, project: interface.Project) -> interface.Project:
+        return project
+        
 
 @dataclasses.dataclass  # type: ignore
 class ProjectLibrary(amos.Library):
@@ -452,7 +464,7 @@ class Criteria(amos.LibraryFactory):
 
 
 @dataclasses.dataclass
-class Outline(object):
+class Outline(ProjectBase):
     """Provides a different view of data stored in 'project.settings'.
     
     The properties in Outline are used in the construction of a Workflow. So,
@@ -587,7 +599,7 @@ class Outline(object):
         
         
 @dataclasses.dataclass
-class Workflow(amos.System):
+class Workflow(Component):
     """Project workflow composite object.
     
     Args:
@@ -655,7 +667,7 @@ class Workflow(amos.System):
     
 
 @dataclasses.dataclass
-class Results(object):
+class Results(ProjectBase):
     """Project workflow after it has been implemented.
     
     Args:

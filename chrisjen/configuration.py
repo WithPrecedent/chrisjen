@@ -27,11 +27,17 @@ ToDo:
 from __future__ import annotations
 from collections.abc import Hashable, Mapping, MutableMapping
 import dataclasses
+import inspect
 import pathlib
-from typing import Any, ClassVar, Optional, Type
+from typing import Any, ClassVar, Optional, TYPE_CHECKING, Type
 
 import amos
-    
+
+from . import bases
+ 
+if TYPE_CHECKING:
+    from . import interface   
+
 
 _DESIGN_SUFFIX: str = 'design'
 _FILES_SECTIONS: tuple[str, ...] = tuple(['clerk', 'filer', 'files'])
@@ -40,9 +46,9 @@ _PARAMETERS_SUFFIX: str = 'parameters'
 _PROJECT_SUFFIX: str = 'project'
 _STRUCTURE_SUFFIX: str = 'structure'
 
-
+   
 @dataclasses.dataclass
-class ProjectSettings(amos.Settings):
+class ProjectSettings(amos.Settings, bases.ProjectBase):
     """Loads and stores configuration settings.
 
     Args:
@@ -159,4 +165,19 @@ class ProjectSettings(amos.Settings):
                 return section
         raise KeyError(
             'ProjectSettings does not contain structure configuration options')
-                                          
+
+    """ Public Methods """
+    
+    @classmethod
+    def validate(cls, project: interface.Project) -> interface.Project:
+        """Creates or validates 'project.settings'."""
+        if inspect.isclass(project.settings):
+            project.settings = project.settings(project = project)
+        if (project.settings is None 
+                or not isinstance(project.settings, project.bases.settings)):
+            project.settings = project.bases.settings.create(
+                item = project.settings,
+                project = project)
+        elif isinstance(project.settings, project.bases.settings):
+            project.settings.project = project
+        return project                              
