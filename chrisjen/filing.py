@@ -29,12 +29,18 @@ from __future__ import annotations
 from collections.abc import Hashable, Mapping, MutableMapping
 import copy
 import dataclasses
+import inspect
 import pathlib
 import types
-from typing import Any, Optional, Union
+from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
-  
+
+from . import bases
+
+if TYPE_CHECKING:
+    from . import interface  
+      
       
 @dataclasses.dataclass
 class FileFormat(object):
@@ -66,25 +72,25 @@ class FileFormat(object):
     save_method: Optional[Union[str, types.FunctionType]] = None
     parameters: Mapping[str, str] = dataclasses.field(default_factory = dict)
     
-    # """ Dunder Methods """
+    """ Dunder Methods """
     
-    # @classmethod
-    # def __subclasshook__(cls, subclass: Type[Any]) -> bool:
-    #     """Returns whether 'subclass' is a virtual or real subclass.
+    @classmethod
+    def __subclasshook__(cls, subclass: Type[Any]) -> bool:
+        """Returns whether 'subclass' is a virtual or real subclass.
 
-    #     Args:
-    #         subclass (Type[Any]): item to test as a subclass.
+        Args:
+            subclass (Type[Any]): item to test as a subclass.
 
-    #     Returns:
-    #         bool: whether 'subclass' is a real or virtual subclass.
+        Returns:
+            bool: whether 'subclass' is a real or virtual subclass.
             
-    #     """
-    #     return (subclass in cls.__subclasses__() 
-    #             or chrisjen.unit.has_attributes(
-    #                 item = subclass,
-    #                 methods = [
-    #                     'name', 'module', 'extension', 'load_method',
-    #                     'save_method', 'parameters']))
+        """
+        return (subclass in cls.__subclasses__() 
+                or amos.has_attributes(
+                    item = subclass,
+                    methods = [
+                        'name', 'module', 'extension', 'load_method',
+                        'save_method', 'parameters']))
 
 
 """ Included File Formats """
@@ -178,7 +184,7 @@ default_parameters: MutableMapping[str, Any] = {
 
    
 @dataclasses.dataclass
-class Clerk(object):
+class Clerk(bases.ProjectBase):
     """File and folder management for chrisjen.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -186,10 +192,8 @@ class Clerk(object):
     chrisjen, pandas, and numpy objects.
 
     Args:
-        settings (MutableMapping[Hashable, Any]): a Settings instance of other 
-            dict with file-management related settings. If 'settings' does not 
-            have file configuration options or if 'settings' is None, defaults 
-            will be used. Defaults to None.
+        project (interface.Project): a Project instance with a 'settings' 
+            attribute that may contain configuration options for Clerk.
         root_folder (Union[str, pathlib.Path]): the complete path from which the 
             other paths and folders used by Clerk are ordinarily derived 
             (unless you decide to use full paths for all other options). 
@@ -210,7 +214,7 @@ class Clerk(object):
             global 'default_parameters' variable.
 
     """
-    settings: MutableMapping[Hashable, Any] = None
+    project: interface.Project
     root_folder: Union[str, pathlib.Path] = pathlib.Path('..')
     input_folder: Union[str, pathlib.Path] = 'input'
     output_folder: Union[str, pathlib.Path] = 'output'
@@ -224,14 +228,33 @@ class Clerk(object):
     def __post_init__(self) -> None:
         """Initializes class instance attributes."""
         # Validates core folder paths and writes them to disk.
-        self.root_folder = self.validate(path = self.root_folder)
+        self.root_folder = self.validate_path(path = self.root_folder)
         self.input_folder = self._validate_io_folder(path = self.input_folder)
         self.output_folder = self._validate_io_folder(path = self.output_folder)
-        # Adds and/overrides 'parameters' from 'settings'.
-        self.settings = self.settings or {}
+        # Adds and/overrides 'parameters' from 'project.settings'.
+        self.project.settings = self.project.settings or {}
         self._add_settings()
         return
 
+    """ Class Methods """
+    
+    @classmethod
+    def validate(cls, project: interface.Project) -> interface.Project:
+        """Creates or validates 'project.clerk'.
+
+        Args:
+            project (interface.Project): an instance with a 'clerk' attribute.
+
+        Returns:
+            interface.Project: an instance with a validated 'clerk' attribute.
+            
+        """  
+        if inspect.isclass(project.clerk):
+            project.clerk = project.clerk(project = project)
+        elif project.clerk is None:
+            project.clerk = cls.create(project = project)
+        return project    
+       
     """ Public Methods """
 
     def load(
@@ -316,7 +339,7 @@ class Clerk(object):
             getattr(self, file_format.export_method)(item, **parameters)
         return
 
-    def validate(self, path: Union[str, pathlib.Path]) -> pathlib.Path:
+    def validate_path(self, path: Union[str, pathlib.Path]) -> pathlib.Path:
         """Turns 'file_path' into a pathlib.Path.
 
         Args:
@@ -366,19 +389,19 @@ class Clerk(object):
             
         """
         try:
-            return self.validate(path = path)
+            return self.validate_path(path = path)
         except FileNotFoundError:
-            return self.validate(path = self.root_folder / path)
+            return self.validate_path(path = self.root_folder / path)
 
     def _add_settings(self) -> None:
-        """Returns default parameters for file transfers from 'settings'."""
+        """Mixes 'project.settings' with default parameters, if needed."""
         # Gets default parameters for file transfers from 'settings'.
         base = copy.deepcopy(default_parameters)
-        # self.settings.update(self.parameters)
         self.parameters = base
-        for section in ['files', 'filer', 'clerk']:
-            if section in self.settings:
-                self.parameters.update(self.settings[section])
+        try:
+            self.parameters.update(self.project.settings.filer)
+        except KeyError:
+            pass
         return
 
     def _write_folder(self, folder: Union[str, pathlib.Path]) -> None:

@@ -283,16 +283,6 @@ class Project(object):
             self.bases = ProjectBases()
         return self
 
-    def _validate_clerk(self) -> None:
-        """Creates or validates 'clerk'."""
-        if inspect.isclass(self.clerk):
-            self.clerk = self.clerk(settings = self.settings)
-        if (self.clerk is None or 
-                not isinstance(self.clerk, self.bases.clerk)):
-            self.clerk = self.bases.clerk(settings = self.settings)
-        else:
-            self.clerk.settings = self.settings
-        return self
     
     # def _validate_workflow(self) -> None:
     #     """Creates or validates 'workflow'."""

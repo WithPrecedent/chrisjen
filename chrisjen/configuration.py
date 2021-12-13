@@ -54,8 +54,6 @@ class ProjectSettings(amos.Settings, bases.ProjectBase):
     Args:
         contents (MutableMapping[Hashable, Any]): a dict for storing 
             configuration options. Defaults to en empty dict.
-        default_factory (Optional[Any]): default value to return when the 'get' 
-            method is used. Defaults to an empty dict.
         default (Mapping[str, Mapping[str]]): any default options that should
             be used when a user does not provide the corresponding options in 
             their configuration settings. Defaults to an empty dict.
@@ -69,7 +67,6 @@ class ProjectSettings(amos.Settings, bases.ProjectBase):
     """
     contents: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    default_factory: Optional[Any] = dict
     default: Mapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     infer_types: bool = True
@@ -166,18 +163,25 @@ class ProjectSettings(amos.Settings, bases.ProjectBase):
         raise KeyError(
             'ProjectSettings does not contain structure configuration options')
 
-    """ Public Methods """
+    """ Class Methods """
     
     @classmethod
     def validate(cls, project: interface.Project) -> interface.Project:
-        """Creates or validates 'project.settings'."""
+        """Creates or validates 'project.settings'.
+
+        Args:
+            project (interface.Project): an instance with a 'settings' 
+                attribute.
+
+        Returns:
+            interface.Project: an instance with a validated 'settings'
+                attribute.
+            
+        """        
         if inspect.isclass(project.settings):
-            project.settings = project.settings(project = project)
-        if (project.settings is None 
-                or not isinstance(project.settings, project.bases.settings)):
-            project.settings = project.bases.settings.create(
+            project.settings = project.settings()
+        elif project.settings is None:
+            project.settings = cls.create(
                 item = project.settings,
                 project = project)
-        elif isinstance(project.settings, project.bases.settings):
-            project.settings.project = project
         return project                              
