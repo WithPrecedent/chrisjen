@@ -1,7 +1,7 @@
 """
 test_project: tests Project class and created composite objects
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
-Copyright 2020-2021, Corey Rayburn Yung
+Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0 (https://www.apache.org/licenses/LICENSE-2.0)
 """
 from __future__ import annotations

@@ -1,7 +1,7 @@
 """
 chrisjen: flexible, extensible python data structures
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
-Copyright 2021, Corey Rayburn Yung
+Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ ToDo:
 """
 For Developers:
 
-As with all of my packages, I used Google-style docstrings and follow the Google 
+As with all of my packages, I use Google-style docstrings and follow the Google 
 Python Style Guide (https://google.github.io/styleguide/pyguide.html) with two 
 notable exceptions:
     1) I always add spaces around '='. This is because I find it more readable 
@@ -39,9 +39,9 @@ notable exceptions:
         at some point in the near future.
 
 My packages lean heavily toward over-documentation and verbosity. This is
-designed to make them more accessible to beginnning coders and generally usable.
-The one exception to that general rule is unit tests, which hopefully are clear 
-enough to not require further explanation. If there is any area of the 
+designed to make them more accessible to beginnning coders and generally more 
+usable. The one exception to that general rule is unit tests, which hopefully 
+are clear enough to not require further explanation. If there is any area of the 
 documentation that could be made clearer, please don't hesitate to email me or
 any other package maintainer - I want to ensure the package is as accessible and 
 useful as possible.
