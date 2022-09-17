@@ -125,7 +125,14 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# VS Code settings
+# Pyre type checker
 .pyre/
+
+# VS Code settings
+.vscode/settings.json
 .vscode/*.*
 .vscode/
+
+# VS Code counter
+.VSCodeCounter/*.*
+.VSCodeCounter/**

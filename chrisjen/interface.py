@@ -47,12 +47,13 @@ from . import workshop
     
 @dataclasses.dataclass
 class ProjectBases(object):
-    """Base classes for a chrisjen Project.
+    """Base classes for a chrisjen project.
     
     Args:
         clerk (Type[Any]): base class for a project filing clerk. Defaults to
             filing.Clerk.
         settings (Type[Any]): base class for project configuration settings.
+        outline 
             Defaults to amos.Settings.
         workflow
         results
@@ -308,8 +309,7 @@ class Project(object):
     
     def _set_parallelization(self) -> None:
         """Sets multiprocessing method based on 'settings'."""
-        if (
-            'general' in self.settings
+        if ('general' in self.settings
                 and 'parallelize' in self.settings['general'] 
                 and self.settings['general']['parallelize']):
             if not globals()['multiprocessing']:

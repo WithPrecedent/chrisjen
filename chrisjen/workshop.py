@@ -106,7 +106,6 @@ def create_workflow(
         workflow.append(worker)  
     return workflow    
 
-
 def create_component(
     name: str,
     project: interface.Project,

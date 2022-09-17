@@ -23,7 +23,7 @@ Contents:
     Component (amos.LibraryFactory, abc.ABC):
     Criteria (amos.LibraryFactory):
     Workflow (amos.System):
-    Resutls (object):
+    Results (object):
 
 To Do:
     Make Component a subclass of amos.Node by fixing the proxy access methods
@@ -110,14 +110,14 @@ class Parameters(amos.Dictionary):
     only become apparent during execution of a chrisjen project, to create a 
     unified set of implementation parameters.
     
-    Parameters can be unpacked with '**', which will turn the 
-    'contents' attribute an ordinary set of kwargs. In this way, it can serve as 
-    a drop-in replacement for a dict that would ordinarily be used for 
+    Parameters can be unpacked with '**', which will turn the contents of the
+    'contents' attribute into an ordinary set of kwargs. In this way, it can 
+    serve as a drop-in replacement for a dict that would ordinarily be used for 
     accumulating keyword arguments.
     
-    If a chrisjen class uses a Parameters instance, the 'finalize' 
-    method should be called before that instance's 'implement' method in order 
-    for each of the parameter types to be incorporated.
+    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
+    be called before that instance's 'implement' method in order for each of the 
+    parameter types to be incorporated.
     
     Args:
         contents (Mapping[str, Any]): keyword parameters for use by a chrisjen

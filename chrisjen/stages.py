@@ -52,7 +52,6 @@ class Workflow(object):
     """Project workflow composite object.
     
     Args:
-    Args:
         name (str): name of class used for internal referencing and logging.
             Defaults to 'worfklow'.
         contents (Optional[amos.Composite]): iterable composite data structure 
