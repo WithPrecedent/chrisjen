@@ -54,40 +54,27 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass  # type: ignore
-class ProjectBase(amos.Library):
-
-    @abc.abstractclassmethod
-    def create(cls, source: Any, project: interface.Project) -> ProjectBase:
-        return 
-         
-    @abc.abstractclassmethod
-    def validate(cls, project: interface.Project) -> interface.Project:
-        return project
-        
-
-@dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library):
-    """Stores classes and class instances.
+class ProjectBase(amos.LibraryFactory, abc.ABC):
+    """Base mixin for automatic registration of subclasses and instances. 
     
-    When searching for matches, instances are prioritized over classes.
+    When the 'create' method is called on this class, a matching subclass is
+    sought first. If no matching subclass is found, subclass instances are 
+    searched. In either case, an instance is returned. If kwargs are passed,
+    they are used to either initialize a subclass or added to an instance as
+    attributes.
     
     Args:
-        classes (amos.Catalog[str, Type[Any]]): a catalog of stored 
-            subclasses. Defaults to any empty amos.Catalog.
-        instances (amos.Catalog[str, object]): a catalog of stored subclass 
-            instances. Defaults to an empty amos.Catalog.    
-                 
+        library (ClassVar[mappings.Library]): library of subclasses and 
+            instances. 
+            
     """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-
+    library: ClassVar[amos.Library] = amos.Library()
+    
     """ Properties """
     
     @property
     def plurals(self) -> tuple[str]:
-        """Returns all stored names as naive plurals of those names.
+        """Returns all stored subclass names as naive plurals of those names.
         
         Returns:
             tuple[str]: all names with an 's' added in order to create simple 
@@ -96,11 +83,11 @@ class ProjectLibrary(amos.Library):
         """
         suffixes = []
         for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self, catalog).keys()]
+            plurals = [k + 's' for k in getattr(self.library, catalog).keys()]
             suffixes.extend(plurals)
         return tuple(suffixes)
        
-
+       
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary):
     """Creates and stores parameters for a Component.
