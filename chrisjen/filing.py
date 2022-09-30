@@ -36,10 +36,10 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import bases
+from . import base
 
 if TYPE_CHECKING:
-    from . import interface  
+    from . import base  
       
       
 @dataclasses.dataclass
@@ -184,7 +184,7 @@ default_parameters: MutableMapping[str, Any] = {
 
    
 @dataclasses.dataclass
-class Clerk(bases.ProjectBase):
+class Clerk(base.ProjectBase):
     """File and folder management for chrisjen.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -192,7 +192,7 @@ class Clerk(bases.ProjectBase):
     chrisjen, pandas, and numpy objects.
 
     Args:
-        project (interface.Project): a Project instance with a 'settings' 
+        project (base.Project): a Project instance with a 'settings' 
             attribute that may contain configuration options for Clerk.
         root_folder (Union[str, pathlib.Path]): the complete path from which the 
             other paths and folders used by Clerk are ordinarily derived 
@@ -214,7 +214,7 @@ class Clerk(bases.ProjectBase):
             global 'default_parameters' variable.
 
     """
-    project: interface.Project
+    project: base.Project
     root_folder: Union[str, pathlib.Path] = pathlib.Path('..')
     input_folder: Union[str, pathlib.Path] = 'input'
     output_folder: Union[str, pathlib.Path] = 'output'
@@ -239,14 +239,14 @@ class Clerk(bases.ProjectBase):
     """ Class Methods """
     
     @classmethod
-    def validate(cls, project: interface.Project) -> interface.Project:
+    def validate(cls, project: base.Project) -> base.Project:
         """Creates or validates 'project.clerk'.
 
         Args:
-            project (interface.Project): an instance with a 'clerk' attribute.
+            project (base.Project): an instance with a 'clerk' attribute.
 
         Returns:
-            interface.Project: an instance with a validated 'clerk' attribute.
+            base.Project: an instance with a validated 'clerk' attribute.
             
         """  
         if inspect.isclass(project.clerk):

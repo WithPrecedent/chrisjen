@@ -38,14 +38,267 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import bases
+from . import base
 
 if TYPE_CHECKING:
     from . import configuration
-    from . import interface
+    from . import base
     
 
-""" Public Classes """
+
+
+@dataclasses.dataclass
+class Outline(Stage):
+    """Provides a different view of data stored in 'project.settings'.
+    
+    The properties in Outline are used in the construction of a Workflow. So,
+    even if you do not have any interest in using its view of the configuration
+    settings, it shouldn't be cut out of a Project (unless you also replace the
+    functions for creating a Workflow). 
+
+    Args:
+        project (base.Project): a related project instance which has data
+            from which the properties of an Outline can be derived.
+
+    """
+    project: base.Project
+
+    """ Properties """       
+
+    @functools.cached_property
+    def connections(self) -> dict[str, dict[str, list[str]]]:
+        """Returns raw connections between nodes from 'project'.
+        
+        Returns:
+            dict[str, dict[str, list[str]]]: keys are worker names and values 
+                node connections for that worker.
+            
+        """
+        try:
+            return workshop.get_connections(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'ProjectSettings needs to be linked to a project to access '
+                'that information.')
+                        
+    @functools.cached_property
+    def designs(self) -> dict[str, str]:
+        """Returns structural designs of nodes in 'project'.
+
+        Returns:
+            dict[str, str]: keys are node names and values are design names.
+            
+        """
+        try:
+            return workshop.get_designs(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+                                        
+    @functools.cached_property
+    def implementation(self) -> dict[str, dict[str, Any]]:
+        """Returns implementation arguments and attributes for nodes.
+        
+        These values will be parsed into arguments and attributes once the nodes
+        are instanced. They are derived from 'settings'.
+
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of the initialization arguments and attributes.
+            
+        """
+        try:
+            return workshop.get_implementation(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')    
+                                                
+    @functools.cached_property
+    def initialization(self) -> dict[str, dict[str, Any]]:
+        """Returns initialization arguments and attributes for nodes.
+        
+        These values will be parsed into arguments and attributes once the nodes
+        are instanced. They are derived from 'settings'.
+
+        Returns:
+            dict[str, dict[str, Any]]: keys are node names and values are dicts
+                of the initialization arguments and attributes.
+            
+        """
+        try:
+            return workshop.get_initialization(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+        
+    @functools.cached_property
+    def kinds(self) -> dict[str, str]:
+        """Returns kinds of ndoes in 'project'.
+
+        Returns:
+            dict[str, str]: keys are names of nodes and values are names of the
+                associated base kind types.
+            
+        """
+        try:
+            return workshop.get_kinds(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+    
+    @functools.cached_property
+    def labels(self) -> list[str]:
+        """Returns names of nodes in 'project'.
+
+        Returns:
+            list[str]: names of all nodes that are listed in 'settings'.
+            
+        """
+        try:
+            return workshop.get_labels(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+
+    @functools.cached_property
+    def workers(self) -> dict[str, dict[Hashable, Any]]:
+        """Returns sections in 'project.settings' that are related to workers.
+
+        Returns:
+            dict[str, dict[Hashable, Any]]: keys are the names of worker 
+                sections and values are those sections.
+            
+        """
+        try:            
+            return workshop.get_worker_sections(project = self.project)
+        except AttributeError:
+            raise AttributeError(
+                'Outline needs to be linked to a project to access '
+                'that information.')
+        
+        
+@dataclasses.dataclass
+class Workflow(Component):
+    """Project workflow composite object.
+    
+    Args:
+        contents (MutableMapping[str, Set[str]]): keys are names of nodes and
+            values are sets of names of nodes. Defaults to a defaultdict that 
+            has a set for its value format.
+                  
+    """  
+    contents: MutableMapping[str, Set[str]] = dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set))
+    
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, project: base.Project) -> Workflow:
+        """[summary]
+
+        Args:
+            project (base.Project): [description]
+
+        Returns:
+            Workflow: [description]
+            
+        """        
+        return workshop.create_workflow(project = project, base = cls)    
+
+    def append_depth(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
+
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
+
+        Returns:
+            [type]: [description]
+            
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        for node in item[first_key]:
+            self.append(item[node])
+        return self   
+    
+    def append_product(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
+
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
+
+        Returns:
+            [type]: [description]
+            
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        possible = [v for k, v in item.items() if k in item[first_key]]
+        combos = list(itertools.product(*possible))
+        self.append(combos)
+        return self
+    
+
+@dataclasses.dataclass
+class Results(ProjectBase):
+    """Project workflow after it has been implemented.
+    
+    Args:
+        name (str): name of class used for internal referencing and logging.
+            Defaults to 'results'.
+        contents (Optional[amos.Composite]): iterable composite data structure 
+            for storing the project results. Defaults to None.
+                  
+    """  
+    name: str = 'results'
+    contents: Optional[amos.Composite] = None
+    
+    """ Public Methods """
+
+    @classmethod
+    def create(cls, project: base.Project) -> Results:
+        """[summary]
+
+        Args:
+            project (base.Project): [description]
+
+        Returns:
+            Results: [description]
+            
+        """        
+        return workshop.create_results(project = project, base = cls)
+
+    # def execute(
+    #     self, 
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
+    #     """Calls the 'implement' method the number of times in 'iterations'.
+
+    #     Args:
+    #         project (base.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
+
+    #     Returns:
+    #         base.Project: with possible changes made.
+            
+    #     """
+    #     if self.contents not in [None, 'None', 'none']:
+    #         for node in self:
+    #             project = node.execute(project = project, **kwargs)
+    #     return project
+    
+    
 
 @dataclasses.dataclass
 class Workflow(object):
@@ -64,11 +317,11 @@ class Workflow(object):
     """ Public Methods """
     
     @classmethod
-    def create(cls, project: interface.Project) -> Workflow:
+    def create(cls, project: base.Project) -> Workflow:
         """[summary]
 
         Args:
-            project (interface.Project): [description]
+            project (base.Project): [description]
 
         Returns:
             Workflow: [description]
@@ -78,16 +331,16 @@ class Workflow(object):
 
     # def execute(
     #     self, 
-    #     project: interface.Project, 
-    #     **kwargs) -> interface.Project:
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
     #     """Calls the 'implement' method the number of times in 'iterations'.
 
     #     Args:
-    #         project (interface.Project): instance from which data needed for 
+    #         project (base.Project): instance from which data needed for 
     #             implementation should be derived and all results be added.
 
     #     Returns:
-    #         interface.Project: with possible changes made.
+    #         base.Project: with possible changes made.
             
     #     """
     #     if self.contents not in [None, 'None', 'none']:
@@ -113,11 +366,11 @@ class Results(object):
     """ Public Methods """
 
     @classmethod
-    def create(cls, project: interface.Project) -> Results:
+    def create(cls, project: base.Project) -> Results:
         """[summary]
 
         Args:
-            project (interface.Project): [description]
+            project (base.Project): [description]
 
         Returns:
             Results: [description]
@@ -129,13 +382,13 @@ class Results(object):
 """ Public Functions """
 
 def create_workflow(
-    project: interface.Project,
+    project: base.Project,
     base: Optional[Type[Workflow]] = None, 
     **kwargs) -> Workflow:
     """[summary]
 
     Args:
-        project (interface.Project): [description]
+        project (base.Project): [description]
         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
     Returns:
@@ -155,13 +408,13 @@ def create_workflow(
         workflow = workflow)
     
 def create_workflow(
-    project: interface.Project,
+    project: base.Project,
     base: Optional[Type[Workflow]] = None, 
     **kwargs) -> Workflow:
     """[summary]
 
     Args:
-        project (interface.Project): [description]
+        project (base.Project): [description]
         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
     Returns:
@@ -177,13 +430,13 @@ def create_workflow(
         workflow = workflow)
 
 def create_results(
-    project: interface.Project,
+    project: base.Project,
     base: Optional[Type[Results]] = None, 
     **kwargs) -> Results:
     """[summary]
 
     Args:
-        project (interface.Project): [description]
+        project (base.Project): [description]
         base (Optional[Type[Results]]): [description]. Defaults to None.
 
     Returns:
@@ -198,11 +451,11 @@ def create_results(
 
 """ Private Functions """
 
-def _get_structure(project: interface.Project) -> amos.Composite:
+def _get_structure(project: base.Project) -> amos.Composite:
     """[summary]
 
     Args:
-        project (interface.Project): [description]
+        project (base.Project): [description]
 
     Returns:
         amos.Composite: [description]
@@ -214,7 +467,7 @@ def _get_structure(project: interface.Project) -> amos.Composite:
         try:
             structure = project.settings[project.name]['structure']
         except KeyError:
-            structure = project.bases.default_workflow
+            structure = project.base.default_workflow
     return amos.Composite.create(structure)
     
 def _settings_to_workflow(
@@ -225,7 +478,7 @@ def _settings_to_workflow(
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        options (bases.LIBRARY): [description]
+        options (base.LIBRARY): [description]
 
     Returns:
         Workflow: [description]
@@ -246,7 +499,7 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: configuration.ProjectSettings,
-    options: amos.Catalog) -> bases.Projectbases.Component:
+    options: amos.Catalog) -> base.Projectbase.Component:
     """[summary]
 
     Args:
@@ -255,7 +508,7 @@ def _settings_to_component(
         options (amos.Catalog): [description]
 
     Returns:
-        bases.Projectbases.Component: [description]
+        base.Projectbase.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -299,7 +552,7 @@ def _get_lookups(
 
 def _get_base(
     lookups: Sequence[str],
-    options: amos.Catalog) -> bases.Component:
+    options: amos.Catalog) -> base.Component:
     """[summary]
 
     Args:
@@ -310,7 +563,7 @@ def _get_base(
         KeyError: [description]
 
     Returns:
-        bases.Component: [description]
+        base.Component: [description]
         
     """
     for lookup in lookups:
@@ -372,13 +625,13 @@ def _parse_initialization(
 
 def _settings_to_adjacency(
     settings: configuration.ProjectSettings, 
-    components: dict[str, bases.Projectbases.Component],
+    components: dict[str, base.Projectbase.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (configuration.ProjectSettings): [description]
-        components (dict[str, bases.Projectbases.Component]): [description]
+        components (dict[str, base.Projectbase.Component]): [description]
         system (Workflow): [description]
 
     Returns:
@@ -392,13 +645,13 @@ def _settings_to_adjacency(
 
 def _path_to_result(
     path: amos.Pipeline,
-    project: interface.Project,
+    project: base.Project,
     **kwargs) -> amos.Pipeline:
     """[summary]
 
     Args:
         path (amos.Pipeline): [description]
-        project (interface.Project): [description]
+        project (base.Project): [description]
 
     Returns:
         object: [description]

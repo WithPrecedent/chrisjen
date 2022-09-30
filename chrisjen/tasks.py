@@ -27,11 +27,132 @@ from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
 from typing import Any, Optional, TYPE_CHECKING, Union
 
-from . import bases
+from . import base
 from . import components
 
 if TYPE_CHECKING:
-    from . import interface
+    from . import base
+
+
+@dataclasses.dataclass
+class Step(Task):
+    """Wrapper for a Technique.
+
+    Subclasses of Step can store additional methods and attributes to implement
+    all possible technique instances that could be used. This is often useful 
+    when creating branching, parallel workflows which test a variety of 
+    strategies with similar or identical parameters and/or methods.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+
+    Attributes:
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
+                                                 
+    """
+    name: Optional[str] = None
+    contents: Optional[Technique] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = base.Parameters)
+                    
+    """ Properties """
+    
+    @property
+    def technique(self) -> Optional[Technique]:
+        return self.contents
+    
+    @technique.setter
+    def technique(self, value: Technique) -> None:
+        self.contents = value
+        return self
+    
+    @technique.deleter
+    def technique(self) -> None:
+        self.contents = None
+        return self
+    
+    """ Public Methods """
+    
+    def execute(self, 
+        project: base.Project, 
+        **kwargs) -> base.Project:
+        """Calls the 'implement' method of 'contents'.
+
+        Args:
+            project (base.Project): instance from which data needed for 
+                implementation should be derived and all results be added.
+
+        Returns:
+            base.Project: with possible changes made.
+            
+        """
+        if self.contents not in [None, 'None', 'none']:
+            if self.parameters:
+                if hasattr(self.parameters, 'finalize'):
+                    self.parameters.finalize(project = project)
+                parameters = self.parameters
+                parameters.update(kwargs)
+            else:
+                parameters = kwargs
+            if self.technique.parameters:
+                if hasattr(self.technique.parameters, 'finalize'):
+                    self.technique.parameters.finalize(project = project)
+                technique_parameters = self.technique.parameters
+                parameters.update(technique_parameters)  
+            self.technique.implement(project = project, **parameters)
+        return project
+        
+                                                  
+@dataclasses.dataclass
+class Technique(Task):
+    """Primitive node for single task execution.
+
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+
+    Attributes:
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
+            instances stored with str keys derived from the 'amos.get_name' 
+            function.
+                                                 
+    """
+    name: Optional[str] = None
+    contents: Optional[Callable[..., Optional[Any]]] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = base.Parameters)
+    step: Optional[Union[str, Step]] = None
+        
+    """ Properties """
+    
+    @property
+    def algorithm(self) -> Optional[Callable[..., Optional[Any]]]:
+        return self.contents
+    
+    @algorithm.setter
+    def algorithm(self, value: Callable[..., Optional[Any]]) -> None:
+        self.contents = value
+        return self
+    
+    @algorithm.deleter
+    def algorithm(self) -> None:
+        self.contents = None
+        return self
 
 
 @dataclasses.dataclass
@@ -46,10 +167,10 @@ class Proctor(components.Task, abc.ABC):
             passed to the 'execute' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
     
@@ -57,7 +178,7 @@ class Proctor(components.Task, abc.ABC):
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)   
+        default_factory = base.Parameters)   
  
     """ Private Methods """
 
@@ -83,25 +204,25 @@ class Judge(components.Task, abc.ABC):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow
             Defaults to None.
-        contents (bases.Criteria]): stored criteria to be used to select from 
+        contents (base.Criteria]): stored criteria to be used to select from 
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
         
     
     """
     name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
+    contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)      
+        default_factory = base.Parameters)      
     
                
 @dataclasses.dataclass
@@ -119,7 +240,7 @@ class Scorer(components.Task):
             empty dict.
             
     Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
               
@@ -127,23 +248,23 @@ class Scorer(components.Task):
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
     score_attribute: Optional[str] = None
     
     """ Public Methods """
     
     def implement(
         self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Applies 'contents' to 'project'.
 
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         try:
@@ -161,41 +282,41 @@ class Contest(Judge):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow
             Defaults to None.
-        contents (bases.Criteria]): stored criteria to be used to select from 
+        contents (base.Criteria]): stored criteria to be used to select from 
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
     
     """
     name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
+    contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
 
     """ Public Methods """
     
     def implement(
         self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Applies 'contents' to 'project'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         results = super().implement(project = project, **kwargs)
@@ -214,24 +335,24 @@ class Survey(Judge):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow
             Defaults to None.
-        contents (bases.Criteria]): stored criteria to be used to select from 
+        contents (base.Criteria]): stored criteria to be used to select from 
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
     
     """
     name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
+    contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
 
 
 @dataclasses.dataclass   
@@ -242,21 +363,21 @@ class Validation(Judge):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow
             Defaults to None.
-        contents (bases.Criteria]): stored criteria to be used to select from 
+        contents (base.Criteria]): stored criteria to be used to select from 
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty bases.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
     
     """
     name: Optional[str] = None
-    contents: Optional[bases.Criteria] = None
+    contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)

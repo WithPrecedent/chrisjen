@@ -34,14 +34,14 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import bases
+from . import base
 
 if TYPE_CHECKING:
-    from . import interface
+    from . import base
 
 
 @dataclasses.dataclass
-class Worker(bases.Component, amos.Pipeline):
+class Worker(base.Component, amos.Pipeline):
     """Iterable component of a chrisjen workflow.
 
     Args:
@@ -55,30 +55,30 @@ class Worker(bases.Component, amos.Pipeline):
             empty dict.
 
     Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
                               
     """
     name: Optional[str] = None
-    contents: MutableSequence[bases.Component] = dataclasses.field(
+    contents: MutableSequence[base.Component] = dataclasses.field(
         default_factory = list)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
 
     """ Public Methods """  
     
     def execute(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Calls the 'implement' method the number of times in 'iterations'.
 
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         if self.contents not in [None, 'None', 'none']:
@@ -88,16 +88,16 @@ class Worker(bases.Component, amos.Pipeline):
            
     def implement(
         self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Applies 'contents' to 'project'.
         
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         return self._implement_in_serial(project = project, **kwargs)  
@@ -106,16 +106,16 @@ class Worker(bases.Component, amos.Pipeline):
     
     def _implement_in_serial(
         self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Applies 'contents' to 'project'.
         
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         for node in self.contents:
@@ -138,11 +138,11 @@ class Manager(Worker, amos.Pipelines):
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a bases.Component in 
+            parallel branches of the workflow or the name of a base.Component in 
             'library' to use. Defaults to None.
             
     Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
                           
@@ -151,7 +151,7 @@ class Manager(Worker, amos.Pipelines):
     contents: MutableMapping[Hashable, Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
     _worker_prefix: str = 'worker'
     
     """ Properties """
@@ -164,16 +164,16 @@ class Manager(Worker, amos.Pipelines):
            
     # def implement(
     #     self,
-    #     project: interface.Project, 
-    #     **kwargs) -> interface.Project:
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
     #     """Applies 'contents' to 'project'.
         
     #     Args:
-    #         project (interface.Project): instance from which data needed for 
+    #         project (base.Project): instance from which data needed for 
     #             implementation should be derived and all results be added.
 
     #     Returns:
-    #         interface.Project: with possible changes made.
+    #         base.Project: with possible changes made.
             
     #     """
     #     if len(self.contents) > 1 and project.settings.general['parallelize']:
@@ -186,8 +186,8 @@ class Manager(Worker, amos.Pipelines):
    
     # def _implement_in_parallel(
     #     self, 
-    #     project: interface.Project, 
-    #     **kwargs) -> interface.Project:
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
     #     """Applies 'implementation' to 'project' using multiple cores.
 
     #     Args:
@@ -221,7 +221,7 @@ class Manager(Worker, amos.Pipelines):
         
                
 @dataclasses.dataclass
-class Task(bases.Component):
+class Task(base.Component):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -235,7 +235,7 @@ class Task(bases.Component):
             empty dict.
             
     Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.ProjectLibrary]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
               
@@ -243,22 +243,22 @@ class Task(bases.Component):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
+        default_factory = base.Parameters)
     
     """ Public Methods """
     
     def implement(
         self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
+        project: base.Project, 
+        **kwargs) -> base.Project:
         """Applies 'contents' to 'project'.
 
         Args:
-            project (interface.Project): instance from which data needed for 
+            project (base.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            interface.Project: with possible changes made.
+            base.Project: with possible changes made.
             
         """
         try:
@@ -267,123 +267,3 @@ class Task(bases.Component):
             project = self.contents(project, **kwargs)
         return project   
 
-
-@dataclasses.dataclass
-class Step(Task):
-    """Wrapper for a Technique.
-
-    Subclasses of Step can store additional methods and attributes to implement
-    all possible technique instances that could be used. This is often useful 
-    when creating branching, parallel workflows which test a variety of 
-    strategies with similar or identical parameters and/or methods.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-
-    Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
-            function.
-                                                 
-    """
-    name: Optional[str] = None
-    contents: Optional[Technique] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-                    
-    """ Properties """
-    
-    @property
-    def technique(self) -> Optional[Technique]:
-        return self.contents
-    
-    @technique.setter
-    def technique(self, value: Technique) -> None:
-        self.contents = value
-        return self
-    
-    @technique.deleter
-    def technique(self) -> None:
-        self.contents = None
-        return self
-    
-    """ Public Methods """
-    
-    def execute(self, 
-        project: interface.Project, 
-        **kwargs) -> interface.Project:
-        """Calls the 'implement' method of 'contents'.
-
-        Args:
-            project (interface.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            interface.Project: with possible changes made.
-            
-        """
-        if self.contents not in [None, 'None', 'none']:
-            if self.parameters:
-                if hasattr(self.parameters, 'finalize'):
-                    self.parameters.finalize(project = project)
-                parameters = self.parameters
-                parameters.update(kwargs)
-            else:
-                parameters = kwargs
-            if self.technique.parameters:
-                if hasattr(self.technique.parameters, 'finalize'):
-                    self.technique.parameters.finalize(project = project)
-                technique_parameters = self.technique.parameters
-                parameters.update(technique_parameters)  
-            self.technique.implement(project = project, **parameters)
-        return project
-        
-                                                  
-@dataclasses.dataclass
-class Technique(Task):
-    """Primitive node for single task execution.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-
-    Attributes:
-        library (ClassVar[bases.ProjectLibrary]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
-            function.
-                                                 
-    """
-    name: Optional[str] = None
-    contents: Optional[Callable[..., Optional[Any]]] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = bases.Parameters)
-    step: Optional[Union[str, Step]] = None
-        
-    """ Properties """
-    
-    @property
-    def algorithm(self) -> Optional[Callable[..., Optional[Any]]]:
-        return self.contents
-    
-    @algorithm.setter
-    def algorithm(self, value: Callable[..., Optional[Any]]) -> None:
-        self.contents = value
-        return self
-    
-    @algorithm.deleter
-    def algorithm(self) -> None:
-        self.contents = None
-        return self
