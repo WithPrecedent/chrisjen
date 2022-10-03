@@ -72,7 +72,7 @@ class Dynamite(chrisjen.Technique):
 
 
 def test_project():
-    settings = chrisjen.ProjectSettings.create(
+    settings = chrisjen.Configuration.create(
         item = pathlib.Path('tests') / 'cancer_settings.ini')
     project = chrisjen.Project(
         settings = settings,

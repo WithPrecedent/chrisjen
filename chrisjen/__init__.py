@@ -1,5 +1,5 @@
 """
-chrisjen: flexible, extensible python data structures
+chrisjen: create flexible, extensible, lightweight python workflows
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,7 +17,6 @@ License: Apache-2.0
     limitations under the License.
     
 ToDo:
-    Integrate Kinds system for type-checking when it is complete.
    
 """
 
@@ -54,11 +53,11 @@ __package__ = 'chrisjen'
 __author__ = 'Corey Rayburn Yung'
 
 
-from .bases import *
+from . import default
+from .base import *
 from .components import *
-from .configuration import *
 from .filing import *
-from .interface import *
 from .managers import *
+from .stages import *
 from .tasks import *
 from .workshop import *

@@ -33,18 +33,17 @@ import collections
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Sequence, Set)
 import dataclasses
+import functools
 import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
 from . import base
+from . import workshop
 
 if TYPE_CHECKING:
-    from . import configuration
     from . import base
-    
-
 
 
 @dataclasses.dataclass
@@ -78,7 +77,7 @@ class Outline(Stage):
             return workshop.get_connections(project = self.project)
         except AttributeError:
             raise AttributeError(
-                'ProjectSettings needs to be linked to a project to access '
+                'Configuration needs to be linked to a project to access '
                 'that information.')
                         
     @functools.cached_property
@@ -183,7 +182,7 @@ class Outline(Stage):
         
         
 @dataclasses.dataclass
-class Workflow(Component):
+class Workflow(Stage):
     """Project workflow composite object.
     
     Args:
@@ -471,13 +470,13 @@ def _get_structure(project: base.Project) -> amos.Composite:
     return amos.Composite.create(structure)
     
 def _settings_to_workflow(
-    settings: configuration.ProjectSettings, 
+    settings: base.Configuration, 
     options: amos.Catalog, 
     workflow: Workflow) -> Workflow:
     """[summary]
 
     Args:
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         options (base.LIBRARY): [description]
 
     Returns:
@@ -498,13 +497,13 @@ def _settings_to_workflow(
 
 def _settings_to_component(
     name: str, 
-    settings: configuration.ProjectSettings,
+    settings: base.Configuration,
     options: amos.Catalog) -> base.Projectbase.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         options (amos.Catalog): [description]
 
     Returns:
@@ -575,12 +574,12 @@ def _get_base(
 
 def _get_runtime(
     lookups: list[str], 
-    settings: configuration.ProjectSettings) -> dict[Hashable, Any]:
+    settings: base.Configuration) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -598,13 +597,13 @@ def _get_runtime(
 
 def _parse_initialization(
     name: str,
-    settings: configuration.ProjectSettings, 
+    settings: base.Configuration, 
     parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         parameters (list[str]): [description]
 
     Returns:
@@ -624,13 +623,13 @@ def _parse_initialization(
         return {}, {}  
 
 def _settings_to_adjacency(
-    settings: configuration.ProjectSettings, 
+    settings: base.Configuration, 
     components: dict[str, base.Projectbase.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         components (dict[str, base.Projectbase.Component]): [description]
         system (Workflow): [description]
 

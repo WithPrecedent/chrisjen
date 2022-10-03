@@ -342,7 +342,7 @@ def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
     """
     implementation = {}
     for key, section in project.settings.parameters.items():
-        new_key = key.removesuffix('_' + configuration._PARAMETERS_SUFFIX)
+        new_key = key.removesuffix('_' + base._PARAMETERS_SUFFIX)
         implementation[new_key] = section
     return implementation
    
@@ -478,7 +478,7 @@ def is_design(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + configuration._DESIGN_Library)
+    return key.endswith('_' + base._DESIGN_Library)
 
 def is_parameters(key: str) -> bool:
     """[summary]
@@ -491,7 +491,7 @@ def is_parameters(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + configuration._PARAMETERS_Library)
+    return key.endswith('_' + base._PARAMETERS_Library)
  
 """ Private Functions """
     
@@ -545,7 +545,7 @@ def _get_section_designs(
     designs = {}
     design_keys = [
         k for k in section.keys() 
-        if k.endswith(configuration._DESIGN_SUFFIX)]
+        if k.endswith(base._DESIGN_SUFFIX)]
     for key in design_keys:
         prefix, suffix = amos.cleave_str(key)
         if prefix == suffix:
@@ -567,7 +567,7 @@ def _get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_plurals = plurals + tuple([configuration._DESIGN_SUFFIX])
+    all_plurals = plurals + tuple([base._DESIGN_SUFFIX])
     return {
         k: v for k, v in section.items() if not k.endswith(all_plurals)}
 
@@ -618,13 +618,13 @@ def _get_worker_names(project: base.Project) -> list[str]:
                 f'outline')
         
 def _settings_to_workflow(
-    settings: configuration.ProjectSettings, 
+    settings: base.Configuration, 
     options: amos.Catalog, 
     workflow: base.Workflow) -> base.Workflow:
     """[summary]
 
     Args:
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         options (amos.Catalog): [description]
         workflow (base.Workflow): [description]
 
@@ -646,13 +646,13 @@ def _settings_to_workflow(
 
 def _settings_to_composite(
     name: str, 
-    settings: configuration.ProjectSettings,
+    settings: base.Configuration,
     options: amos.Catalog) -> base.Projectbase.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         options (amos.Catalog): [description]
 
     Returns:
@@ -795,13 +795,13 @@ def _get_component(
     return project.base.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
-    settings: configuration.ProjectSettings, 
+    settings: base.Configuration, 
     components: dict[str, base.Projectbase.Component],
     system: base.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
-        settings (configuration.ProjectSettings): [description]
+        settings (base.Configuration): [description]
         components (dict[str, base.Projectbase.Component]): [description]
         system (base.Workflow): [description]
 

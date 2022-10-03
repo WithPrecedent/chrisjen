@@ -1,5 +1,5 @@
 """
-bases: base classes for a chrisjen project
+base: base classes for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,13 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    amos.Catalog (amos.Catalog):
-    amos.LibraryFactory (object):
-    Parameters (amos.Dictionary):
-    Component (amos.LibraryFactory, abc.ABC):
-    Criteria (amos.LibraryFactory):
-    Workflow (amos.System):
-    Results (object):
+
 
 To Do:
     Make Component a subclass of amos.Node by fixing the proxy access methods
@@ -42,10 +36,11 @@ import inspect
 import itertools
 import multiprocessing
 import pathlib
-from typing import (
-    Any, ClassVar, MutableSequence, Optional, Type, TYPE_CHECKING, Union)
+from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
+import warnings
 
 import amos
+import bobbie
 
 from . import workshop
 
@@ -54,281 +49,9 @@ if TYPE_CHECKING:
     from . import filing
     from . import workshop
  
-   
-@dataclasses.dataclass
-class ProjectBases(object):
-    """Base classes for a chrisjen project.
-    
-    Args:
-        clerk (Type[Any]): base class for a project filing clerk. Defaults to
-            filing.Clerk.
-        settings (Type[Any]): base class for project configuration settings.
-        outline 
-            Defaults to amos.Settings.
-        workflow
-        results
-        node (Type[amos.LibraryFactory]): base class for nodes in a project
-            workflow. Defaults to Component.
-        criteria
-      
-    """
-    clerk: Type[Any] = filing.Clerk
-    settings: Type[Any] = configuration.ProjectSettings
-    outline: Type[Any] = Outline
-    workflow: Type[Any] = Workflow
-    results: Type[Any] = Results
-    node: Type[amos.LibraryFactory] = Component
-    criteria: Type[Any] = Criteria
-    
-       
-@dataclasses.dataclass
-class Project(object):
-    """User interface for a chrisjen project.
-    
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal referencing throughout chrisjen. Defaults to None. 
-        settings (Optional[amos.Settings]): configuration settings for the 
-            project. Defaults to None.
-        clerk (Optional[filing.Clerk]): a filing clerk for loading and saving 
-            files throughout a chrisjen project. Defaults to None.
-        bases (ProjectBases): base classes for a project. Users can set
-            different bases that will automatically be used by the Project
-            framework. Defaults to a ProjectBases instance with the default 
-            base classes.
-        data (Optional[object]): any data object for the project to be applied. 
-            If it is None, an instance will still execute its workflow, but it 
-            won't apply it to any external data. Defaults to None.
-        identification (Optional[str]): a unique identification name for a 
-            chrisjen project. The name is primarily used for creating file 
-            folders related to the project. If it is None, a str will be created 
-            from 'name' and the date and time. This prevents files from one 
-            project from overwriting another. Defaults to None.   
-        automatic (bool): whether to automatically iterate through the project
-            stages (True) or whether it must be iterating manually (False). 
-            Defaults to True.
-    
-    Attributes:
-        library (ProjectLibrary): a library of all available node classes
-            that can be used in a project workflow. By default, it is a
-            property that points to 'node.library'.
-        results (amos.Composite): stored results from the execution of the
-            project 'workflow'. It is created when the 'complete' method is
-            called.
-        outline (Outline): high-level view of the project in a different
-            format than 'settings'. It is a cached property that calls the 
-            'create_outline' function the first time it is called and becomes an 
-            attribute with an outline after that.
-        workflow (amos.Composite): workflow process for executing the project.
-            It is a cached property that calls the 'create_workflow' function
-            the first time it is called and becomes an attribute with a 
-            workflow after that.
-            
-    """
-    name: Optional[str] = None
-    settings: Optional[amos.Settings] = None
-    clerk: Optional[filing.Clerk] = None
-    bases: ProjectBases = ProjectBases()
-    data: Optional[object] = None
-    identification: Optional[str] = None
-    automatic: bool = True
-    
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
-        # Removes various python warnings from console output.
-        warnings.filterwarnings('ignore')
-        # Calls parent and/or mixin initialization method(s).
-        try:
-            super().__post_init__()
-        except AttributeError:
-            pass
-        # Validates core attributes.
-        self._validate_settings()
-        self._validate_name()
-        self._validate_identification()
-        self._validate_bases()
-        self._validate_clerk()
-        # self._validate_workflow()
-        # self._validate_results()
-        self._validate_data()
-        # Sets multiprocessing technique, if necessary.
-        self._set_parallelization()
-        # Calls 'complete' if 'automatic' is True.
-        if self.automatic:
-            self.complete()
-    
-    """ Properties """
-         
-    @property
-    def options(self) -> ProjectLibrary:
-        """Returns the current options of available workflow components.
-
-        Returns:
-            ProjectLibrary: options of workflow components.
-            
-        """        
-        return self.node.library
   
-    @options.setter
-    def options(self, value: ProjectLibrary) -> None:
-        """Sets the current options of available workflow components.
-
-        Arguments:
-            value (ProjectLibrary): new options for workflow components.
-            
-        """        
-        self.node.library = value
-        return self
-    
-    @functools.cached_property
-    def outline(self) -> Outline:
-        """Returns project outline based on 'settings'
-
-        Returns:
-            Outline: the outline derived from 'settings'.
-            
-        """        
-        return workshop.create_outline(project = self)
-    
-    @functools.cached_property
-    def workflow(self) -> Workflow:
-        """Returns workflow based on 'settings'
-
-        Returns:
-            Workflow: the workflow derived from 'settings'.
-            
-        """        
-        return workshop.create_workflow(project = self)
-       
-    """ Class Methods """
-
-    @classmethod
-    def create(
-        cls, 
-        settings: Union[pathlib.Path, str, amos.Settings],
-        **kwargs) -> Project:
-        """Returns a Project instance based on 'settings' and kwargs.
-
-        Args:
-            settings (Union[pathlib.Path, str, amos.Settings]): a path to a file
-                containing configuration settings or a Settings instance.
-
-        Returns:
-            Project: an instance based on 'settings' and kwargs.
-            
-        """        
-        return cls(settings = settings, **kwargs)
-       
-    """ Public Methods """
-        
-    def complete(self) -> None:
-        """Iterates through all stages."""
-        self.results = self.results.create(project = self)
-        return self
-     
-    # def draft(self) -> None:
-    #     """Creates a workflow instance based on 'settings'."""
-    #     self.workflow = self.workflow.create(project = self)
-    #     return self
-        
-    # def execute(self) -> None:
-    #     """Creates a results instance based on 'workflow'."""
-    #     self.results = self.results.create(project = self)
-    #     return self
-          
-    """ Private Methods """
-            
-    def _validate_settings(self) -> None:
-        """Creates or validates 'settings'."""
-        if inspect.isclass(self.settings):
-            self.settings = self.settings(project = self)
-        if (self.settings is None 
-                or not isinstance(self.settings, self.settings)):
-            self.settings = self.settings.create(
-                item = self.settings,
-                project = self)
-        elif isinstance(self.settings, self.settings):
-            self.settings.project = self
-        return self
-              
-    def _validate_name(self) -> None:
-        """Creates or validates 'name'."""
-        if self.name is None:
-            settings_name = workshop.infer_project_name(project = self)
-            if settings_name is None:
-                self.name = self.name or amos.get_name(item = self)
-            else:
-                self.name = settings_name
-        return self  
-         
-    def _validate_identification(self) -> None:
-        """Creates unique 'identification' if one doesn't exist.
-        
-        By default, 'identification' is set to the 'name' attribute followed by
-        an underscore and the date and time.
-        
-        Raises:
-            TypeError: if the 'identification' attribute is neither a str nor
-                None.
-                
-        """
-        if self.identification is None:
-            prefix = self.name + '_'
-            self.identification = amos.datetime_string(prefix = prefix)
-        elif not isinstance(self.identification, str):
-            raise TypeError('identification must be a str or None type')
-        return self
-         
-    def _validate_bases(self) -> None:
-        """Creates or validates 'bases'."""
-        if inspect.isclass(self.bases):
-            self.bases = self.bases()
-        if (not isinstance(self.bases, ProjectBases)
-            or not amos.has_attributes(
-                item = self,
-                attributes = [
-                    'clerk', 'component', 'director', 'settings', 'stage', 
-                    'workflow'])):
-            self.bases = ProjectBases()
-        return self
-
-    
-    # def _validate_workflow(self) -> None:
-    #     """Creates or validates 'workflow'."""
-    #     if self.workflow is None:
-    #         self.workflow = self.workflow
-    #     return self
-
-    # def _validate_results(self) -> None:
-    #     """Creates or validates 'results'."""
-    #     if not hasattr(self, 'results'):
-    #         self.results = self.results
-    #     return self
-    
-    def _validate_data(self) -> None:
-        """Creates or validates 'data'.
-        
-        The default method performs no validation but is included as a hook for
-        subclasses to override if validation of the 'data' attribute is 
-        required.
-        
-        """
-        return self
-    
-    def _set_parallelization(self) -> None:
-        """Sets multiprocessing method based on 'settings'."""
-        if ('general' in self.settings
-                and 'parallelize' in self.settings['general'] 
-                and self.settings['general']['parallelize']):
-            if not globals()['multiprocessing']:
-                import multiprocessing
-            multiprocessing.set_start_method('spawn') 
-        return self  
-   
 @dataclasses.dataclass
-class ProjectSettings(amos.Settings):
+class Configuration(bobbie.Settings):
     """Loads and stores configuration settings.
 
     Args:
@@ -400,7 +123,7 @@ class ProjectSettings(amos.Settings):
             except KeyError:
                 pass      
         raise KeyError(
-            'ProjectSettings does not contain files-related configuration '
+            'Configuration does not contain files-related configuration '
             'options')
 
     @property
@@ -420,7 +143,7 @@ class ProjectSettings(amos.Settings):
             except KeyError:
                 pass  
         raise KeyError(
-            'ProjectSettings does not contain general configuration options')
+            'Configuration does not contain general configuration options')
 
     @property
     def parameters(self) -> dict[str, dict[str, Any]]:
@@ -451,7 +174,7 @@ class ProjectSettings(amos.Settings):
             if name.endswith(self.suffixes['structure']):
                 return section
         raise KeyError(
-            'ProjectSettings does not contain structure configuration options')
+            'Configuration does not contain structure configuration options')
 
     """ Class Methods """
     
@@ -601,7 +324,7 @@ class Parameters(amos.Dictionary):
         """Returns any applicable parameters from 'settings'.
 
         Args:
-            settings (amos.Settings): instance with possible 
+            settings (bobbie.Settings): instance with possible 
                 parameters.
 
         Returns:
@@ -875,3 +598,296 @@ class Criteria(amos.LibraryFactory):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
     library: ClassVar[ProjectLibrary] = ProjectLibrary()
+
+ 
+@dataclasses.dataclass
+class Structure(object):  
+    """Base classes for a chrisjen project.
+    
+    Args:
+
+      
+    """
+    clerk: Type[Any] = Clerk
+    settings: Type[Any] = Configuration
+    # stages: MutableMapping[str, base.Stage] = dataclasses.field(
+    #     default_factory = lambda: {
+    #         'outline': stages.Outline,
+    #         'workflow': stages.Workflow,
+    #         'summary': stages.Summary})
+    # nodes: MutableMapping[str, base.Component] = dataclasses.field(
+    #     default_factory = lambda: {
+    #         'manager': components.Manager,
+    #         'worker': components.Worker,
+    #         'task': components.Task})
+    stage: Type[amos.LibraryFactory] = Stage
+    node: Type[amos.LibraryFactory] = Node
+    criteria: Type[amos.LibraryFactory] = Criteria
+    stages: MutableSequence[str] = dataclasses.field(default_factory = list)
+        
+    """ Dunder Methods """
+    
+    @classmethod
+    def __instancecheck__(cls, instance: object) -> bool:
+        """Returns whether 'instance' meets criteria to be a subclass.
+
+        Args:
+            instance (object): item to test as an instance.
+
+        Returns:
+            bool: whether 'instance' meets criteria to be a subclass.
+            
+        """
+        return (
+            amos.has_attributes(
+                item = instance, 
+                attributes = ['clerk', 'settings', 'stage', 'node']))    
+        
+       
+@dataclasses.dataclass
+class Project(object):
+    """User interface for a chrisjen project.
+    
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal referencing throughout chrisjen. Defaults to None. 
+        settings (Optional[bobbie.Settings]): configuration settings for the 
+            project. Defaults to None.
+        clerk (Optional[filing.Clerk]): a filing clerk for loading and saving 
+            files throughout a chrisjen project. Defaults to None.
+        bases (ProjectBases): base classes for a project. Users can set
+            different bases that will automatically be used by the Project
+            framework. Defaults to a ProjectBases instance with the default 
+            base classes.
+        data (Optional[object]): any data object for the project to be applied. 
+            If it is None, an instance will still execute its workflow, but it 
+            won't apply it to any external data. Defaults to None.
+        identification (Optional[str]): a unique identification name for a 
+            chrisjen project. The name is primarily used for creating file 
+            folders related to the project. If it is None, a str will be created 
+            from 'name' and the date and time. This prevents files from one 
+            project from overwriting another. Defaults to None.   
+        automatic (bool): whether to automatically iterate through the project
+            stages (True) or whether it must be iterating manually (False). 
+            Defaults to True.
+    
+    Attributes:
+        library (ProjectLibrary): a library of all available node classes
+            that can be used in a project workflow. By default, it is a
+            property that points to 'node.library'.
+        results (amos.Composite): stored results from the execution of the
+            project 'workflow'. It is created when the 'complete' method is
+            called.
+        outline (Outline): high-level view of the project in a different
+            format than 'settings'. It is a cached property that calls the 
+            'create_outline' function the first time it is called and becomes an 
+            attribute with an outline after that.
+        workflow (amos.Composite): workflow process for executing the project.
+            It is a cached property that calls the 'create_workflow' function
+            the first time it is called and becomes an attribute with a 
+            workflow after that.
+            
+    """
+    name: Optional[str] = None
+    settings: Optional[bobbie.Settings] = None
+    clerk: Optional[filing.Clerk] = None
+    bases: ProjectBases = ProjectBases()
+    data: Optional[object] = None
+    identification: Optional[str] = None
+    automatic: bool = True
+    
+    """ Initialization Methods """
+
+    def __post_init__(self) -> None:
+        """Initializes and validates class instance attributes."""
+        # Removes various python warnings from console output.
+        warnings.filterwarnings('ignore')
+        # Calls parent and/or mixin initialization method(s).
+        try:
+            super().__post_init__()
+        except AttributeError:
+            pass
+        # Validates core attributes.
+        self._validate_settings()
+        self._validate_name()
+        self._validate_identification()
+        self._validate_bases()
+        self._validate_clerk()
+        # self._validate_workflow()
+        # self._validate_results()
+        self._validate_data()
+        # Sets multiprocessing technique, if necessary.
+        self._set_parallelization()
+        # Calls 'complete' if 'automatic' is True.
+        if self.automatic:
+            self.complete()
+    
+    """ Properties """
+         
+    @property
+    def options(self) -> ProjectLibrary:
+        """Returns the current options of available workflow components.
+
+        Returns:
+            ProjectLibrary: options of workflow components.
+            
+        """        
+        return self.node.library
+  
+    @options.setter
+    def options(self, value: ProjectLibrary) -> None:
+        """Sets the current options of available workflow components.
+
+        Arguments:
+            value (ProjectLibrary): new options for workflow components.
+            
+        """        
+        self.node.library = value
+        return self
+    
+    @functools.cached_property
+    def outline(self) -> Outline:
+        """Returns project outline based on 'settings'
+
+        Returns:
+            Outline: the outline derived from 'settings'.
+            
+        """        
+        return workshop.create_outline(project = self)
+    
+    @functools.cached_property
+    def workflow(self) -> Workflow:
+        """Returns workflow based on 'settings'
+
+        Returns:
+            Workflow: the workflow derived from 'settings'.
+            
+        """        
+        return workshop.create_workflow(project = self)
+       
+    """ Class Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        settings: Union[pathlib.Path, str, bobbie.Settings],
+        **kwargs) -> Project:
+        """Returns a Project instance based on 'settings' and kwargs.
+
+        Args:
+            settings (Union[pathlib.Path, str, bobbie.Settings]): a path to a file
+                containing configuration settings or a Settings instance.
+
+        Returns:
+            Project: an instance based on 'settings' and kwargs.
+            
+        """        
+        return cls(settings = settings, **kwargs)
+       
+    """ Public Methods """
+        
+    def complete(self) -> None:
+        """Iterates through all stages."""
+        self.results = self.results.create(project = self)
+        return self
+     
+    # def draft(self) -> None:
+    #     """Creates a workflow instance based on 'settings'."""
+    #     self.workflow = self.workflow.create(project = self)
+    #     return self
+        
+    # def execute(self) -> None:
+    #     """Creates a results instance based on 'workflow'."""
+    #     self.results = self.results.create(project = self)
+    #     return self
+          
+    """ Private Methods """
+            
+    def _validate_settings(self) -> None:
+        """Creates or validates 'settings'."""
+        if inspect.isclass(self.settings):
+            self.settings = self.settings(project = self)
+        if (self.settings is None 
+                or not isinstance(self.settings, self.settings)):
+            self.settings = self.settings.create(
+                item = self.settings,
+                project = self)
+        elif isinstance(self.settings, self.settings):
+            self.settings.project = self
+        return self
+              
+    def _validate_name(self) -> None:
+        """Creates or validates 'name'."""
+        if self.name is None:
+            settings_name = workshop.infer_project_name(project = self)
+            if settings_name is None:
+                self.name = self.name or amos.get_name(item = self)
+            else:
+                self.name = settings_name
+        return self  
+         
+    def _validate_identification(self) -> None:
+        """Creates unique 'identification' if one doesn't exist.
+        
+        By default, 'identification' is set to the 'name' attribute followed by
+        an underscore and the date and time.
+        
+        Raises:
+            TypeError: if the 'identification' attribute is neither a str nor
+                None.
+                
+        """
+        if self.identification is None:
+            prefix = self.name + '_'
+            self.identification = amos.datetime_string(prefix = prefix)
+        elif not isinstance(self.identification, str):
+            raise TypeError('identification must be a str or None type')
+        return self
+         
+    def _validate_bases(self) -> None:
+        """Creates or validates 'bases'."""
+        if inspect.isclass(self.bases):
+            self.bases = self.bases()
+        if (not isinstance(self.bases, ProjectBases)
+            or not amos.has_attributes(
+                item = self,
+                attributes = [
+                    'clerk', 'component', 'director', 'settings', 'stage', 
+                    'workflow'])):
+            self.bases = ProjectBases()
+        return self
+
+    
+    # def _validate_workflow(self) -> None:
+    #     """Creates or validates 'workflow'."""
+    #     if self.workflow is None:
+    #         self.workflow = self.workflow
+    #     return self
+
+    # def _validate_results(self) -> None:
+    #     """Creates or validates 'results'."""
+    #     if not hasattr(self, 'results'):
+    #         self.results = self.results
+    #     return self
+    
+    def _validate_data(self) -> None:
+        """Creates or validates 'data'.
+        
+        The default method performs no validation but is included as a hook for
+        subclasses to override if validation of the 'data' attribute is 
+        required.
+        
+        """
+        return self
+    
+    def _set_parallelization(self) -> None:
+        """Sets multiprocessing method based on 'settings'."""
+        if ('general' in self.settings
+                and 'parallelize' in self.settings['general'] 
+                and self.settings['general']['parallelize']):
+            if not globals()['multiprocessing']:
+                import multiprocessing
+            multiprocessing.set_start_method('spawn') 
+        return self  
+   
+ 
