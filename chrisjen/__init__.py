@@ -53,11 +53,12 @@ __package__ = 'chrisjen'
 __author__ = 'Corey Rayburn Yung'
 
 
-from . import default
 from .base import *
 from .components import *
 from .filing import *
 from .managers import *
+from .nodes import *
+from .settings import *
 from .stages import *
 from .tasks import *
 from .workshop import *

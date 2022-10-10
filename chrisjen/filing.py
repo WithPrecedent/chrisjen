@@ -17,12 +17,12 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    FileFormat (object): contains data needed for a Clerk-compatible file 
+    FileFormat (object): contains data needed for a Filer-compatible file 
         format.
     formats (dict): a dictionary of the out-of-the-box supported file formats.
     default_parameters (dict): a dictionary with default shared parameters for
         various disk-related tasks.
-    Clerk (object): interface for chrisjen file management classes and methods.
+    Filer (object): interface for chrisjen file management classes and methods.
      
 """
 from __future__ import annotations
@@ -35,6 +35,7 @@ import types
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
+import nagata
 
 from . import base
 
@@ -184,7 +185,7 @@ default_parameters: MutableMapping[str, Any] = {
 
    
 @dataclasses.dataclass
-class Clerk(base.ProjectBase):
+class Filer(nagata.FileManager):
     """File and folder management for chrisjen.
 
     Creates and stores dynamic and static file paths, properly formats files
@@ -193,9 +194,9 @@ class Clerk(base.ProjectBase):
 
     Args:
         project (base.Project): a Project instance with a 'settings' 
-            attribute that may contain configuration options for Clerk.
+            attribute that may contain configuration options for Filer.
         root_folder (Union[str, pathlib.Path]): the complete path from which the 
-            other paths and folders used by Clerk are ordinarily derived 
+            other paths and folders used by Filer are ordinarily derived 
             (unless you decide to use full paths for all other options). 
             Defaults to None. If not passed, the parent folder of the current 
             working workery is used.
@@ -240,19 +241,19 @@ class Clerk(base.ProjectBase):
     
     @classmethod
     def validate(cls, project: base.Project) -> base.Project:
-        """Creates or validates 'project.clerk'.
+        """Creates or validates 'project.filer'.
 
         Args:
-            project (base.Project): an instance with a 'clerk' attribute.
+            project (base.Project): an instance with a 'filer' attribute.
 
         Returns:
-            base.Project: an instance with a validated 'clerk' attribute.
+            base.Project: an instance with a validated 'filer' attribute.
             
         """  
-        if inspect.isclass(project.clerk):
-            project.clerk = project.clerk(project = project)
-        elif project.clerk is None:
-            project.clerk = cls.create(project = project)
+        if inspect.isclass(project.filer):
+            project.filer = project.filer(project = project)
+        elif project.filer is None:
+            project.filer = cls.create(project = project)
         return project    
        
     """ Public Methods """
@@ -273,12 +274,12 @@ class Clerk(base.ProjectBase):
             file_path (Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'clerk'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (str): file name without extension. Defaults to
                 None.
             file_format (Union[str, FileFormat]]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'clerk'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -317,12 +318,12 @@ class Clerk(base.ProjectBase):
             file_path (Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'clerk'. Defaults to None.
+                name of a folder stored in 'filer'. Defaults to None.
             file_name (str): file name without extension. Defaults to
                 None.
             file_format (Union[str, FileFormat]]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'clerk'. Defaults to None
+                such an object stored in 'filer'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -444,7 +445,7 @@ def combine_path(
     folder: str,
     file_name: Optional[str] = None,
     extension: Optional[str] = None,
-    clerk: Optional[Clerk] = None) -> pathlib.Path:
+    filer: Optional[Filer] = None) -> pathlib.Path:
     """Converts strings to pathlib Path object.
 
     If 'folder' matches an attribute, the value stored in that attribute
@@ -457,15 +458,15 @@ def combine_path(
         folder (str): folder for file location.
         name (str): the name of the file.
         extension (str): the extension of the file.
-        clerk (Optional[Clerk]): a Clerk instance that may have attributes with
+        filer (Optional[Filer]): a Filer instance that may have attributes with
             folder paths. Defaults to None.
 
     Returns:
         Path: formed from string arguments.
 
     """
-    if clerk is not None and hasattr(clerk, folder):
-        folder = getattr(clerk, folder)
+    if filer is not None and hasattr(filer, folder):
+        folder = getattr(filer, folder)
     if file_name and extension:
         return pathlib.Path(folder).joinpath(f'{file_name}.{extension}')
     else:
@@ -503,11 +504,11 @@ def prepare_transfer(
     Args:
         file_path (Union[str, Path]): a complete file path.
         folder (Union[str, Path]): a complete folder path or the name of a
-            folder stored in 'clerk'.
+            folder stored in 'filer'.
         file_name (str): file name without extension.
         file_format (Union[str, FileFormat]): object with information about
             how the file should be loaded or the key to such an object
-            stored in 'clerk'.
+            stored in 'filer'.
         **kwargs: can be passed if additional options are desired specific
             to the pandas or python method used internally.
 

@@ -432,7 +432,7 @@ def infer_project_name(project: base.Project) -> Optional[str]:
     name = None    
     for key, section in project.settings.items():
         if (
-            key not in ['general', 'files', 'filer', 'clerk'] 
+            key not in ['general', 'files', 'filer', 'filer'] 
                 and any(k.endswith(suffixes) for k in section.keys())):
             name = key
             break

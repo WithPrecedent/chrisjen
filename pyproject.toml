@@ -11,10 +11,14 @@ repository = "https://github.com/WithPrecedent/chrisjen"
 [tool.poetry.dependencies]
 python = "^3.9"
 amos = "^0.1.5"
+bobbie = "0.1.0"
+holden = "^0.1.1"
+miller = "^0.1.1"
+nagata = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
