@@ -33,15 +33,14 @@ import multiprocessing
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
+import holden
 
 from . import base
-
-if TYPE_CHECKING:
-    from . import base
+from . import nodes
 
 
 @dataclasses.dataclass
-class Worker(base.Component, amos.Pipeline):
+class Worker(holden.Path, nodes.Component):
     """Iterable component of a chrisjen workflow.
 
     Args:
@@ -55,16 +54,17 @@ class Worker(base.Component, amos.Pipeline):
             empty dict.
 
     Attributes:
-        library (ClassVar[base.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.Options]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
                               
     """
     name: Optional[str] = None
-    contents: MutableSequence[base.Component] = dataclasses.field(
+    contents: MutableSequence[Hashable] = dataclasses.field(
         default_factory = list)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = nodes.Parameters)
+    nodes: amos.Library = dataclasses.field(default_factory = amos.Library)
 
     """ Public Methods """  
     
@@ -124,7 +124,7 @@ class Worker(base.Component, amos.Pipeline):
     
     
 @dataclasses.dataclass
-class Manager(Worker, amos.Pipelines):
+class Manager(Worker, holden.Paths):
     """Base class for branching and parallel Workers.
         
     Args:
@@ -138,11 +138,11 @@ class Manager(Worker, amos.Pipelines):
             'contents' when the 'implement' method is called. Defaults to an 
             empty dict.
         criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a base.Component in 
-            'library' to use. Defaults to None.
+            parallel branches of the workflow or the name of a nodes.Component in 
+            'options' to use. Defaults to None.
             
     Attributes:
-        library (ClassVar[base.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.Options]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
                           
@@ -151,7 +151,7 @@ class Manager(Worker, amos.Pipelines):
     contents: MutableMapping[Hashable, Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = nodes.Parameters)
     _worker_prefix: str = 'worker'
     
     """ Properties """
@@ -221,7 +221,7 @@ class Manager(Worker, amos.Pipelines):
         
                
 @dataclasses.dataclass
-class Task(base.Component):
+class Task(nodes.Component):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -235,7 +235,7 @@ class Task(base.Component):
             empty dict.
             
     Attributes:
-        library (ClassVar[base.ProjectLibrary]): Component subclasses and
+        library (ClassVar[base.Options]): Component subclasses and
             instances stored with str keys derived from the 'amos.get_name' 
             function.
               
@@ -243,7 +243,7 @@ class Task(base.Component):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = nodes.Parameters)
     
     """ Public Methods """
     

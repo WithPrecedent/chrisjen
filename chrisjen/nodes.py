@@ -37,7 +37,7 @@ from . import base
  
 
 @dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library, base.ProjectBase):
+class Options(amos.Library, base.ProjectBase):
     """Stores classes instances and classes in a chained mapping.
     
     When searching for matches, instances are prioritized over classes.
@@ -70,6 +70,12 @@ class ProjectLibrary(amos.Library, base.ProjectBase):
             plurals = [k + 's' for k in getattr(self, catalog).keys()]
             suffixes.extend(plurals)
         return tuple(suffixes)
+        
+    """ Public Methods """
+    
+    def create(cls, *args, **kwargs):
+        """Creates a class instance."""
+        return cls(*args, **kwargs)  
        
        
 @dataclasses.dataclass    
@@ -219,7 +225,7 @@ class Component(amos.LibraryFactory, base.ProjectBase, abc.ABC):
             empty Parameters instance.
             
     Attributes:
-        library (ClassVar[ProjectLibrary]): subclasses and instances stored with 
+        library (ClassVar[Options]): subclasses and instances stored with 
             str keys derived from the 'amos.namify' function.
               
     """
@@ -227,7 +233,7 @@ class Component(amos.LibraryFactory, base.ProjectBase, abc.ABC):
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = Parameters)  
-    library: ClassVar[ProjectLibrary] = base.PROJECT_BASES['library']()
+    library: ClassVar[Options] = base.PROJECT_BASES['options']()
     
     """ Initialization Methods """
     
@@ -423,7 +429,7 @@ class Criteria(amos.LibraryFactory, base.ProjectBase):
             empty dict.
             
     Attributes:
-        library (ClassVar[ProjectLibrary]): subclasses and instances stored with 
+        library (ClassVar[Options]): subclasses and instances stored with 
             str keys derived from the 'amos.namify' function.
             
     """
@@ -431,7 +437,7 @@ class Criteria(amos.LibraryFactory, base.ProjectBase):
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    library: ClassVar[ProjectLibrary] = base.PROJECT_BASES['library']()
+    library: ClassVar[Options] = base.PROJECT_BASES['options']()
 
 
 @dataclasses.dataclass   
@@ -449,7 +455,7 @@ class Stage(amos.LibraryFactory, base.ProjectBase):
             empty dict.
             
     Attributes:
-        library (ClassVar[ProjectLibrary]): subclasses and instances stored with 
+        library (ClassVar[Options]): subclasses and instances stored with 
             str keys derived from the 'amos.namify' function.
             
     """
@@ -457,4 +463,4 @@ class Stage(amos.LibraryFactory, base.ProjectBase):
     contents: Optional[Callable] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-    library: ClassVar[ProjectLibrary] = base.PROJECT_BASES['library']()
+    library: ClassVar[Options] = base.PROJECT_BASES['options']()

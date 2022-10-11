@@ -1,17 +1,17 @@
 [[package]]
 name = "amos"
-version = "0.1.5"
+version = "0.1.9"
 description = "Your Python project companion"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-more-itertools = ">=8.10.0,<9.0.0"
+miller = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "atomicwrites"
-version = "1.4.0"
+version = "1.4.1"
 description = "Atomic file writes."
 category = "dev"
 optional = false
@@ -19,33 +19,79 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
-version = "21.2.0"
+version = "22.1.0"
 description = "Classes Without Boilerplate"
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.5"
 
 [package.extras]
-dev = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface", "furo", "sphinx", "sphinx-notfound-page", "pre-commit"]
-docs = ["furo", "sphinx", "zope.interface", "sphinx-notfound-page"]
-tests = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins", "zope.interface"]
-tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "mypy", "pytest-mypy-plugins"]
+dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy (>=0.900,!=0.940)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "sphinx", "sphinx-notfound-page", "zope.interface"]
+docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
+tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "zope.interface"]
+tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
+
+[[package]]
+name = "bobbie"
+version = "0.1.1"
+description = "flexible, easy python project configuration"
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+amos = ">=0.1.9,<0.2.0"
 
 [[package]]
 name = "colorama"
-version = "0.4.4"
+version = "0.4.5"
 description = "Cross-platform colored terminal text."
 category = "dev"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
-name = "more-itertools"
-version = "8.12.0"
-description = "More routines for operating on iterables, beyond itertools"
+name = "holden"
+version = "0.1.1"
+description = "lightweight, accessible, flexible composite data structures"
 category = "main"
 optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+amos = ">=0.1.7,<0.2.0"
+miller = ">=0.1.1,<0.2.0"
+
+[[package]]
+name = "miller"
+version = "0.1.2"
+description = "introspection tools using consistent, accessible syntax"
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+amos = ">=0.1.5,<0.2.0"
+
+[[package]]
+name = "more-itertools"
+version = "8.14.0"
+description = "More routines for operating on iterables, beyond itertools"
+category = "dev"
+optional = false
 python-versions = ">=3.5"
+
+[[package]]
+name = "nagata"
+version = "0.1.1"
+description = "python file management using a common, intuitive syntax"
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+amos = ">=0.1.5,<0.2.0"
+miller = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "packaging"
@@ -79,11 +125,11 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "pyparsing"
-version = "3.0.6"
-description = "Python parsing module"
+version = "3.0.9"
+description = "pyparsing module - Classes and methods to define and execute parsing grammars"
 category = "dev"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.6.8"
 
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
@@ -121,28 +167,43 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "34436b873e39b6c571b76c0f7bd5750713205c8bf4dfb254fc25764984e2dee0"
+content-hash = "2ad10b40b57209043cf00c6ec65b3f64e49dcbd021af86e337bf69a03388b809"
 
 [metadata.files]
 amos = [
-    {file = "amos-0.1.5-py3-none-any.whl", hash = "sha256:4ed8c8da2cc6e224808294bcffb4fc17824538c6a9b09575ee201ae23c324f40"},
-    {file = "amos-0.1.5.tar.gz", hash = "sha256:71fb43736c4989f304d9ca7a90ec4c103b571faeb85f2973e0d5af114f449c2c"},
+    {file = "amos-0.1.9-py3-none-any.whl", hash = "sha256:c36c606fb220deb1bd06dcbdf50d0799973861ea7950424362d712cee57d6fc5"},
+    {file = "amos-0.1.9.tar.gz", hash = "sha256:a0fe65926052902409ed484cafd8d03015ef6c77fb38e085646e71e82bab394f"},
 ]
 atomicwrites = [
-    {file = "atomicwrites-1.4.0-py2.py3-none-any.whl", hash = "sha256:6d1784dea7c0c8d4a5172b6c620f40b6e4cbfdf96d783691f2e1302a7b88e197"},
-    {file = "atomicwrites-1.4.0.tar.gz", hash = "sha256:ae70396ad1a434f9c7046fd2dd196fc04b12f9e91ffb859164193be8b6168a7a"},
+    {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},
 ]
 attrs = [
-    {file = "attrs-21.2.0-py2.py3-none-any.whl", hash = "sha256:149e90d6d8ac20db7a955ad60cf0e6881a3f20d37096140088356da6c716b0b1"},
-    {file = "attrs-21.2.0.tar.gz", hash = "sha256:ef6aaac3ca6cd92904cdd0d83f629a15f18053ec84e6432106f7a4d04ae4f5fb"},
+    {file = "attrs-22.1.0-py2.py3-none-any.whl", hash = "sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c"},
+    {file = "attrs-22.1.0.tar.gz", hash = "sha256:29adc2665447e5191d0e7c568fde78b21f9672d344281d0c6e1ab085429b22b6"},
+]
+bobbie = [
+    {file = "bobbie-0.1.1-py3-none-any.whl", hash = "sha256:7d5a007266b14c5cc473c1bef2269d1a5a5be1b8ac7d22654a3057c4cbe01f85"},
+    {file = "bobbie-0.1.1.tar.gz", hash = "sha256:35cb9ca5fe93cf72ca263a7efd382f63aefef3427a9021737876d36df51d9d44"},
 ]
 colorama = [
-    {file = "colorama-0.4.4-py2.py3-none-any.whl", hash = "sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2"},
-    {file = "colorama-0.4.4.tar.gz", hash = "sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b"},
+    {file = "colorama-0.4.5-py2.py3-none-any.whl", hash = "sha256:854bf444933e37f5824ae7bfc1e98d5bce2ebe4160d46b5edf346a89358e99da"},
+    {file = "colorama-0.4.5.tar.gz", hash = "sha256:e6c6b4334fc50988a639d9b98aa429a0b57da6e17b9a44f0451f930b6967b7a4"},
+]
+holden = [
+    {file = "holden-0.1.1-py3-none-any.whl", hash = "sha256:c16242e8defa439ffad9804fe755fbc8e7665de69fae5c161f251f6217bda97c"},
+    {file = "holden-0.1.1.tar.gz", hash = "sha256:b96139e885be9f70d690ddf16d00e2213dbacd6c5dea4b1cbb761c4e58d114d5"},
+]
+miller = [
+    {file = "miller-0.1.2-py3-none-any.whl", hash = "sha256:487b5756e3048d2834e768dda7987ac4a343e1647092d5fc4ef37c68069d9d27"},
+    {file = "miller-0.1.2.tar.gz", hash = "sha256:7753515c355a8e6f2d9479cd91b00909fb63d73806db43819941b4abd193996b"},
 ]
 more-itertools = [
-    {file = "more-itertools-8.12.0.tar.gz", hash = "sha256:7dc6ad46f05f545f900dd59e8dfb4e84a4827b97b3cfecb175ea0c7d247f6064"},
-    {file = "more_itertools-8.12.0-py3-none-any.whl", hash = "sha256:43e6dd9942dffd72661a2c4ef383ad7da1e6a3e968a927ad7a6083ab410a688b"},
+    {file = "more-itertools-8.14.0.tar.gz", hash = "sha256:c09443cd3d5438b8dafccd867a6bc1cb0894389e90cb53d227456b0b0bccb750"},
+    {file = "more_itertools-8.14.0-py3-none-any.whl", hash = "sha256:1bc4f91ee5b1b31ac7ceacc17c09befe6a40a503907baf9c839c229b5095cfd2"},
+]
+nagata = [
+    {file = "nagata-0.1.1-py3-none-any.whl", hash = "sha256:b5f75715133d7ce6d99a251f6ec924b0b608414c34169e0c86c1160c065efbdb"},
+    {file = "nagata-0.1.1.tar.gz", hash = "sha256:650f0a70e950c843180d22266a460ee475637cc36927cd56a097e2dd67481ea1"},
 ]
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
@@ -157,8 +218,8 @@ py = [
     {file = "py-1.11.0.tar.gz", hash = "sha256:51c75c4126074b472f746a24399ad32f6053d1b34b68d2fa41e558e6f4a98719"},
 ]
 pyparsing = [
-    {file = "pyparsing-3.0.6-py3-none-any.whl", hash = "sha256:04ff808a5b90911829c55c4e26f75fa5ca8a2f5f36aa3a51f68e27033341d3e4"},
-    {file = "pyparsing-3.0.6.tar.gz", hash = "sha256:d9bdec0013ef1eb5a84ab39a3b3868911598afa494f5faa038647101504e2b81"},
+    {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
+    {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
 ]
 pytest = [
     {file = "pytest-5.4.3-py3-none-any.whl", hash = "sha256:5c0db86b698e8f170ba4582a492248919255fcd4c79b1ee64ace34301fb589a1"},

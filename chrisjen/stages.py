@@ -40,6 +40,7 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 
 from . import base
+from . import nodes
 from . import workshop
 
 if TYPE_CHECKING:
@@ -47,7 +48,7 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Outline(Stage):
+class Outline(nodes.Stage):
     """Provides a different view of data stored in 'project.settings'.
     
     The properties in Outline are used in the construction of a Workflow. So,
@@ -498,7 +499,7 @@ def _settings_to_workflow(
 def _settings_to_component(
     name: str, 
     settings: base.Configuration,
-    options: amos.Catalog) -> base.Projectbase.Component:
+    options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
     Args:
@@ -507,7 +508,7 @@ def _settings_to_component(
         options (amos.Catalog): [description]
 
     Returns:
-        base.Projectbase.Component: [description]
+        base.Projectnodes.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -551,7 +552,7 @@ def _get_lookups(
 
 def _get_base(
     lookups: Sequence[str],
-    options: amos.Catalog) -> base.Component:
+    options: amos.Catalog) -> nodes.Component:
     """[summary]
 
     Args:
@@ -562,7 +563,7 @@ def _get_base(
         KeyError: [description]
 
     Returns:
-        base.Component: [description]
+        nodes.Component: [description]
         
     """
     for lookup in lookups:
@@ -624,13 +625,13 @@ def _parse_initialization(
 
 def _settings_to_adjacency(
     settings: base.Configuration, 
-    components: dict[str, base.Projectbase.Component],
+    components: dict[str, base.Projectnodes.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
         settings (base.Configuration): [description]
-        components (dict[str, base.Projectbase.Component]): [description]
+        components (dict[str, base.Projectnodes.Component]): [description]
         system (Workflow): [description]
 
     Returns:
