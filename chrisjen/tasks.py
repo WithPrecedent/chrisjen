@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Step(Task):
+class Step(components.Task):
     """Wrapper for a Technique.
 
     Subclasses of Step can store additional methods and attributes to implement
@@ -55,14 +55,14 @@ class Step(Task):
 
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
                                                  
     """
     name: Optional[str] = None
     contents: Optional[Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
                     
     """ Properties """
     
@@ -113,7 +113,7 @@ class Step(Task):
         
                                                   
 @dataclasses.dataclass
-class Technique(Task):
+class Technique(components.Task):
     """Primitive node for single task execution.
 
     Args:
@@ -128,14 +128,14 @@ class Technique(Task):
 
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
                                                  
     """
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     step: Optional[Union[str, Step]] = None
         
     """ Properties """
@@ -167,18 +167,18 @@ class Proctor(components.Task, abc.ABC):
             passed to the 'execute' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
     
     """
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)   
+        default_factory = base.Parameters)   
  
     """ Private Methods """
 
@@ -208,13 +208,13 @@ class Judge(components.Task, abc.ABC):
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
         
     
@@ -222,7 +222,7 @@ class Judge(components.Task, abc.ABC):
     name: Optional[str] = None
     contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)      
+        default_factory = base.Parameters)      
     
                
 @dataclasses.dataclass
@@ -241,14 +241,14 @@ class Scorer(components.Task):
             
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
               
     """
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     score_attribute: Optional[str] = None
     
     """ Public Methods """
@@ -286,20 +286,20 @@ class Contest(Judge):
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
     
     """
     name: Optional[str] = None
     contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
 
     """ Public Methods """
     
@@ -339,20 +339,20 @@ class Survey(Judge):
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
     
     """
     name: Optional[str] = None
     contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
 
 
 @dataclasses.dataclass   
@@ -367,17 +367,17 @@ class Validation(Judge):
             several nodes or paths. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
             
     Attributes:
         scores (MutableMapping[Hashable, float]): scores based on the criteria
             stored in 'contents'.
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
     
     """
     name: Optional[str] = None
     contents: Optional[base.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)

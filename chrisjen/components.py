@@ -55,7 +55,7 @@ class Worker(holden.Path, nodes.Component):
 
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
                               
     """
@@ -63,8 +63,8 @@ class Worker(holden.Path, nodes.Component):
     contents: MutableSequence[Hashable] = dataclasses.field(
         default_factory = list)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
-    nodes: amos.Library = dataclasses.field(default_factory = amos.Library)
+        default_factory = base.Parameters)
+    library: ClassVar[amos.Library] = base.PROJECT_BASES['options']()
 
     """ Public Methods """  
     
@@ -123,102 +123,6 @@ class Worker(holden.Path, nodes.Component):
         return project  
     
     
-@dataclasses.dataclass
-class Manager(Worker, holden.Paths):
-    """Base class for branching and parallel Workers.
-        
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (MutableMapping[Hashable, Worker]): keys are the name or 
-            other identifier for the stored Worker instances and values are 
-            Worker instances. Defaults to an empty dict.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-        criteria (Union[Callable, str]): algorithm to use to resolve the 
-            parallel branches of the workflow or the name of a nodes.Component in 
-            'options' to use. Defaults to None.
-            
-    Attributes:
-        library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
-            function.
-                          
-    """
-    name: Optional[str] = None
-    contents: MutableMapping[Hashable, Worker] = dataclasses.field(
-        default_factory = dict)
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
-    _worker_prefix: str = 'worker'
-    
-    """ Properties """
-    
-    @property
-    def workers(self) -> MutableMapping[Hashable, Worker]:
-        return {self._name_worker: i for i in self.contents}
-           
-    """ Public Methods """ 
-           
-    # def implement(
-    #     self,
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
-    #     """Applies 'contents' to 'project'.
-        
-    #     Args:
-    #         project (base.Project): instance from which data needed for 
-    #             implementation should be derived and all results be added.
-
-    #     Returns:
-    #         base.Project: with possible changes made.
-            
-    #     """
-    #     if len(self.contents) > 1 and project.settings.general['parallelize']:
-    #         project = self._implement_in_parallel(project = project, **kwargs)
-    #     else:
-    #         project = self._implement_in_serial(project = project, **kwargs)
-    #     return project      
-
-    # """ Private Methods """
-   
-    # def _implement_in_parallel(
-    #     self, 
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
-    #     """Applies 'implementation' to 'project' using multiple cores.
-
-    #     Args:
-    #         project (Project): chrisjen project to apply changes to and/or
-    #             gather needed data from.
-                
-    #     Returns:
-    #         Project: with possible alterations made.       
-        
-    #     """
-    #     if project.parallelize:
-    #         with multiprocessing.Pool() as pool:
-    #             project = pool.starmap(
-    #                 self._implement_in_serial, 
-    #                 project, 
-    #                 **kwargs)
-    #     return project 
-
-    """ Private Methods """
-    
-    def _name_worker(self) -> str:
-        """[summary]
-
-        Returns:
-            str: [description]
-            
-        """
-        return amos.uniqify(
-            key = self._worker_prefix, 
-            dictionary = self.contents)
-        
                
 @dataclasses.dataclass
 class Task(nodes.Component):
@@ -236,14 +140,15 @@ class Task(nodes.Component):
             
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
+    library: ClassVar[amos.Library] = base.PROJECT_BASES['options']()
     
     """ Public Methods """
     

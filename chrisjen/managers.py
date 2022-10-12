@@ -55,14 +55,14 @@ class Researcher(components.Manager):
             values are Worker instances. Defaults to an empty dict.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
         proctor (Optional[Distributor]): node for copying, splitting, or
             otherwise creating multiple projects for use by the Workers 
             stored in 'contents'.
                        
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
                           
     """
@@ -70,7 +70,7 @@ class Researcher(components.Manager):
     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     proctor: Optional[tasks.Proctor] = None
 
     """ Class Methods """
@@ -131,7 +131,7 @@ class Analyst(Researcher, abc.ABC):
             values are Worker instances. Defaults to an empty dict.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
+            empty base.Parameters instance.
         proctor (Optional[Distributor]): node for copying, splitting, or
             otherwise creating multiple projects for use by the Workers 
             stored in 'contents'.
@@ -140,7 +140,7 @@ class Analyst(Researcher, abc.ABC):
                                    
     Attributes:
         library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.get_name' 
+            instances stored with str keys derived from the 'amos.namify' 
             function.
                           
     """
@@ -148,7 +148,7 @@ class Analyst(Researcher, abc.ABC):
     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     proctor: Optional[tasks.Proctor] = None
     judge: Optional[tasks.Judge] = None
 
@@ -188,7 +188,7 @@ class Analyst(Researcher, abc.ABC):
 #             values are Worker instances. Defaults to an empty dict.
 #         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
 #             'contents' when the 'implement' method is called. Defaults to an
-#             empty nodes.Parameters instance.
+#             empty base.Parameters instance.
 #         proctor (Optional[Distributor]): node for copying, splitting, or
 #             otherwise creating multiple projects for use by the Workers 
 #             stored in 'contents'.
@@ -197,7 +197,7 @@ class Analyst(Researcher, abc.ABC):
                                    
 #     Attributes:
 #         library (ClassVar[base.Options]): Component subclasses and
-#             instances stored with str keys derived from the 'amos.get_name' 
+#             instances stored with str keys derived from the 'amos.namify' 
 #             function.
                           
 #     """
@@ -205,7 +205,7 @@ class Analyst(Researcher, abc.ABC):
 #     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
 #         default_factory = dict)
 #     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-#         default_factory = nodes.Parameters)
+#         default_factory = base.Parameters)
 #     proctor: Optional[tasks.Proctor] = None
 #     judge: Optional[tasks.Judge] = None
     

@@ -40,6 +40,7 @@ import warnings
 
 import amos
 import bobbie
+import holden
 import nagata
 
 if TYPE_CHECKING:
@@ -68,6 +69,156 @@ subclasses. Defaults to an empty dict.
 PROJECT_BASES: MutableMapping[str, Type[ProjectBase]] = {}
 
 
+@dataclasses.dataclass  # type: ignore
+class ProjectLibrary(amos.Library):
+    """Stores classes instances and classes in a chained mapping.
+    
+    When searching for matches, instances are prioritized over classes.
+    
+    Args:
+        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
+            empty Catalog.
+        instances (amos.Catalog): a catalog of stored class instances. Defaults 
+            to an empty Catalog.
+                 
+    """
+    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
+        default_factory = amos.Catalog)
+    instances: amos.Catalog[str, object] = dataclasses.field(
+        default_factory = amos.Catalog)
+    
+    """ Properties """
+    
+    @property
+    def plurals(self) -> tuple[str]:
+        """Returns all stored subclass names as naive plurals of those names.
+        
+        Returns:
+            tuple[str]: all names with an 's' added in order to create simple 
+                plurals combined with the stored keys.
+                
+        """
+        suffixes = []
+        for catalog in ['classes', 'instances']:
+            plurals = [k + 's' for k in getattr(self, catalog).keys()]
+            suffixes.extend(plurals)
+        return tuple(suffixes)
+        
+    """ Public Methods """
+    
+    def create(cls, *args, **kwargs):
+        """Creates a class instance."""
+        return cls(*args, **kwargs)  
+ 
+    
+@dataclasses.dataclass  # type: ignore
+class Repository(amos.Library):
+    """Stores classes instances and classes in a chained mapping.
+    
+    When searching for matches, instances are prioritized over classes.
+    
+    Args:
+        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
+            empty Catalog.
+        instances (amos.Catalog): a catalog of stored class instances. Defaults 
+            to an empty Catalog.
+                 
+    """
+    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
+        default_factory = amos.Catalog)
+    instances: amos.Catalog[str, object] = dataclasses.field(
+        default_factory = amos.Catalog)
+    bases: MutableMapping[str, Type[Any]] = dataclasses.field(
+        default_factory = dict)
+    kinds: MutableMapping[str, str] = dataclasses.field(
+        default_factory = dict)
+    
+    """ Properties """
+    
+    @property
+    def plurals(self) -> tuple[str]:
+        """Returns all stored subclass names as naive plurals of those names.
+        
+        Returns:
+            tuple[str]: all names with an 's' added in order to create simple 
+                plurals combined with the stored keys.
+                
+        """
+        suffixes = []
+        for catalog in ['classes', 'instances']:
+            plurals = [k + 's' for k in getattr(self, catalog).keys()]
+            suffixes.extend(plurals)
+        return tuple(suffixes)
+
+    """ Public Methods """
+        
+    def add_base(self, item: Type[Any]) -> None:
+        """Adds 'item' as a base kind in the 'bases' dict.
+
+        Args:
+            item (Type[Any]): item to add to the 'bases' dict.
+            
+        """
+        name = amos.namify(item = item)
+        self.bases[name] = item
+        return
+        
+    def add_kind(self, item: Union[object, Type[Any]]) -> None:
+        """Adds 'item' as a base kind in the 'bases' dict.
+
+        Args:
+            item (Type[Any]): item to add to the 'bases' dict.
+            
+        """
+        base = self.classify(item = item)
+        name = amos.namify(item = item)
+        self.kinds[name] = base
+        return
+                
+    def classify(self, item: Union[object, Type[Any]]) -> str:
+        """Returns name of kind that 'item' is an instance or subclass of.
+
+        Args:
+            item (Union[object, Type[Any]]): item to test for matching kind.
+
+        Raises:
+            TypeError: if no matching base kind is found.
+
+        Returns:
+            str: name of matching base kind.
+            
+        """
+        if not inspect.isclass(item):
+            item = item.__class__
+        for name, kind in self.bases.items():
+            if issubclass(item, kind):
+                return name
+        raise TypeError(f'{item} does not match a known type')
+    
+    def deposit(
+        self, 
+        item: Union[Type[Any], object],
+        name: Optional[Hashable] = None) -> None:
+        """Adds 'item' to 'classes' and/or 'instances'.
+
+        If 'item' is a class, it is added to 'classes.' If it is an object, it
+        is added to 'instances' and its class is added to 'classes'. The key
+        used to store instances and classes are different if the instance has
+        a 'name' attribute (which is used as the key for the instance).
+        
+        Args:
+            item (Union[Type[Any], object]): class or instance to add to the 
+                Library instance.
+            name (Optional[Hashable]): key to use to store 'item'. If not
+                passed, a key will be created using the 'namify' method.
+                Defaults to None
+                
+        """
+        self.add_kind(item = item)
+        super().deposit(item = item, name = name)
+        return
+
+          
 @dataclasses.dataclass
 class ProjectBase(amos.Registrar, abc.ABC):
     """Mixin for all project base classes."""
@@ -93,8 +244,233 @@ class ProjectBase(amos.Registrar, abc.ABC):
     def create(cls, *args, **kwargs):
         """Creates a class instance."""
         pass
+  
+         
+@dataclasses.dataclass    
+class Parameters(amos.Dictionary):
+    """Creates and stores parameters for part of a chrisjen project.
+    
+    The use of Parameters is entirely optional, but it provides a handy 
+    tool for aggregating data from an array of sources, including those which 
+    only become apparent during execution of a chrisjen project, to create a 
+    unified set of implementation parameters.
+    
+    Parameters can be unpacked with '**', which will turn the contents of the
+    'contents' attribute into an ordinary set of kwargs. In this way, it can 
+    serve as a drop-in replacement for a dict that would ordinarily be used for 
+    accumulating keyword arguments.
+    
+    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
+    be called before that instance's 'implement' method in order for each of the 
+    parameter types to be incorporated.
+    
+    Args:
+        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
+            classes' 'implement' method. The 'finalize' method should be called
+            for 'contents' to be fully populated from all sources. Defaults to
+            an empty dict.
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout chrisjen. To properly match 
+            parameters in a Settings instance, 'name' should be the prefix to 
+            "_parameters" as a section name in a Settings instance. Defaults to 
+            None. 
+        default (Mapping[str, Any]): default parameters that will be used if 
+            they are not overridden. Defaults to an empty dict.
+        implementation (Mapping[str, str]): parameters with values that can only 
+            be determined at runtime due to dynamic nature of chrisjen and its 
+            workflows. The keys should be the names of the parameters and the 
+            values should be attributes or items in 'contents' of 'project' 
+            passed to the 'finalize' method. Defaults to an emtpy dict.
+        selected (Sequence[str]): an exclusive list of parameters that are 
+            allowed. If 'selected' is empty, all possible parameters are 
+            allowed. However, if any are listed, all other parameters that are
+            included are removed. This is can be useful when including 
+            parameters in an Outline instance for an entire step, only some of
+            which might apply to certain techniques. Defaults to an empty list.
 
+    """
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    name: Optional[str] = None
+    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    implementation: Mapping[str, str] = dataclasses.field(
+        default_factory = dict)
+    selected: Sequence[str] = dataclasses.field(default_factory = list)
+      
+    """ Public Methods """
 
+    def finalize(self, item: Any, **kwargs) -> None:
+        """Combines and selects final parameters into 'contents'.
+
+        Args:
+            item (Project): instance from which implementation and 
+                settings parameters can be derived.
+            
+        """
+        # Uses kwargs and 'default' parameters as a starting amos.
+        parameters = self.default
+        # Adds any parameters from 'settings'.
+        try:
+            parameters.update(self._from_settings(item = item))
+        except AttributeError:
+            pass
+        # Adds any implementation parameters.
+        if self.implementation:
+            parameters.update(self._at_runtime(item = item))
+        # Adds any parameters already stored in 'contents'.
+        parameters.update(self.contents)
+        # Adds any passed kwargs, which will override any other parameters.
+        parameters.update(kwargs)
+        # Limits parameters to those in 'selected'.
+        if self.selected:
+            parameters = {k: parameters[k] for k in self.selected}
+        self.contents = parameters
+        return self
+
+    """ Private Methods """
+     
+    def _from_settings(self, item: Any) -> dict[str, Any]: 
+        """Returns any applicable parameters from 'settings'.
+
+        Args:
+            settings (bobbie.Settings): instance with possible 
+                parameters.
+
+        Returns:
+            dict[str, Any]: any applicable settings parameters or an empty dict.
+            
+        """
+        if hasattr(item, 'outline'):
+            parameters = item.outline.implementation[self.name]
+        else:
+            try:
+                parameters = item.settings[f'{self.name}_parameters']
+            except KeyError:
+                suffix = self.name.split('_')[-1]
+                prefix = self.name[:-len(suffix) - 1]
+                try:
+                    parameters = item.settings[f'{prefix}_parameters']
+                except KeyError:
+                    try:
+                        parameters = item.settings[f'{suffix}_parameters']
+                    except KeyError:
+                        parameters = {}
+        return parameters
+   
+    def _at_runtime(self, item: Any) -> dict[str, Any]:
+        """Adds implementation parameters to 'contents'.
+
+        Args:
+            item (Project): instance from which implementation 
+                parameters can be derived.
+
+        Returns:
+            dict[str, Any]: any applicable settings parameters or an empty dict.
+                   
+        """    
+        for parameter, attribute in self.implementation.items():
+            try:
+                self.contents[parameter] = getattr(item, attribute)
+            except AttributeError:
+                try:
+                    self.contents[parameter] = item.contents[attribute]
+                except (KeyError, AttributeError):
+                    pass
+        return self
+
+    
+@dataclasses.dataclass
+class Manager(holden.System):
+    """Base class for creating, managing, and iterating a workflow.
+        
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (MutableMapping[Hashable, Worker]): keys are the name or 
+            other identifier for the stored Worker instances and values are 
+            Worker instances. Defaults to an empty dict.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+        criteria (Union[Callable, str]): algorithm to use to resolve the 
+            parallel branches of the workflow or the name of a nodes.Component in 
+            'options' to use. Defaults to None.
+            
+                          
+    """
+    name: Optional[str] = None
+    contents: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = Parameters)
+    repository: ClassVar[Repository] = Repository()
+    
+    # """ Properties """
+    
+    # @property
+    # def workers(self) -> MutableMapping[Hashable, Worker]:
+    #     return {self._name_worker: i for i in self.contents}
+           
+    # """ Public Methods """ 
+           
+    # def implement(
+    #     self,
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
+    #     """Applies 'contents' to 'project'.
+        
+    #     Args:
+    #         project (base.Project): instance from which data needed for 
+    #             implementation should be derived and all results be added.
+
+    #     Returns:
+    #         base.Project: with possible changes made.
+            
+    #     """
+    #     if len(self.contents) > 1 and project.settings.general['parallelize']:
+    #         project = self._implement_in_parallel(project = project, **kwargs)
+    #     else:
+    #         project = self._implement_in_serial(project = project, **kwargs)
+    #     return project      
+
+    # """ Private Methods """
+   
+    # def _implement_in_parallel(
+    #     self, 
+    #     project: base.Project, 
+    #     **kwargs) -> base.Project:
+    #     """Applies 'implementation' to 'project' using multiple cores.
+
+    #     Args:
+    #         project (Project): chrisjen project to apply changes to and/or
+    #             gather needed data from.
+                
+    #     Returns:
+    #         Project: with possible alterations made.       
+        
+    #     """
+    #     if project.parallelize:
+    #         with multiprocessing.Pool() as pool:
+    #             project = pool.starmap(
+    #                 self._implement_in_serial, 
+    #                 project, 
+    #                 **kwargs)
+    #     return project 
+
+    # """ Private Methods """
+    
+    # def _name_worker(self) -> str:
+    #     """[summary]
+
+    #     Returns:
+    #         str: [description]
+            
+    #     """
+    #     return amos.uniqify(
+    #         key = self._worker_prefix, 
+    #         dictionary = self.contents)
+    
+    
 @dataclasses.dataclass
 class Project(object):
     """User interface for a chrisjen project.
@@ -163,15 +539,15 @@ class Project(object):
     
     """ Properties """
          
-    @property
-    def options(self) -> amos.Library:
-        """Returns the current options of available workflow components.
+    # @property
+    # def options(self) -> amos.Library:
+    #     """Returns the current options of available workflow components.
 
-        Returns:
-            amos.Library: options of workflow components.
+    #     Returns:
+    #         amos.Library: options of workflow components.
             
-        """        
-        return self.bases['component'].library
+    #     """        
+    #     return self.bases['component'].library
   
     # @options.setter
     # def options(self, value: amos.Library) -> None:
@@ -265,7 +641,7 @@ class Project(object):
         if self.name is None:
             settings_name = workshop.infer_project_name(project = self)
             if settings_name is None:
-                self.name = self.name or amos.get_name(item = self)
+                self.name = self.name or amos.namify(item = self)
             else:
                 self.name = settings_name
         return self  

@@ -38,7 +38,7 @@ import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
-
+import holden
 from . import base
 from . import nodes
 from . import workshop
@@ -46,144 +46,9 @@ from . import workshop
 if TYPE_CHECKING:
     from . import base
 
-
+     
 @dataclasses.dataclass
-class Outline(nodes.Stage):
-    """Provides a different view of data stored in 'project.settings'.
-    
-    The properties in Outline are used in the construction of a Workflow. So,
-    even if you do not have any interest in using its view of the configuration
-    settings, it shouldn't be cut out of a Project (unless you also replace the
-    functions for creating a Workflow). 
-
-    Args:
-        project (base.Project): a related project instance which has data
-            from which the properties of an Outline can be derived.
-
-    """
-    project: base.Project
-
-    """ Properties """       
-
-    @functools.cached_property
-    def connections(self) -> dict[str, dict[str, list[str]]]:
-        """Returns raw connections between nodes from 'project'.
-        
-        Returns:
-            dict[str, dict[str, list[str]]]: keys are worker names and values 
-                node connections for that worker.
-            
-        """
-        try:
-            return workshop.get_connections(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Configuration needs to be linked to a project to access '
-                'that information.')
-                        
-    @functools.cached_property
-    def designs(self) -> dict[str, str]:
-        """Returns structural designs of nodes in 'project'.
-
-        Returns:
-            dict[str, str]: keys are node names and values are design names.
-            
-        """
-        try:
-            return workshop.get_designs(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')
-                                        
-    @functools.cached_property
-    def implementation(self) -> dict[str, dict[str, Any]]:
-        """Returns implementation arguments and attributes for nodes.
-        
-        These values will be parsed into arguments and attributes once the nodes
-        are instanced. They are derived from 'settings'.
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of the initialization arguments and attributes.
-            
-        """
-        try:
-            return workshop.get_implementation(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')    
-                                                
-    @functools.cached_property
-    def initialization(self) -> dict[str, dict[str, Any]]:
-        """Returns initialization arguments and attributes for nodes.
-        
-        These values will be parsed into arguments and attributes once the nodes
-        are instanced. They are derived from 'settings'.
-
-        Returns:
-            dict[str, dict[str, Any]]: keys are node names and values are dicts
-                of the initialization arguments and attributes.
-            
-        """
-        try:
-            return workshop.get_initialization(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')
-        
-    @functools.cached_property
-    def kinds(self) -> dict[str, str]:
-        """Returns kinds of ndoes in 'project'.
-
-        Returns:
-            dict[str, str]: keys are names of nodes and values are names of the
-                associated base kind types.
-            
-        """
-        try:
-            return workshop.get_kinds(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')
-    
-    @functools.cached_property
-    def labels(self) -> list[str]:
-        """Returns names of nodes in 'project'.
-
-        Returns:
-            list[str]: names of all nodes that are listed in 'settings'.
-            
-        """
-        try:
-            return workshop.get_labels(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')
-
-    @functools.cached_property
-    def workers(self) -> dict[str, dict[Hashable, Any]]:
-        """Returns sections in 'project.settings' that are related to workers.
-
-        Returns:
-            dict[str, dict[Hashable, Any]]: keys are the names of worker 
-                sections and values are those sections.
-            
-        """
-        try:            
-            return workshop.get_worker_sections(project = self.project)
-        except AttributeError:
-            raise AttributeError(
-                'Outline needs to be linked to a project to access '
-                'that information.')
-        
-        
-@dataclasses.dataclass
-class Workflow(Stage):
+class Workflow(holden.System, nodes.Stage):
     """Project workflow composite object.
     
     Args:
@@ -192,8 +57,10 @@ class Workflow(Stage):
             has a set for its value format.
                   
     """  
-    contents: MutableMapping[str, Set[str]] = dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set))
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+    nodes: amos.Library = dataclasses.field(default_factory = amos.Library)
     
     """ Public Methods """
     
@@ -251,7 +118,7 @@ class Workflow(Stage):
     
 
 @dataclasses.dataclass
-class Results(ProjectBase):
+class Results(nodes.Stage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -298,86 +165,6 @@ class Results(ProjectBase):
     #             project = node.execute(project = project, **kwargs)
     #     return project
     
-    
-
-@dataclasses.dataclass
-class Workflow(object):
-    """Project workflow composite object.
-    
-    Args:
-        name (str): name of class used for internal referencing and logging.
-            Defaults to 'worfklow'.
-        contents (Optional[amos.Composite]): iterable composite data structure 
-            for storing the project workflow. Defaults to None.
-                  
-    """  
-    name: str = 'workflow'
-    contents: Optional[amos.Composite] = None
-    
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, project: base.Project) -> Workflow:
-        """[summary]
-
-        Args:
-            project (base.Project): [description]
-
-        Returns:
-            Workflow: [description]
-            
-        """        
-        return create_workflow(project = project, base = cls)    
-
-    # def execute(
-    #     self, 
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
-    #     """Calls the 'implement' method the number of times in 'iterations'.
-
-    #     Args:
-    #         project (base.Project): instance from which data needed for 
-    #             implementation should be derived and all results be added.
-
-    #     Returns:
-    #         base.Project: with possible changes made.
-            
-    #     """
-    #     if self.contents not in [None, 'None', 'none']:
-    #         for node in self:
-    #             project = node.execute(project = project, **kwargs)
-    #     return project
-    
-    
-@dataclasses.dataclass
-class Results(object):
-    """Project workflow after it has been implemented.
-    
-    Args:
-        name (str): name of class used for internal referencing and logging.
-            Defaults to 'results'.
-        contents (Optional[amos.Composite]): iterable composite data structure 
-            for storing the project results. Defaults to None.
-                  
-    """  
-    name: str = 'results'
-    contents: Optional[amos.Composite] = None
-    
-    """ Public Methods """
-
-    @classmethod
-    def create(cls, project: base.Project) -> Results:
-        """[summary]
-
-        Args:
-            project (base.Project): [description]
-
-        Returns:
-            Results: [description]
-            
-        """        
-        return create_results(project = project, base = cls)
-
     
 """ Public Functions """
 

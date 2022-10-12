@@ -43,7 +43,6 @@ from . import nodes
 if TYPE_CHECKING:
     from . import base
     from . import components
-    from . import base
     
 
 """ Public Functions """
@@ -63,25 +62,8 @@ def create_node(
         
     """
     design = project.outline.designs.get(name, 'component')
-    builder = locals()[f'create_{design}']
+    builder = globals()[f'create_{design}']
     return builder(name = name, project = project, **kwargs)
-
-def create_outline(
-    project: base.Project,
-    base: Optional[Type[base.Outline]] = None, 
-    **kwargs) -> base.Outline:
-    """Creates outline based on 'project' and 'kwargs'.
-
-    Args:
-        project (base.Project): [description]
-        base (Optional[Type[base.Outline]]): [description]. Defaults to None.
-
-    Returns:
-        base.Outline: [description]
-        
-    """    
-    base = base or project.base.outline
-    return base(project = project, **kwargs)
 
 def create_workflow(
     project: base.Project,
