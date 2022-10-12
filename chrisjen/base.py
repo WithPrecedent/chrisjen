@@ -68,48 +68,6 @@ subclasses. Defaults to an empty dict.
 """ 
 PROJECT_BASES: MutableMapping[str, Type[ProjectBase]] = {}
 
-
-@dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library):
-    """Stores classes instances and classes in a chained mapping.
-    
-    When searching for matches, instances are prioritized over classes.
-    
-    Args:
-        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
-            empty Catalog.
-        instances (amos.Catalog): a catalog of stored class instances. Defaults 
-            to an empty Catalog.
-                 
-    """
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-    
-    """ Properties """
-    
-    @property
-    def plurals(self) -> tuple[str]:
-        """Returns all stored subclass names as naive plurals of those names.
-        
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
-        """
-        suffixes = []
-        for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self, catalog).keys()]
-            suffixes.extend(plurals)
-        return tuple(suffixes)
-        
-    """ Public Methods """
-    
-    def create(cls, *args, **kwargs):
-        """Creates a class instance."""
-        return cls(*args, **kwargs)  
- 
     
 @dataclasses.dataclass  # type: ignore
 class Repository(amos.Library):
@@ -194,7 +152,12 @@ class Repository(amos.Library):
             if issubclass(item, kind):
                 return name
         raise TypeError(f'{item} does not match a known type')
-    
+   
+    @classmethod
+    def create(cls, *args, **kwargs):
+        """Creates a class instance."""
+        return cls(*args, **kwargs)  
+        
     def deposit(
         self, 
         item: Union[Type[Any], object],
@@ -218,6 +181,9 @@ class Repository(amos.Library):
         super().deposit(item = item, name = name)
         return
 
+
+GENERICS: Repository = Repository()
+    
           
 @dataclasses.dataclass
 class ProjectBase(amos.Registrar, abc.ABC):
