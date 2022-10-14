@@ -38,12 +38,12 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import nodes
+from . import components
 
 if TYPE_CHECKING:
-    from . import base
+    from . import framework
     from . import components
-    from . import base
+    from . import framework
     
 
 """ Public Functions """
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
 def create_node(
     name: str,
     project: base.Project,
-    **kwargs) -> nodes.Component:
+    **kwargs) -> framework.Component:
     """Creates node based on 'name', 'project', and 'kwargs'.
 
     Args:
@@ -68,8 +68,8 @@ def create_node(
 
 def create_workflow(
     project: base.Project,
-    base: Optional[Type[base.Workflow]] = None, 
-    **kwargs) -> base.Workflow:
+    base: Optional[Type[framework.Workflow]] = None, 
+    **kwargs) -> framework.Workflow:
     """Creates workflow based on 'project' and 'kwargs'.
 
     Args:
@@ -92,7 +92,7 @@ def create_component(
     name: str,
     project: base.Project,
     base: Optional[str] = None,  
-    **kwargs) -> nodes.Component:
+    **kwargs) -> framework.Component:
     """Creates component based on 'name', 'project', and 'kwargs'.
 
     Args:
@@ -272,9 +272,9 @@ def create_technique(
     return  
         
 def _settings_to_workflow(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     options: amos.Catalog, 
-    workflow: base.Workflow) -> base.Workflow:
+    workflow: framework.Workflow) -> framework.Workflow:
     """[summary]
 
     Args:
@@ -300,7 +300,7 @@ def _settings_to_workflow(
 
 def _settings_to_composite(
     name: str, 
-    settings: base.Configuration,
+    settings: framework.Configuration,
     options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
@@ -435,7 +435,7 @@ def _finalize_worker(
 
 def _get_component(
     lookups: list[str], 
-    project: base.Project) -> nodes.Component:
+    project: base.Project) -> framework.Component:
     """[summary]
 
     Args:
@@ -449,9 +449,9 @@ def _get_component(
     return project.base.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     components: dict[str, base.Projectnodes.Component],
-    system: base.Workflow) -> amos.Pipeline:
+    system: framework.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
@@ -485,7 +485,7 @@ def _path_to_result(
     result = amos.Pipeline()
     for path in project.workflow.paths:
         for node in path:
-            result.append(node.execute(project = project, *kwargs))
+            result.append(node.complete(project = project, *kwargs))
     return result
 
 # def _get_workflow_structure(project: base.Project) -> amos.Composite:

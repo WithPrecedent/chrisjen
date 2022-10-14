@@ -27,11 +27,11 @@ from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
 from typing import Any, Optional, TYPE_CHECKING, Union
 
-from . import base
+from . import framework
 from . import components
 
 if TYPE_CHECKING:
-    from . import base
+    from . import framework
 
 
 @dataclasses.dataclass
@@ -62,7 +62,7 @@ class Step(components.Task):
     name: Optional[str] = None
     contents: Optional[Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
                     
     """ Properties """
     
@@ -82,7 +82,7 @@ class Step(components.Task):
     
     """ Public Methods """
     
-    def execute(self, 
+    def complete(self, 
         project: base.Project, 
         **kwargs) -> base.Project:
         """Calls the 'implement' method of 'contents'.
@@ -135,7 +135,7 @@ class Technique(components.Task):
     name: Optional[str] = None
     contents: Optional[Callable[..., Optional[Any]]] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
     step: Optional[Union[str, Step]] = None
         
     """ Properties """
@@ -164,7 +164,7 @@ class Proctor(components.Task, abc.ABC):
             used for internal and external referencing in a project workflow
             Defaults to None.
         contents (Optional[Any]): stored item(s) to be applied to 'project'
-            passed to the 'execute' method. Defaults to None.
+            passed to the 'complete' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty base.Parameters instance.
@@ -178,7 +178,7 @@ class Proctor(components.Task, abc.ABC):
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)   
+        default_factory = framework.Parameters)   
  
     """ Private Methods """
 
@@ -220,9 +220,9 @@ class Judge(components.Task, abc.ABC):
     
     """
     name: Optional[str] = None
-    contents: Optional[base.Criteria] = None
+    contents: Optional[framework.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)      
+        default_factory = framework.Parameters)      
     
                
 @dataclasses.dataclass
@@ -248,7 +248,7 @@ class Scorer(components.Task):
     name: Optional[str] = None
     contents: Optional[components.Technique] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
     score_attribute: Optional[str] = None
     
     """ Public Methods """
@@ -268,7 +268,7 @@ class Scorer(components.Task):
             
         """
         try:
-            project = self.contents.execute(project = project, **kwargs)
+            project = self.contents.complete(project = project, **kwargs)
         except AttributeError:
             project = self.contents(project, **kwargs)
         return project         
@@ -297,9 +297,9 @@ class Contest(Judge):
     
     """
     name: Optional[str] = None
-    contents: Optional[base.Criteria] = None
+    contents: Optional[framework.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
 
     """ Public Methods """
     
@@ -323,7 +323,7 @@ class Contest(Judge):
         for key, result in results.items():
             self.scores[key] = result.score
             
-        project = self.contents.execute(projects = results)  
+        project = self.contents.complete(projects = results)  
         return project
 
 
@@ -350,9 +350,9 @@ class Survey(Judge):
     
     """
     name: Optional[str] = None
-    contents: Optional[base.Criteria] = None
+    contents: Optional[framework.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
 
 
 @dataclasses.dataclass   
@@ -378,6 +378,6 @@ class Validation(Judge):
     
     """
     name: Optional[str] = None
-    contents: Optional[base.Criteria] = None
+    contents: Optional[framework.Criteria] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)

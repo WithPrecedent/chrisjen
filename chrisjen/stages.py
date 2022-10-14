@@ -39,16 +39,16 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 import holden
-from . import base
-from . import nodes
+from . import framework
+from . import components
 from . import workshop
 
 if TYPE_CHECKING:
-    from . import base
+    from . import framework
 
      
 @dataclasses.dataclass
-class Workflow(holden.System, nodes.Stage):
+class Workflow(holden.System, components.Stage):
     """Project workflow composite object.
     
     Args:
@@ -118,7 +118,7 @@ class Workflow(holden.System, nodes.Stage):
     
 
 @dataclasses.dataclass
-class Results(nodes.Stage):
+class Results(components.Stage):
     """Project workflow after it has been implemented.
     
     Args:
@@ -146,7 +146,7 @@ class Results(nodes.Stage):
         """        
         return workshop.create_results(project = project, base = cls)
 
-    # def execute(
+    # def complete(
     #     self, 
     #     project: base.Project, 
     #     **kwargs) -> base.Project:
@@ -162,7 +162,7 @@ class Results(nodes.Stage):
     #     """
     #     if self.contents not in [None, 'None', 'none']:
     #         for node in self:
-    #             project = node.execute(project = project, **kwargs)
+    #             project = node.complete(project = project, **kwargs)
     #     return project
     
     
@@ -258,7 +258,7 @@ def _get_structure(project: base.Project) -> amos.Composite:
     return amos.Composite.create(structure)
     
 def _settings_to_workflow(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     options: amos.Catalog, 
     workflow: Workflow) -> Workflow:
     """[summary]
@@ -285,7 +285,7 @@ def _settings_to_workflow(
 
 def _settings_to_component(
     name: str, 
-    settings: base.Configuration,
+    settings: framework.Configuration,
     options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
@@ -339,7 +339,7 @@ def _get_lookups(
 
 def _get_base(
     lookups: Sequence[str],
-    options: amos.Catalog) -> nodes.Component:
+    options: amos.Catalog) -> framework.Component:
     """[summary]
 
     Args:
@@ -362,7 +362,7 @@ def _get_base(
 
 def _get_runtime(
     lookups: list[str], 
-    settings: base.Configuration) -> dict[Hashable, Any]:
+    settings: framework.Configuration) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
@@ -385,7 +385,7 @@ def _get_runtime(
 
 def _parse_initialization(
     name: str,
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
     """[summary]
 
@@ -411,7 +411,7 @@ def _parse_initialization(
         return {}, {}  
 
 def _settings_to_adjacency(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     components: dict[str, base.Projectnodes.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
@@ -447,5 +447,5 @@ def _path_to_result(
     result = amos.Pipeline()
     for path in project.workflow.paths:
         for node in path:
-            result.append(node.execute(project = project, *kwargs))
+            result.append(node.complete(project = project, *kwargs))
     return result

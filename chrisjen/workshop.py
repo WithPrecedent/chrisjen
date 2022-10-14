@@ -38,10 +38,11 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import nodes
+from . import components
 
 if TYPE_CHECKING:
     from . import base
+    from . import framework
     from . import components
     
 
@@ -50,7 +51,7 @@ if TYPE_CHECKING:
 def create_node(
     name: str,
     project: base.Project,
-    **kwargs) -> nodes.Component:
+    **kwargs) -> framework.Component:
     """Creates node based on 'name', 'project', and 'kwargs'.
 
     Args:
@@ -67,8 +68,8 @@ def create_node(
 
 def create_workflow(
     project: base.Project,
-    base: Optional[Type[base.Workflow]] = None, 
-    **kwargs) -> base.Workflow:
+    base: Optional[Type[framework.Workflow]] = None, 
+    **kwargs) -> framework.Workflow:
     """Creates workflow based on 'project' and 'kwargs'.
 
     Args:
@@ -91,7 +92,7 @@ def create_component(
     name: str,
     project: base.Project,
     base: Optional[str] = None,  
-    **kwargs) -> nodes.Component:
+    **kwargs) -> framework.Component:
     """Creates component based on 'name', 'project', and 'kwargs'.
 
     Args:
@@ -324,7 +325,7 @@ def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
     """
     implementation = {}
     for key, section in project.settings.parameters.items():
-        new_key = key.removesuffix('_' + base._PARAMETERS_SUFFIX)
+        new_key = key.removesuffix('_' + framework._PARAMETERS_SUFFIX)
         implementation[new_key] = section
     return implementation
    
@@ -460,7 +461,7 @@ def is_design(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + base._DESIGN_Library)
+    return key.endswith('_' + framework._DESIGN_Library)
 
 def is_parameters(key: str) -> bool:
     """[summary]
@@ -473,7 +474,7 @@ def is_parameters(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + base._PARAMETERS_Library)
+    return key.endswith('_' + framework._PARAMETERS_Library)
  
 """ Private Functions """
     
@@ -527,7 +528,7 @@ def _get_section_designs(
     designs = {}
     design_keys = [
         k for k in section.keys() 
-        if k.endswith(base._DESIGN_SUFFIX)]
+        if k.endswith(framework._DESIGN_SUFFIX)]
     for key in design_keys:
         prefix, suffix = amos.cleave_str(key)
         if prefix == suffix:
@@ -549,7 +550,7 @@ def _get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_plurals = plurals + tuple([base._DESIGN_SUFFIX])
+    all_plurals = plurals + tuple([framework._DESIGN_SUFFIX])
     return {
         k: v for k, v in section.items() if not k.endswith(all_plurals)}
 
@@ -600,9 +601,9 @@ def _get_worker_names(project: base.Project) -> list[str]:
                 f'outline')
         
 def _settings_to_workflow(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     options: amos.Catalog, 
-    workflow: base.Workflow) -> base.Workflow:
+    workflow: framework.Workflow) -> framework.Workflow:
     """[summary]
 
     Args:
@@ -628,7 +629,7 @@ def _settings_to_workflow(
 
 def _settings_to_composite(
     name: str, 
-    settings: base.Configuration,
+    settings: framework.Configuration,
     options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
@@ -763,7 +764,7 @@ def _finalize_worker(
 
 def _get_component(
     lookups: list[str], 
-    project: base.Project) -> nodes.Component:
+    project: base.Project) -> framework.Component:
     """[summary]
 
     Args:
@@ -777,9 +778,9 @@ def _get_component(
     return project.base.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
-    settings: base.Configuration, 
+    settings: framework.Configuration, 
     components: dict[str, base.Projectnodes.Component],
-    system: base.Workflow) -> amos.Pipeline:
+    system: framework.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
@@ -813,7 +814,7 @@ def _path_to_result(
     result = amos.Pipeline()
     for path in project.workflow.paths:
         for node in path:
-            result.append(node.execute(project = project, *kwargs))
+            result.append(node.complete(project = project, *kwargs))
     return result
 
 # def _get_workflow_structure(project: base.Project) -> amos.Composite:

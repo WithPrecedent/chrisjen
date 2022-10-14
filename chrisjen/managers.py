@@ -33,12 +33,12 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 import more_itertools
 
-from . import base
+from . import framework
 from . import components
 from . import workshop
 
 if TYPE_CHECKING:
-    from . import base
+    from . import framework
     from . import tasks
     
 
@@ -70,7 +70,7 @@ class Researcher(components.Manager):
     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
     proctor: Optional[tasks.Proctor] = None
 
     """ Class Methods """
@@ -111,10 +111,10 @@ class Researcher(components.Manager):
                 instances, with possible changes made.
             
         """
-        projects = self.proctor.execute(project = project)
+        projects = self.proctor.complete(project = project)
         results = {}
         for i, (key, worker) in enumerate(self.contents.items()):
-            results[key] = worker.execute(project = projects[i], **kwargs)
+            results[key] = worker.complete(project = projects[i], **kwargs)
         return results
             
 
@@ -148,7 +148,7 @@ class Analyst(Researcher, abc.ABC):
     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
         default_factory = dict)
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = framework.Parameters)
     proctor: Optional[tasks.Proctor] = None
     judge: Optional[tasks.Judge] = None
 
@@ -171,7 +171,7 @@ class Analyst(Researcher, abc.ABC):
             
         """
         results = super().implement(project = project, **kwargs)
-        project = self.judge.execute(projects = results)  
+        project = self.judge.complete(projects = results)  
         return project
 
 
@@ -283,7 +283,7 @@ def closer_implement(
         
     """
     try:
-        project = node.execute(project = project, **kwargs)
+        project = node.complete(project = project, **kwargs)
     except AttributeError:
         project = node(project, **kwargs)
     return project    
@@ -333,12 +333,12 @@ def task_implement(
         
     """
     try:
-        project = node.execute(project = project, **kwargs)
+        project = node.complete(project = project, **kwargs)
     except AttributeError:
         project = node(project, **kwargs)
     return project    
 
-def count_ancestors(node: nodes.Component, workflow: base.Stage) -> int:
+def count_ancestors(node: nodes.Component, workflow: framework.Stage) -> int:
     connections = list(more_itertools.collapse(workflow.values()))
     return connections.count(node)
     

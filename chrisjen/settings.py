@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Configuration (amos.Settings, base.ProjectBase):
+    Configuration (amos.Settings, base.Keystone):
     get_component_settings
     get_design_settings
     get_filer_settings
@@ -41,7 +41,7 @@ from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 import amos
 import bobbie
 
-from . import base
+from . import framework
     
 
  

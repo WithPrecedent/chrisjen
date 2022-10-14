@@ -1,5 +1,5 @@
 """
-stages: classes and functions related to stages of a chrisjen project
+views: classes and functions related to stages of a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -27,28 +27,20 @@ To Do:
         
 """
 from __future__ import annotations
-import abc
-import collections
-from collections.abc import (
-    Hashable, Mapping, MutableMapping, MutableSequence, Sequence, Set)
+from collections.abc import Mapping, MutableMapping
 import dataclasses
 import itertools
 import pathlib
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Type, Union
 
 import amos
 import bobbie
 
 from . import base
-from . import nodes
-from . import workshop
-
-if TYPE_CHECKING:
-    from . import base
 
 
 @dataclasses.dataclass
-class Configuration(bobbie.Settings, base.ProjectBase):
+class Configuration(bobbie.Settings, base.Keystone):
     """Loads and stores project configuration settings.
 
     Args:
@@ -78,7 +70,7 @@ class Configuration(bobbie.Settings, base.ProjectBase):
         MutableMapping: 'dictionary', 
         pathlib.Path: 'path',  
         str: 'path'}
-    suffixes: ClassVar[dict[str, tuple[str]]] = base.CONFIGURATION_SUFFIXES
+    suffixes: ClassVar[dict[str, tuple[str]]] = base.Structure.suffixes
     
     """ Properties """       
                                   
@@ -94,7 +86,17 @@ class Configuration(bobbie.Settings, base.ProjectBase):
             
         """
         return get_component_settings(settings = self)
-           
+                       
+    @property
+    def director(self) -> dict[str, Any]:
+        """Returns director settings of a chrisjen project.
+
+        Returns:
+            dict[str, Any]: director settings for a chrisjen project
+            
+        """
+        return get_director_settings(settings = self)
+               
     @property
     def filer(self) -> dict[str, Any]:
         """Returns file settings in a chrisjen project.
@@ -114,20 +116,10 @@ class Configuration(bobbie.Settings, base.ProjectBase):
             
         """       
         return get_general_settings(settings = self)
-                       
-    @property
-    def structure(self) -> dict[str, Any]:
-        """Returns structure settings of a chrisjen project.
 
-        Returns:
-            dict[str, Any]: structure settings for a chrisjen project
-            
-        """
-        return get_structure_settings(settings = self)
-    
     
 @dataclasses.dataclass
-class Outline(object):
+class Outline(base.Keystone):
     """Provides a different view of data stored in 'project.settings'.
     
     The properties in Outline are used in the construction of a Workflow. So,
@@ -213,7 +205,17 @@ class Outline(object):
             
         """
         return get_label_settings(project = self.project)
-        
+    
+    @property
+    def managers(self) -> list[str]:
+        """Returns names of nodes in 'project'.
+
+        Returns:
+            list[str]: names of all nodes that are listed in 'settings'.
+            
+        """
+        return get_manager_settings(project = self.project)       
+  
     
 """ Public Functions """
 
@@ -300,6 +302,23 @@ def get_design_settings(project: base.Project) -> dict[str, str]:
         designs.update(new_designs)
     return designs
 
+def get_director_settings(settings: Configuration) -> dict[str, Any]:
+    """Returns director settings of a chrisjen project.
+    
+    Args:
+        settings (Configuration): settings from which to derive information.
+
+    Returns:
+        dict[str, Any]: director settings for a chrisjen project
+        
+    """
+    director = {}
+    for name, section in settings.items():
+        if name.endswith(settings.suffixes['director']):
+            director = section
+            break
+    return director
+
 def get_file_settings(settings: Configuration) -> dict[str, Any]:
     """Returns file settings in a chrisjen project.
     
@@ -375,7 +394,7 @@ def get_initialization_settings(
         all_plurals = (
             project.options.plurals 
             + project.settings.suffixes['design']
-            + project.settings.suffixes['structure'])
+            + project.settings.suffixes['director'])
         initialization[key] = {
             k: v for k, v in section.items() if not k.endswith(all_plurals)}
     return initialization
@@ -425,23 +444,25 @@ def get_label_settings(project: base.Project) -> list[str]:
             labels.append(inner_key)
             labels.extend(list(itertools.chain(inner_values)))
     return amos.deduplicate_list(item = labels)    
-
-def get_structure_settings(settings: Configuration) -> dict[str, Any]:
-    """Returns structure settings of a chrisjen project.
+     
+def get_manager_settings(project: base.Project) -> list[str]:
+    """Returns manager names for a chrisjen project.
     
     Args:
-        settings (Configuration): settings from which to derive information.
+        project (base.Project): project from which to derive information.
 
     Returns:
-        dict[str, Any]: structure settings for a chrisjen project
+        list[str]: names of managers.
         
     """
-    structure = {}
-    for name, section in settings.items():
-        if name.endswith(settings.suffixes['structure']):
-            structure = section
-            break
-    return structure
+    managers = []
+    for _, section in project.settings.items():
+        manager_keys = [
+            k for k in section.keys() 
+            if k.endswith(project.settings.suffixes['manager'])]
+        for inner_key in manager_keys:
+            managers.extend(amos.listify(section[inner_key]))  
+    return managers
 
 # def infer_project_name(project: base.Project) -> Optional[str]:
 #     """Tries to infer project name from settings contents.
