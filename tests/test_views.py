@@ -34,7 +34,7 @@ import chrisjen
 
 
 def test_configuration():
-    settings = chrisjen.Configuration.create(
+    settings = chrisjen.ProjectSettings.create(
         item = pathlib.Path('tests') / 'cancer_settings.ini')
     assert list(settings.components.keys()) == [
         'wrangler', 'analyst', 'critic']

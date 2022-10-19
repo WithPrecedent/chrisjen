@@ -1,5 +1,5 @@
 """
-managers: composite nodes
+workers: composite nodes
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -17,33 +17,129 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
+    Waterfall (base.ProjectWorker): a pre-planned, rigid workflow structure.
+    Kanban (base.ProjectWorker): a sequential workflow with isolated stages
+        that produce deliverables for the following stage.
+    Scrum (base.ProjectWorker): flexible workflow structure that requires
+        greater user control and intervention.
+    Pert (base.ProjectWorker): workflow that focuses on efficient use of 
+        parallel resources, including identifying the critical path.
+    Research (base.ProjectWorker, abc.ABC): base class for workflows that
+         integrate criteria.
+    Agile (Research): a dynamic workflow structure that changes direction based 
+        on one or more criteria.
+    Contest (Research): evaluates and selects best workflow among several based 
+        on one or more criteria.
+    Lean (Research): an iterative workflow that maximizes efficiency based on
+        one or more criteria.
+    Survey (Research): averages multiple workflows based on one or more 
+        criteria.
+        
+To Do:
 
-    
+            
 """
 from __future__ import annotations
 import abc
-from collections.abc import (
-    Callable, Hashable, Mapping, MutableMapping, MutableSequence, Sequence)
-import copy
+from collections.abc import Hashable, MutableMapping, MutableSequence
+import contextlib
 import dataclasses
-import itertools
-import multiprocessing
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
-import amos
-import more_itertools
-
-from . import framework
-from . import components
-from . import workshop
+from ..core import base
 
 if TYPE_CHECKING:
-    from . import framework
-    from . import tasks
+    from .core import workshop
     
 
 @dataclasses.dataclass
-class Researcher(components.Manager):
+class Waterfall(base.Worker):
+    """Iterator for chrisjen workflows.
+        
+    Args:
+        
+            
+    """
+
+    @classmethod
+    def create(cls, name: str, project: base.Project) -> Waterfall:
+        connections = project.outline.connections[name]
+        
+
+@dataclasses.dataclass
+class Researcher(base.Worker, abc.ABC):
+    """Iterator for chrisjen workflows.
+        
+    Args:
+        project (Project): linked Project instance to modify and control.
+        worker (Optional[ProjectWorker]): specific project worker for which
+            the ProjectWorker is focused. Defaults to None. If None, the
+            ProjectWorker instance will control the top-level iteration of the
+            Project itself. 
+            
+    """
+    project: base.Project
+    worker: Optional[base.ProjectWorker] = None
+    
+    """ Initialization Methods """
+
+    def __post_init__(self) -> None:
+        """Initializes and validates class instance attributes."""
+        # Calls parent and/or mixin initialization method(s).
+        with contextlib.suppress(AttributeError):
+            super().__post_init__()
+        if self.project is not None:
+            # Validates core attributes.
+            self.validate()
+            # Sets multiprocessing technique, if necessary.
+            set_parallelization(project = self.project)
+            # Extracts information from settings to create 'project.outline'
+            # and 'contents'.
+            self.draft()
+            # Completes 'project' if 'project.automatic' is True.
+            if self.project.automatic:
+                self.publish()
+                self.complete()
+                                 
+    """ Public Methods """
+
+    def draft(self, *args: Any, **kwargs: Any) -> None:
+        """Creates str representations of all workflow components."""
+        self.project = validators.validate_workers(self.project)
+        self.project = validators.validate_outline(self.project)
+        self.project = workshop.create_workers(self.project, *args, **kwargs)
+        return
+
+    def publish(self, *args: Any, **kwargs: Any) -> None:
+        """Creates all component classes and instances."""
+        for component in self.contents:
+            self.project = workshop.create_component(
+                component,
+                self.project, 
+                *args, 
+                **kwargs)
+        return 
+
+    def complete(self, *args: Any, **kwargs: Any) -> None:
+        """Applies all workflow components to 'project'."""
+        for worker in self.contents:
+            self.project = worker.complete(self.project, *args, **kwargs)
+        return 
+
+    @classmethod
+    def create(cls, *args, **kwargs):
+        """Creates a class instance."""
+        return cls(*args, **kwargs)  
+        
+    def validate(self) -> None:
+        """Validates or creates required portions of 'project'."""
+        self.project = validators.validate_settings(project = self.project)
+        self.project = validators.validate_name(project = self.project)
+        self.project = validators.validate_id(project = self.project)
+        self.project = validators.validate_filer(project = self.project)
+        return
+    
+    
     """Base class for node containing branching and parallel Workers.
         
     Args:
@@ -76,7 +172,7 @@ class Researcher(components.Manager):
     """ Class Methods """
     
     @classmethod
-    def create(cls, name: str, project: base.Project) -> Experiment:
+    def create(cls, name: str, project: base.Project) -> Researcher:
         """[summary]
 
         Args:
@@ -119,7 +215,7 @@ class Researcher(components.Manager):
             
 
 @dataclasses.dataclass
-class Analyst(Researcher, abc.ABC):
+class Analyst(Researcher):
     """Base class for tests that return one result from a Pipelines.
         
     Args:
@@ -210,6 +306,8 @@ class Analyst(Researcher, abc.ABC):
 #     judge: Optional[tasks.Judge] = None
     
     
+    
+
 def create_researcher(
     name: str, 
     project: base.Project,

@@ -37,10 +37,10 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 import amos
 import nagata
 
-from . import framework
+from .. import framework
 
 if TYPE_CHECKING:
-    from . import framework  
+    from .. import framework  
       
       
 @dataclasses.dataclass

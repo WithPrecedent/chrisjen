@@ -39,133 +39,15 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 import holden
-from . import framework
-from . import components
-from . import workshop
+
+from .. import framework
+from .. import components
+from .core import workshop
 
 if TYPE_CHECKING:
-    from . import framework
+    from .. import framework
 
-     
-@dataclasses.dataclass
-class Workflow(holden.System, components.Stage):
-    """Project workflow composite object.
-    
-    Args:
-        contents (MutableMapping[str, Set[str]]): keys are names of nodes and
-            values are sets of names of nodes. Defaults to a defaultdict that 
-            has a set for its value format.
-                  
-    """  
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    nodes: amos.Library = dataclasses.field(default_factory = amos.Library)
-    
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, project: base.Project) -> Workflow:
-        """[summary]
-
-        Args:
-            project (base.Project): [description]
-
-        Returns:
-            Workflow: [description]
-            
-        """        
-        return workshop.create_workflow(project = project, base = cls)    
-
-    def append_depth(
-        self, 
-        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-        """[summary]
-
-        Args:
-            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-                [description]
-
-        Returns:
-            [type]: [description]
-            
-        """        
-        first_key = list(item.keys())[0]
-        self.append(first_key)
-        for node in item[first_key]:
-            self.append(item[node])
-        return self   
-    
-    def append_product(
-        self, 
-        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-        """[summary]
-
-        Args:
-            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-                [description]
-
-        Returns:
-            [type]: [description]
-            
-        """        
-        first_key = list(item.keys())[0]
-        self.append(first_key)
-        possible = [v for k, v in item.items() if k in item[first_key]]
-        combos = list(itertools.product(*possible))
-        self.append(combos)
-        return self
-    
-
-@dataclasses.dataclass
-class Results(components.Stage):
-    """Project workflow after it has been implemented.
-    
-    Args:
-        name (str): name of class used for internal referencing and logging.
-            Defaults to 'results'.
-        contents (Optional[amos.Composite]): iterable composite data structure 
-            for storing the project results. Defaults to None.
-                  
-    """  
-    name: str = 'results'
-    contents: Optional[amos.Composite] = None
-    
-    """ Public Methods """
-
-    @classmethod
-    def create(cls, project: base.Project) -> Results:
-        """[summary]
-
-        Args:
-            project (base.Project): [description]
-
-        Returns:
-            Results: [description]
-            
-        """        
-        return workshop.create_results(project = project, base = cls)
-
-    # def complete(
-    #     self, 
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
-    #     """Calls the 'implement' method the number of times in 'iterations'.
-
-    #     Args:
-    #         project (base.Project): instance from which data needed for 
-    #             implementation should be derived and all results be added.
-
-    #     Returns:
-    #         base.Project: with possible changes made.
-            
-    #     """
-    #     if self.contents not in [None, 'None', 'none']:
-    #         for node in self:
-    #             project = node.complete(project = project, **kwargs)
-    #     return project
-    
-    
+ 
 """ Public Functions """
 
 def create_workflow(
@@ -258,13 +140,13 @@ def _get_structure(project: base.Project) -> amos.Composite:
     return amos.Composite.create(structure)
     
 def _settings_to_workflow(
-    settings: framework.Configuration, 
+    settings: framework.ProjectSettings, 
     options: amos.Catalog, 
     workflow: Workflow) -> Workflow:
     """[summary]
 
     Args:
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         options (base.LIBRARY): [description]
 
     Returns:
@@ -285,13 +167,13 @@ def _settings_to_workflow(
 
 def _settings_to_component(
     name: str, 
-    settings: framework.Configuration,
+    settings: framework.ProjectSettings,
     options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         options (amos.Catalog): [description]
 
     Returns:
@@ -362,12 +244,12 @@ def _get_base(
 
 def _get_runtime(
     lookups: list[str], 
-    settings: framework.Configuration) -> dict[Hashable, Any]:
+    settings: framework.ProjectSettings) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -385,13 +267,13 @@ def _get_runtime(
 
 def _parse_initialization(
     name: str,
-    settings: framework.Configuration, 
+    settings: framework.ProjectSettings, 
     parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         parameters (list[str]): [description]
 
     Returns:
@@ -411,13 +293,13 @@ def _parse_initialization(
         return {}, {}  
 
 def _settings_to_adjacency(
-    settings: framework.Configuration, 
+    settings: framework.ProjectSettings, 
     components: dict[str, base.Projectnodes.Component],
     system: Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         components (dict[str, base.Projectnodes.Component]): [description]
         system (Workflow): [description]
 

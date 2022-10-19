@@ -27,11 +27,12 @@ from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
 from typing import Any, Optional, TYPE_CHECKING, Union
 
-from . import framework
-from . import components
+from .core import base 
+from .. import framework
+from .. import components
 
 if TYPE_CHECKING:
-    from . import framework
+    from .. import framework
 
 
 @dataclasses.dataclass

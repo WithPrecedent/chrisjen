@@ -12,7 +12,7 @@ settings = {
         'file_encoding': 'windows-1252'},
     'cool_project': {
         'cool_project_structure': 'pipeline',
-        'cool_project_managers': ['reviewer', 'parser', 'munger']},
+        'cool_project_workers': ['reviewer', 'parser', 'munger']},
     'reviewer': {
         'reviewer_design': 'laborer',
         'reviewer_techniques': ['scan', 'view'],

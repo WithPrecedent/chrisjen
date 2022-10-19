@@ -19,7 +19,7 @@ License: Apache-2.0
 Contents:
     create_workflow
     create_worker
-    create_manager
+    create_worker
     create_judge
     create_step
     create_technique
@@ -38,15 +38,30 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 
-from . import components
+from .. import components
 
 if TYPE_CHECKING:
-    from . import framework
-    from . import components
-    from . import framework
+    from .core import base
+    from .. import framework
+    from .. import components
     
 
 """ Public Functions """
+         
+def set_parallelization(project: base.Project) -> None:
+    """Sets multiprocessing method based on 'settings'.
+    
+    Args:
+        project (Project): project containing parallelization settings.
+        
+    """
+    if ('general' in project.settings
+            and 'parallelize' in project.settings['general'] 
+            and project.settings['general']['parallelize']):
+        if not globals()['multiprocessing']:
+            import multiprocessing
+        multiprocessing.set_start_method('spawn') 
+    return 
 
 def create_node(
     name: str,
@@ -63,7 +78,7 @@ def create_node(
         
     """
     design = project.outline.designs.get(name, 'component')
-    builder = locals()[f'create_{design}']
+    builder = globals()[f'create_{design}']
     return builder(name = name, project = project, **kwargs)
 
 def create_workflow(
@@ -80,8 +95,8 @@ def create_workflow(
         base.Workflow: [description]
         
     """    
-    base = base or project.base.workflow
-    workflow = base(**kwargs)
+    base = base or project.repository.keystones['workflow']
+    workflow = base(project = project, **kwargs)
     worker_names = _get_worker_names(project = project)
     for name in worker_names:
         worker = create_worker(name = name, project = project)
@@ -165,24 +180,24 @@ def create_worker(
         component = create_component(name = name)
     return
 
-def create_manager(
+def create_worker(
     name: str,
     project: base.Project,
-    base: Optional[Type[components.Manager]] = None,  
-    **kwargs) -> components.Manager:
+    base: Optional[Type[base.ProjectWorker]] = None,  
+    **kwargs) -> base.ProjectWorker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
         project (base.Project): [description]
-        base (Optional[Type[components.Manager]]): [description]. Defaults to 
+        base (Optional[Type[base.ProjectWorker]]): [description]. Defaults to 
             None.
 
     Returns:
-        components.Manager: [description]
+        base.ProjectWorker: [description]
         
     """ 
-    base = base or project.base.node.library['manager']
+    base = base or project.base.node.library['worker']
     return
 
 def create_researcher(
@@ -270,15 +285,344 @@ def create_technique(
     """ 
     base = base or project.base.node.library['technique']
     return  
+
+def get_connections(
+    project: base.Project) -> dict[str, dict[str, list[str]]]:
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, dict[str, list[str]]]: [description]
+        
+    """
+    suffixes = project.repository.nodes.plurals
+    connections = {}
+    for key, section in project.settings.components.items():
+        connections[key] = {}
+        new_connections = _get_section_connections(
+            section = section,
+            name = key,
+            plurals = suffixes)
+        for inner_key, inner_value in new_connections.items():
+            if inner_key in connections[key]:
+                connections[key][inner_key].extend(inner_value)
+            else:
+                connections[key][inner_key] = inner_value
+    return connections
+
+def get_designs(project: base.Project) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """
+    designs = {}
+    for key, section in project.settings.components.items():
+        new_designs = _get_section_designs(section = section, name = key)
+        designs.update(new_designs)
+    return designs
+         
+def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, dict[str, Any]]: [description]
+        
+    """
+    implementation = {}
+    for key, section in project.settings.parameters.items():
+        new_key = key.removesuffix('_' + framework._PARAMETERS_SUFFIX)
+        implementation[new_key] = section
+    return implementation
+   
+def get_initialization(project: base.Project) -> dict[str, dict[str, Any]]:
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, dict[str, Any]]: [description]
+        
+    """
+    initialization = {}
+    for key, section in project.settings.components.items():   
+        new_initialization = _get_section_initialization(
+            section = section,
+            plurals = project.repository.nodes.plurals)
+        initialization[key] = new_initialization
+    return initialization
+                          
+def get_kinds(project: base.Project) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """
+    kinds = {}
+    for key, section in project.settings.components.items():
+        new_kinds = _get_section_kinds(
+            section = section,
+            plurals = project.repository.nodes.plurals)
+        kinds.update(new_kinds)  
+    return kinds
+
+def get_labels(project: base.Project) -> list[str]:
+    """Returns names of nodes based on 'project.settings'.
+
+    Args:
+        project (base.Project): an instance of Project with 'settings' and
+            'connections'.
+        
+    Returns:
+        list[str]: names of all nodes that are listed in 'project.settings'.
+        
+    """ 
+    labels = []
+    connections = get_connections(project = project)       
+    for key, section in connections.items():
+        labels.append(key)
+        for inner_key, inner_values in section.items():
+            labels.append(inner_key)
+            labels.extend(list(itertools.chain(inner_values)))
+    return amos.deduplicate_list(item = labels)     
+
+def get_worker_sections(
+    project: base.Project) -> dict[str, dict[Hashable, Any]]: 
+    """Returns names of sections containing data for worker creation.
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        dict[str, dict[Hashable, Any]]: [description]
+        
+    """
+    suffixes = project.repository.nodes.plurals
+    return {
+        k: v for k, v in project.settings.items() 
+        if is_worker_section(section = v, suffixes = suffixes)}
+
+def infer_project_name(project: base.Project) -> Optional[str]:
+    """Tries to infer project name from settings contents.
+    
+    Args:
+        project (base.Project): an instance of Project with 'settings'.
+        
+    Returns:
+        Optional[str]: project name or None, if none is found.
+                
+    """
+    suffixes = project.repository.nodes.plurals
+    name = None    
+    for key, section in project.settings.items():
+        if (
+            key not in ['general', 'files', 'filer', 'filer'] 
+                and any(k.endswith(suffixes) for k in section.keys())):
+            name = key
+            break
+    return name
+
+def is_worker_section(
+    section: MutableMapping[Hashable, Any], 
+    suffixes: tuple[str, ...]) -> bool:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        suffixes (tuple[str, ...]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """ 
+    return any(
+        is_connections(key = k, suffixes = suffixes) for k in section.keys())
+
+def is_connections(key: str, suffixes: tuple[str, ...]) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (tuple[str, ...]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith(suffixes)
+
+def is_design(key: str) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (list[str]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith('_' + framework._DESIGN_Library)
+
+def is_parameters(key: str) -> bool:
+    """[summary]
+
+    Args:
+        key (str): [description]
+        suffixes (list[str]): [description]
+
+    Returns:
+        bool: [description]
+        
+    """    
+    return key.endswith('_' + framework._PARAMETERS_Library)
+ 
+""" Private Functions """
+    
+def _get_section_connections(
+    section: MutableMapping[Hashable, Any],
+    name: str,
+    plurals: Sequence[str]) -> dict[str, list[str]]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        name (str): [description]
+        plurals (Sequence[str]): [description]
+
+    Returns:
+        dict[str, list[str]]: [description]
+        
+    """    
+    connections = {}
+    keys = [
+        k for k in section.keys() 
+        if is_connections(key = k, suffixes = plurals)]
+    for key in keys:
+        prefix, suffix = amos.cleave_str(key)
+        values = list(amos.iterify(section[key]))
+        if prefix == suffix:
+            if prefix in connections:
+                connections[name].extend(values)
+            else:
+                connections[name] = values
+        else:
+            if prefix in connections:
+                connections[prefix].extend(values)
+            else:
+                connections[prefix] = values
+    return connections
+
+def _get_section_designs(
+    section: MutableMapping[Hashable, Any],
+    name: str) -> dict[str, str]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        name (str): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """    
+    designs = {}
+    design_keys = [
+        k for k in section.keys() 
+        if k.endswith(framework._DESIGN_SUFFIX)]
+    for key in design_keys:
+        prefix, suffix = amos.cleave_str(key)
+        if prefix == suffix:
+            designs[name] = section[key]
+        else:
+            designs[prefix] = section[key]
+    return designs
+     
+def _get_section_initialization(
+    section: MutableMapping[Hashable, Any],
+    plurals: Sequence[str]) -> dict[str, Any]:
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        plurals (Sequence[str]): [description]
+
+    Returns:
+        dict[str, Any]: [description]
+        
+    """
+    all_plurals = plurals + tuple([framework._DESIGN_SUFFIX])
+    return {
+        k: v for k, v in section.items() if not k.endswith(all_plurals)}
+
+def _get_section_kinds(    
+    section: MutableMapping[Hashable, Any],
+    plurals: Sequence[str]) -> dict[str, str]: 
+    """[summary]
+
+    Args:
+        section (MutableMapping[Hashable, Any]): [description]
+        plurals (Sequence[str]): [description]
+
+    Returns:
+        dict[str, str]: [description]
+        
+    """         
+    kinds = {}
+    keys = [k for k in section.keys() if k.endswith(plurals)]
+    for key in keys:
+        _, suffix = amos.cleave_str(key)
+        values = list(amos.iterify(section[key]))
+        if values not in [['none'], ['None'], ['NONE']]:
+            if suffix.endswith('s'):
+                kind = suffix[:-1]
+            else:
+                kind = suffix            
+            kinds.update(dict.fromkeys(values, kind))
+    return kinds  
+
+def _get_worker_names(project: base.Project) -> list[str]: 
+    """[summary]
+
+    Args:
+        project (base.Project): [description]
+
+    Returns:
+        list[str]: [description]
+        
+    """            
+    try:
+        return project.outline.workers.pop(project.name)
+    except KeyError:
+        try:
+            return project.outline.workers.pop(project.name + '_workers')
+        except KeyError:
+            raise KeyError(
+                f'Could not find workers for {project.name} in the project '
+                f'outline')
         
 def _settings_to_workflow(
-    settings: framework.Configuration, 
+    settings: framework.ProjectSettings, 
     options: amos.Catalog, 
     workflow: framework.Workflow) -> framework.Workflow:
     """[summary]
 
     Args:
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         options (amos.Catalog): [description]
         workflow (base.Workflow): [description]
 
@@ -300,13 +644,13 @@ def _settings_to_workflow(
 
 def _settings_to_composite(
     name: str, 
-    settings: framework.Configuration,
+    settings: framework.ProjectSettings,
     options: amos.Catalog) -> base.Projectnodes.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         options (amos.Catalog): [description]
 
     Returns:
@@ -449,13 +793,13 @@ def _get_component(
     return project.base.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
-    settings: framework.Configuration, 
+    settings: framework.ProjectSettings, 
     components: dict[str, base.Projectnodes.Component],
     system: framework.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
-        settings (base.Configuration): [description]
+        settings (base.ProjectSettings): [description]
         components (dict[str, base.Projectnodes.Component]): [description]
         system (base.Workflow): [description]
 
