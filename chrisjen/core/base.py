@@ -42,6 +42,8 @@ import bobbie
 import holden
 import miller
 
+from . import foundry
+
 
 @dataclasses.dataclass
 class ProjectKeystone(abc.ABC):
@@ -87,6 +89,8 @@ class ProjectLibrary(amos.Library):
         default_factory = amos.Catalog)
     instances: amos.Catalog[str, ProjectKeystone] = dataclasses.field(
         default_factory = amos.Catalog)
+    kinds: MutableMapping[str, Type[ProjectKeystone]] = dataclasses.field(
+        default_factory = dict)
 
     """ Properties """
     
@@ -104,8 +108,22 @@ class ProjectLibrary(amos.Library):
             plurals = [k + 's' for k in getattr(self, catalog).keys()]
             suffixes.extend(plurals)
         return tuple(suffixes)
-          
-          
+  
+    """ Public Methods """
+    
+    def add_kind(self, item: Type[ProjectKeystone]) -> None:
+        """Adds 'item' to 'kinds' dict.
+        
+        Args:
+            item (Type[ProjectKeystone]
+        """
+        key = amos.namify(item = item)
+        if key.startswith('project_'):
+            key = key[8:]
+        self.kinds[key] = item
+        return
+   
+      
 @dataclasses.dataclass
 class Project(object):
     """User interface for a chrisjen project.
@@ -115,7 +133,7 @@ class Project(object):
             used for internal referencing throughout chrisjen. Defaults to None. 
         settings (Optional[ProjectKeystone]): configuration settings for the 
             project. Defaults to None.
-        filer (Optional[ProjectKeystone]): a filing filer for loading and saving 
+        clerk (Optional[ProjectKeystone]): a filing clerk for loading and saving 
             files throughout a chrisjen project. Defaults to None.
         director (Optional[ProjectKeystone]): constructor for a chrisjen 
             project. Defaults to None.
@@ -133,7 +151,7 @@ class Project(object):
     """
     name: Optional[str] = None
     settings: Optional[bobbie.Settings] = None
-    filer: Optional[ProjectKeystone] = None
+    clerk: Optional[ProjectKeystone] = None
     director: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True
@@ -200,8 +218,8 @@ class Project(object):
         except AttributeError:
             return AttributeError(
                 f'{item} is not in the project or its manager')
- 
- 
+           
+
 @dataclasses.dataclass
 class ProjectDirector(ProjectKeystone, abc.ABC):
     """Constructor for chrisjen workflows.
@@ -222,18 +240,39 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         # Validates core attributes.
         self.validate()
         # Completes 'project' if 'project.automatic' is True.
+        self.draft()
         if self.project.automatic:
             self.complete()
                                  
     """ Required Subclass Methods """
 
     @abc.abstractmethod
-    def complete(self, *args: Any, **kwargs: Any) -> None:
+    def complete(self) -> None:
         """Applies all workflow components to 'project'."""
-        pass
+        self.publish()
+        self.execute()
+        return
 
     """ Public Methods """       
     
+    def draft(self) -> None:
+        """Adds a project outline to 'project'."""
+        self.project.outline = ProjectKeystone.keystones['outline'](
+            project = self.project)
+        return
+    
+    def publish(self) -> None:
+        """Adds a project workflow to 'project'."""
+        if self.project.name in self.project.outline.designs:
+            design = self.project.outline.designs[self.project.name]
+            workflow = self.project.library.withdraw(item = design)
+        else:
+            workflow = ProjectKeystone.keystones['workflow'](
+                project = self.project)
+        self.project.workflow = workflow
+        self.project = foundry.complete_workflow(project = self.projectr)
+        return
+        
     def validate(self) -> None:
         """Validates or creates required portions of 'project'."""
         self._validate_settings()
@@ -346,8 +385,10 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         if key.startswith('project_'):
             key = key[8:]
         Project.library.deposit(item = cls, name = key)
+        if ProjectNode in cls.__bases__:
+            Project.library.add_kind(item = cls)
+            
         
-
     def __post_init__(self) -> None:
         """Initializes and validates class instance attributes."""
         # Calls parent and/or mixin initialization method(s).
@@ -380,7 +421,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
 
     """ Public Methods """
     
-    def complete(self, item: Any, *args: Any, **kwargs: Any) -> Any:
+    def complete(self, item: Any, **kwargs: Any) -> Any:
         """Calls the 'implement' method after finalizing parameters.
 
         Args:
@@ -393,7 +434,9 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
             
         """
         if self.contents not in [None, 'None', 'none']:
-            result = self.implement(item = item, **self.parameters)
+            with contextlib.suppress(AttributeError):
+                self.parameters.finalize(item = item)
+            result = self.implement(item = item, **self.parameters, **kwargs)
         return result 
            
     """ Dunder Methods """

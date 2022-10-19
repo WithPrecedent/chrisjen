@@ -37,10 +37,7 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 import amos
 import nagata
 
-from .. import framework
-
-if TYPE_CHECKING:
-    from .. import framework  
+from . import base
       
       
 @dataclasses.dataclass
@@ -215,7 +212,7 @@ class Filer(nagata.FileManager):
             global 'default_parameters' variable.
 
     """
-    project: base.Project
+    project: Optional[base.Project] = None
     root_folder: Union[str, pathlib.Path] = pathlib.Path('..')
     input_folder: Union[str, pathlib.Path] = 'input'
     output_folder: Union[str, pathlib.Path] = 'output'

@@ -17,14 +17,14 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Waterfall (base.ProjectWorker): a pre-planned, rigid workflow structure.
-    Kanban (base.ProjectWorker): a sequential workflow with isolated stages
+    Waterfall (nodes.Worker): a pre-planned, rigid workflow structure.
+    Kanban (nodes.Worker): a sequential workflow with isolated stages
         that produce deliverables for the following stage.
-    Scrum (base.ProjectWorker): flexible workflow structure that requires
+    Scrum (nodes.Worker): flexible workflow structure that requires
         greater user control and intervention.
-    Pert (base.ProjectWorker): workflow that focuses on efficient use of 
+    Pert (nodes.Worker): workflow that focuses on efficient use of 
         parallel resources, including identifying the critical path.
-    Research (base.ProjectWorker, abc.ABC): base class for workflows that
+    Research (nodes.Worker, abc.ABC): base class for workflows that
          integrate criteria.
     Agile (Research): a dynamic workflow structure that changes direction based 
         on one or more criteria.
@@ -41,19 +41,21 @@ To Do:
 """
 from __future__ import annotations
 import abc
-from collections.abc import Hashable, MutableMapping, MutableSequence
+import collections
+from collections.abc import Hashable, MutableMapping, MutableSequence, Set
 import contextlib
 import dataclasses
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
-from ..core import base
+import more_itertools
 
-if TYPE_CHECKING:
-    from .core import workshop
-    
+from . import base
+from . import nodes
+from . import tasks
+from . import workshop
 
 @dataclasses.dataclass
-class Waterfall(base.Worker):
+class Waterfall(nodes.Worker):
     """Iterator for chrisjen workflows.
         
     Args:
@@ -62,12 +64,13 @@ class Waterfall(base.Worker):
     """
 
     @classmethod
-    def create(cls, name: str, project: base.Project) -> Waterfall:
+    def create(cls, name: str, project: nodes.Project) -> Waterfall:
         connections = project.outline.connections[name]
+        return
         
 
 @dataclasses.dataclass
-class Researcher(base.Worker, abc.ABC):
+class Researcher(nodes.Worker, abc.ABC):
     """Iterator for chrisjen workflows.
         
     Args:
@@ -78,101 +81,19 @@ class Researcher(base.Worker, abc.ABC):
             Project itself. 
             
     """
-    project: base.Project
-    worker: Optional[base.ProjectWorker] = None
-    
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        with contextlib.suppress(AttributeError):
-            super().__post_init__()
-        if self.project is not None:
-            # Validates core attributes.
-            self.validate()
-            # Sets multiprocessing technique, if necessary.
-            set_parallelization(project = self.project)
-            # Extracts information from settings to create 'project.outline'
-            # and 'contents'.
-            self.draft()
-            # Completes 'project' if 'project.automatic' is True.
-            if self.project.automatic:
-                self.publish()
-                self.complete()
-                                 
-    """ Public Methods """
-
-    def draft(self, *args: Any, **kwargs: Any) -> None:
-        """Creates str representations of all workflow components."""
-        self.project = validators.validate_workers(self.project)
-        self.project = validators.validate_outline(self.project)
-        self.project = workshop.create_workers(self.project, *args, **kwargs)
-        return
-
-    def publish(self, *args: Any, **kwargs: Any) -> None:
-        """Creates all component classes and instances."""
-        for component in self.contents:
-            self.project = workshop.create_component(
-                component,
-                self.project, 
-                *args, 
-                **kwargs)
-        return 
-
-    def complete(self, *args: Any, **kwargs: Any) -> None:
-        """Applies all workflow components to 'project'."""
-        for worker in self.contents:
-            self.project = worker.complete(self.project, *args, **kwargs)
-        return 
-
-    @classmethod
-    def create(cls, *args, **kwargs):
-        """Creates a class instance."""
-        return cls(*args, **kwargs)  
-        
-    def validate(self) -> None:
-        """Validates or creates required portions of 'project'."""
-        self.project = validators.validate_settings(project = self.project)
-        self.project = validators.validate_name(project = self.project)
-        self.project = validators.validate_id(project = self.project)
-        self.project = validators.validate_filer(project = self.project)
-        return
-    
-    
-    """Base class for node containing branching and parallel Workers.
-        
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow
-            Defaults to None.
-        contents (MutableMapping[Hashable, components.Worker]): keys are the 
-            names or other identifiers for the stored Worker instances and 
-            values are Worker instances. Defaults to an empty dict.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty base.Parameters instance.
-        proctor (Optional[Distributor]): node for copying, splitting, or
-            otherwise creating multiple projects for use by the Workers 
-            stored in 'contents'.
-                       
-    Attributes:
-        library (ClassVar[base.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.namify' 
-            function.
-                          
-    """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
-        default_factory = dict)
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = framework.Parameters)
+        default_factory = nodes.Parameters)
+    project: Optional[base.Project] = None
     proctor: Optional[tasks.Proctor] = None
 
     """ Class Methods """
     
     @classmethod
-    def create(cls, name: str, project: base.Project) -> Researcher:
+    def create(cls, name: str, project: nodes.Project) -> Researcher:
         """[summary]
 
         Args:
@@ -183,7 +104,7 @@ class Researcher(base.Worker, abc.ABC):
             [type]: [description]
             
         """
-        return workshop.create_researcher(
+        return create_researcher(
             name = name, 
             project = project,
             base = cls)   
@@ -192,18 +113,18 @@ class Researcher(base.Worker, abc.ABC):
     
     def implement(
         self, 
-        project: base.Project, 
-        **kwargs) -> MutableMapping[Hashable, base.Project]:
+        project: nodes.Project, 
+        **kwargs) -> MutableMapping[Hashable, nodes.Project]:
         """Applies 'contents' to 'project'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (base.Project): instance from which data needed for 
+            project (nodes.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            MutableMapping[Hashable, base.Project]: dict of project 
+            MutableMapping[Hashable, nodes.Project]: dict of project 
                 instances, with possible changes made.
             
         """
@@ -227,7 +148,7 @@ class Analyst(Researcher):
             values are Worker instances. Defaults to an empty dict.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty base.Parameters instance.
+            empty nodes.Parameters instance.
         proctor (Optional[Distributor]): node for copying, splitting, or
             otherwise creating multiple projects for use by the Workers 
             stored in 'contents'.
@@ -235,16 +156,18 @@ class Analyst(Researcher):
             in 'contents' to a single Worker or Node.
                                    
     Attributes:
-        library (ClassVar[base.Options]): Component subclasses and
+        library (ClassVar[nodes.Options]): Component subclasses and
             instances stored with str keys derived from the 'amos.namify' 
             function.
                           
     """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
-        default_factory = dict)
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = framework.Parameters)
+        default_factory = nodes.Parameters)
+    project: Optional[base.Project] = None
     proctor: Optional[tasks.Proctor] = None
     judge: Optional[tasks.Judge] = None
 
@@ -252,18 +175,18 @@ class Analyst(Researcher):
     
     def implement(
         self, 
-        project: base.Project, 
-        **kwargs) -> base.Project:
+        project: nodes.Project, 
+        **kwargs) -> nodes.Project:
         """Applies 'contents' to 'project'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (base.Project): instance from which data needed for 
+            project (nodes.Project): instance from which data needed for 
                 implementation should be derived and all results be added.
 
         Returns:
-            base.Project: with possible changes made.
+            nodes.Project: with possible changes made.
             
         """
         results = super().implement(project = project, **kwargs)
@@ -284,7 +207,7 @@ class Analyst(Researcher):
 #             values are Worker instances. Defaults to an empty dict.
 #         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
 #             'contents' when the 'implement' method is called. Defaults to an
-#             empty base.Parameters instance.
+#             empty nodes.Parameters instance.
 #         proctor (Optional[Distributor]): node for copying, splitting, or
 #             otherwise creating multiple projects for use by the Workers 
 #             stored in 'contents'.
@@ -292,7 +215,7 @@ class Analyst(Researcher):
 #             in 'contents' to a single Worker or Node.
                                    
 #     Attributes:
-#         library (ClassVar[base.Options]): Component subclasses and
+#         library (ClassVar[nodes.Options]): Component subclasses and
 #             instances stored with str keys derived from the 'amos.namify' 
 #             function.
                           
@@ -301,7 +224,7 @@ class Analyst(Researcher):
 #     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
 #         default_factory = dict)
 #     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-#         default_factory = base.Parameters)
+#         default_factory = nodes.Parameters)
 #     proctor: Optional[tasks.Proctor] = None
 #     judge: Optional[tasks.Judge] = None
     
@@ -310,13 +233,13 @@ class Analyst(Researcher):
 
 def create_researcher(
     name: str, 
-    project: base.Project,
+    project: nodes.Project,
     **kwargs) -> Researcher:
     """[summary]
 
     Args:
         name (str): [description]
-        project (base.Project): [description]
+        project (nodes.Project): [description]
 
     Returns:
         Experiment: [description]
@@ -342,17 +265,17 @@ def create_researcher(
 
 def implement(
     node: nodes.Component,
-    project: base.Project, 
-    **kwargs) -> base.Project:
+    project: nodes.Project, 
+    **kwargs) -> nodes.Project:
     """Applies 'node' to 'project'.
 
     Args:
         node (nodes.Component): node in a workflow to apply to 'project'.
-        project (base.Project): instance from which data needed for 
+        project (nodes.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
     Returns:
-        base.Project: with possible changes made by 'node'.
+        nodes.Project: with possible changes made by 'node'.
         
     """
     ancestors = count_ancestors(node = node, workflow = project.workflow)
@@ -367,17 +290,17 @@ def implement(
     
 def closer_implement(
     node: nodes.Component,
-    project: base.Project, 
-    **kwargs) -> base.Project:
+    project: nodes.Project, 
+    **kwargs) -> nodes.Project:
     """Applies 'node' to 'project'.
 
     Args:
         node (nodes.Component): node in a workflow to apply to 'project'.
-        project (base.Project): instance from which data needed for 
+        project (nodes.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
     Returns:
-        base.Project: with possible changes made by 'node'.
+        nodes.Project: with possible changes made by 'node'.
         
     """
     try:
@@ -388,17 +311,17 @@ def closer_implement(
 
 def test_implement(
     node: nodes.Component,
-    project: base.Project, 
-    **kwargs) -> base.Project:
+    project: nodes.Project, 
+    **kwargs) -> nodes.Project:
     """Applies 'node' to 'project'.
 
     Args:
         node (nodes.Component): node in a workflow to apply to 'project'.
-        project (base.Project): instance from which data needed for 
+        project (nodes.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
     Returns:
-        base.Project: with possible changes made by 'node'.
+        nodes.Project: with possible changes made by 'node'.
         
     """
     connections = project.workflow[node]
@@ -417,17 +340,17 @@ def test_implement(
          
 def task_implement(
     node: nodes.Component,
-    project: base.Project, 
-    **kwargs) -> base.Project:
+    project: nodes.Project, 
+    **kwargs) -> nodes.Project:
     """Applies 'node' to 'project'.
 
     Args:
         node (nodes.Component): node in a workflow to apply to 'project'.
-        project (base.Project): instance from which data needed for 
+        project (nodes.Project): instance from which data needed for 
             implementation should be derived and all results be added.
 
     Returns:
-        base.Project: with possible changes made by 'node'.
+        nodes.Project: with possible changes made by 'node'.
         
     """
     try:

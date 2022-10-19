@@ -30,13 +30,14 @@ from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import contextlib
 import dataclasses
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+from typing import (
+    Any, Callable, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union)
 
 import amos
 import holden
 import miller
 
-from ..core import base
+from . import base
 
 
 @dataclasses.dataclass    
@@ -101,14 +102,10 @@ class Parameters(amos.Dictionary, base.ProjectKeystone):
         """
         # Uses kwargs and 'default' parameters as a starting amos.
         parameters = self.default
-        # Adds any parameters from 'settings'.
-        try:
-            parameters.update(self._from_settings(item = item))
-        except AttributeError:
-            pass
+        # Adds any parameters from 'outline'.
+        parameters.update(self._from_outline(item = item))
         # Adds any implementation parameters.
-        if self.implementation:
-            parameters.update(self._at_runtime(item = item))
+        parameters.update(self._at_runtime(item = item))
         # Adds any parameters already stored in 'contents'.
         parameters.update(self.contents)
         # Adds any passed kwargs, which will override any other parameters.
@@ -121,32 +118,28 @@ class Parameters(amos.Dictionary, base.ProjectKeystone):
 
     """ Private Methods """
      
-    def _from_settings(self, project: base.Project) -> dict[str, Any]: 
-        """Returns any applicable parameters from 'settings'.
+    def _from_outline(self, project: base.Project) -> dict[str, Any]: 
+        """Returns any applicable parameters from 'outline'.
 
         Args:
-            project (base.Project): project has parameters from settings.
+            project (base.Project): project has parameters from 'outline.'
 
         Returns:
-            dict[str, Any]: any applicable settings parameters or an empty dict.
+            dict[str, Any]: any applicable outline parameters or an empty dict.
             
         """
+        keys = [self.name]
+        keys.append(project.outline.kinds[self.name])
         try:
-            parameters = project.implementation[self.name]
+            keys.append(project.outline.designs[self.name])
         except KeyError:
+            pass
+        for key in keys:
             try:
-                parameters = item.settings[f'{self.name}_parameters']
+                return project.outline.implementation[key]
             except KeyError:
-                suffix = self.name.split('_')[-1]
-                prefix = self.name[:-len(suffix) - 1]
-                try:
-                    parameters = item.settings[f'{prefix}_parameters']
-                except KeyError:
-                    try:
-                        parameters = item.settings[f'{suffix}_parameters']
-                    except KeyError:
-                        parameters = {}
-        return parameters
+                pass
+        return {}
    
     def _at_runtime(self, item: Any) -> dict[str, Any]:
         """Adds implementation parameters to 'contents'.
@@ -164,44 +157,15 @@ class Parameters(amos.Dictionary, base.ProjectKeystone):
                 self.contents[parameter] = getattr(item, attribute)
             except AttributeError:
                 try:
-                    self.contents[parameter] = item.contents[attribute]
+                    self.contents[parameter] = (
+                        item.settings['general'][attribute])
                 except (KeyError, AttributeError):
                     pass
         return self
     
 
 @dataclasses.dataclass
-class ProjectManager(holden.System, base.ProjectKeystone, abc.ABC):
-    """Iterator for chrisjen workflows.
-        
-    Args:
-        contents (MutableMapping[Hashable, Set[Hashable]]): keys are nodes and 
-            values are sets of nodes (or hashable representations of nodes). 
-            Defaults to a defaultdict that has a set for its value format.
-        name:
-                  
-    """  
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    name: Optional[str] = None
-    nodes: amos.Library = dataclasses.field(default_factory = amos.Library)
-                                                          
-    """ Required Subclass Methods """
-
-    @abc.abstractmethod
-    def complete(self, project: Project) -> Project:
-        """Iterates through nodes."""
-        pass
-
-    @abc.abstractclassmethod
-    def create(self, name: str, project: Project) -> ProjectManager:
-        """Iterates through nodes."""
-        pass
-
-
-@dataclasses.dataclass
-class ProjectWorker(holden.System, ProjectNode):
+class Worker(holden.System, base.ProjectNode):
     """Base class for creating, managing, and iterating a workflow.
         
     Args:
@@ -217,23 +181,13 @@ class ProjectWorker(holden.System, ProjectNode):
     contents: MutableMapping[Hashable, Set[Hashable]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = Parameters)
     project: Optional[base.Project] = None
-    
-    """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass in 'worker.repository'."""
-        # Calls other '__init_subclass__' methods, if they exist.
-        with contextlib.suppress(AttributeError):
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        if not abc.ABC in cls.__bases__:
-            base.ProjectStructure.nodes.deposit(item = cls)
-        base.Structure.nodes.kindify(item = cls, kind = 'worker')
                          
     """ Required Subclass Methods """
 
-    def complete(self, item: Any, *args: Any, **kwargs: Any) -> Any:
+    def implement(self, item: Any, **kwargs: Any) -> Any:
         """Calls the 'implement' method after finalizing parameters.
 
         Args:
@@ -246,94 +200,13 @@ class ProjectWorker(holden.System, ProjectNode):
             
         """
         for node in self.walk:
-            component = self.create_component(
-                name = node, 
-                project = self.project)
-            self.project = component.complete(self.project, *args, **kwargs)
+            component = self.project.library.withdraw(item = node)
+            self.project = component.complete(self.project, **kwargs)
         return
   
-
-
-@dataclasses.dataclass
-class Worker(holden.Path, ProjectNode):
-    """Iterable component of a chrisjen workflow.
-
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-                              
-    """
-    name: Optional[str] = None
-    contents: MutableSequence[Hashable] = dataclasses.field(
-        default_factory = list)
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
-
-    """ Public Methods """  
-    
-    def complete(self, 
-        project: base.Project, 
-        **kwargs) -> base.Project:
-        """Calls the 'implement' method the number of times in 'iterations'.
-
-        Args:
-            project (base.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            base.Project: with possible changes made.
-            
-        """
-        if self.contents not in [None, 'None', 'none']:
-            self.finalize(project = project, **kwargs)
-            project = self.implement(project = project, **self.parameters)
-        return project
-           
-    def implement(
-        self, 
-        project: base.Project, 
-        **kwargs) -> base.Project:
-        """Applies 'contents' to 'project'.
-        
-        Args:
-            project (base.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            base.Project: with possible changes made.
-            
-        """
-        return self._implement_in_serial(project = project, **kwargs)  
-
-    """ Private Methods """
-    
-    def _implement_in_serial(
-        self, 
-        project: base.Project, 
-        **kwargs) -> base.Project:
-        """Applies 'contents' to 'project'.
-        
-        Args:
-            project (base.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
-
-        Returns:
-            base.Project: with possible changes made.
-            
-        """
-        for node in self.contents:
-            project = node.complete(project = project, **kwargs)
-        return project  
-    
                  
 @dataclasses.dataclass
-class Task(ProjectNode):
+class Task(base.ProjectNode):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -396,19 +269,19 @@ class Criteria(base.ProjectKeystone):
         default_factory = dict)
 
  
-def is_component(item: Union[object, Type[Any]]) -> bool:
-    """Returns whether 'item' is a component.
+# def is_component(item: Union[object, Type[Any]]) -> bool:
+#     """Returns whether 'item' is a component.
 
-    Args:
-        item (Union[object, Type[Any]]): instance or class to check.
+#     Args:
+#         item (Union[object, Type[Any]]): instance or class to check.
 
-    Returns:
-        bool: whether 'item' is a component.
+#     Returns:
+#         bool: whether 'item' is a component.
         
-    """
-    return (
-        miller.has_attributes(item, ['name', 'contents', 'parameters'])
-        and miller.has_methods(item, ['complete']))
+#     """
+#     return (
+#         miller.has_attributes(item, ['name', 'contents', 'parameters'])
+#         and miller.has_methods(item, ['complete']))
 
 
                   

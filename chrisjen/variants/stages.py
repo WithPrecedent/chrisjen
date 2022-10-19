@@ -40,294 +40,289 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 import holden
 
-from .. import framework
-from .. import components
-from .core import workshop
-
-if TYPE_CHECKING:
-    from .. import framework
+from ..core import workshop
 
  
-""" Public Functions """
+# """ Public Functions """
 
-def create_workflow(
-    project: base.Project,
-    base: Optional[Type[Workflow]] = None, 
-    **kwargs) -> Workflow:
-    """[summary]
+# def create_workflow(
+#     project: base.Project,
+#     base: Optional[Type[Workflow]] = None, 
+#     **kwargs) -> Workflow:
+#     """[summary]
 
-    Args:
-        project (base.Project): [description]
-        base (Optional[Type[Workflow]]): [description]. Defaults to None.
+#     Args:
+#         project (base.Project): [description]
+#         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
-    Returns:
-        Workflow: [description]
+#     Returns:
+#         Workflow: [description]
         
-    """
+#     """
     
-    base = base or Workflow
-    if 'contents' not in kwargs:
-        kwargs['contents'] = _get_structure(project = project)
-    elif isinstance(kwargs['contents'], str):
-        kwargs['contents'] = amos.Composite.create(kwargs['contents'])
-    workflow = base(**kwargs)
-    return _settings_to_workflow(
-        settings = project.settings,
-        options = project.options,
-        workflow = workflow)
+#     base = base or Workflow
+#     if 'contents' not in kwargs:
+#         kwargs['contents'] = _get_structure(project = project)
+#     elif isinstance(kwargs['contents'], str):
+#         kwargs['contents'] = amos.Composite.create(kwargs['contents'])
+#     workflow = base(**kwargs)
+#     return _settings_to_workflow(
+#         settings = project.settings,
+#         options = project.options,
+#         workflow = workflow)
     
-def create_workflow(
-    project: base.Project,
-    base: Optional[Type[Workflow]] = None, 
-    **kwargs) -> Workflow:
-    """[summary]
+# def create_workflow(
+#     project: base.Project,
+#     base: Optional[Type[Workflow]] = None, 
+#     **kwargs) -> Workflow:
+#     """[summary]
 
-    Args:
-        project (base.Project): [description]
-        base (Optional[Type[Workflow]]): [description]. Defaults to None.
+#     Args:
+#         project (base.Project): [description]
+#         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
-    Returns:
-        Workflow: [description]
+#     Returns:
+#         Workflow: [description]
         
-    """    
-    print('test settings kinds', project.settings.kinds) 
-    base = base or Workflow
-    workflow = base(**kwargs)
-    return _settings_to_workflow(
-        settings = project.settings,
-        options = project.options,
-        workflow = workflow)
+#     """    
+#     print('test settings kinds', project.settings.kinds) 
+#     base = base or Workflow
+#     workflow = base(**kwargs)
+#     return _settings_to_workflow(
+#         settings = project.settings,
+#         options = project.options,
+#         workflow = workflow)
 
-def create_results(
-    project: base.Project,
-    base: Optional[Type[Results]] = None, 
-    **kwargs) -> Results:
-    """[summary]
+# def create_results(
+#     project: base.Project,
+#     base: Optional[Type[Results]] = None, 
+#     **kwargs) -> Results:
+#     """[summary]
 
-    Args:
-        project (base.Project): [description]
-        base (Optional[Type[Results]]): [description]. Defaults to None.
+#     Args:
+#         project (base.Project): [description]
+#         base (Optional[Type[Results]]): [description]. Defaults to None.
 
-    Returns:
-        Results: [description]
+#     Returns:
+#         Results: [description]
         
-    """    
-    base = base or Results
-    results = base(**kwargs)
-    for path in project.workflow.paths:
-        results.add(_path_to_result(path = path, project = project))
-    return results
+#     """    
+#     base = base or Results
+#     results = base(**kwargs)
+#     for path in project.workflow.paths:
+#         results.add(_path_to_result(path = path, project = project))
+#     return results
 
-""" Private Functions """
+# """ Private Functions """
 
-def _get_structure(project: base.Project) -> amos.Composite:
-    """[summary]
+# def _get_structure(project: base.Project) -> amos.Composite:
+#     """[summary]
 
-    Args:
-        project (base.Project): [description]
+#     Args:
+#         project (base.Project): [description]
 
-    Returns:
-        amos.Composite: [description]
+#     Returns:
+#         amos.Composite: [description]
         
-    """
-    try:
-        structure = project.settings[project.name][f'{project.name}_structure']
-    except KeyError:
-        try:
-            structure = project.settings[project.name]['structure']
-        except KeyError:
-            structure = project.base.default_workflow
-    return amos.Composite.create(structure)
+#     """
+#     try:
+#         structure = project.settings[project.name][f'{project.name}_structure']
+#     except KeyError:
+#         try:
+#             structure = project.settings[project.name]['structure']
+#         except KeyError:
+#             structure = project.base.default_workflow
+#     return amos.Composite.create(structure)
     
-def _settings_to_workflow(
-    settings: framework.ProjectSettings, 
-    options: amos.Catalog, 
-    workflow: Workflow) -> Workflow:
-    """[summary]
+# def _settings_to_workflow(
+#     settings: framework.ProjectSettings, 
+#     options: amos.Catalog, 
+#     workflow: Workflow) -> Workflow:
+#     """[summary]
 
-    Args:
-        settings (base.ProjectSettings): [description]
-        options (base.LIBRARY): [description]
+#     Args:
+#         settings (base.ProjectSettings): [description]
+#         options (base.LIBRARY): [description]
 
-    Returns:
-        Workflow: [description]
+#     Returns:
+#         Workflow: [description]
         
-    """
-    components = {}
-    for name in settings.labels:
-        components[name] = _settings_to_component(
-            name = name,
-            settings = settings,
-            options = options)
-    workflow = _settings_to_adjacency(
-        settings = settings, 
-        components = components,
-        system = workflow)
-    return workflow 
+#     """
+#     components = {}
+#     for name in settings.labels:
+#         components[name] = _settings_to_component(
+#             name = name,
+#             settings = settings,
+#             options = options)
+#     workflow = _settings_to_adjacency(
+#         settings = settings, 
+#         components = components,
+#         system = workflow)
+#     return workflow 
 
-def _settings_to_component(
-    name: str, 
-    settings: framework.ProjectSettings,
-    options: amos.Catalog) -> base.Projectnodes.Component:
-    """[summary]
+# def _settings_to_component(
+#     name: str, 
+#     settings: framework.ProjectSettings,
+#     options: amos.Catalog) -> base.Projectnodes.Component:
+#     """[summary]
 
-    Args:
-        name (str): [description]
-        settings (base.ProjectSettings): [description]
-        options (amos.Catalog): [description]
+#     Args:
+#         name (str): [description]
+#         settings (base.ProjectSettings): [description]
+#         options (amos.Catalog): [description]
 
-    Returns:
-        base.Projectnodes.Component: [description]
+#     Returns:
+#         base.Projectnodes.Component: [description]
         
-    """    
-    design = settings.designs.get(name, None) 
-    kind = settings.kinds.get(name, None) 
-    lookups = _get_lookups(name = name, design = design, kind = kind)
-    base = _get_base(lookups = lookups, options = options)
-    parameters = amos.get_annotations(item = base)
-    attributes, initialization = _parse_initialization(
-        name = name,
-        settings = settings,
-        parameters = parameters)
-    initialization['parameters'] = _get_runtime(
-        lookups = lookups,
-        settings = settings)
-    component = base(name = name, **initialization)
-    for key, value in attributes.items():
-        setattr(component, key, value)
-    return component
+#     """    
+#     design = settings.designs.get(name, None) 
+#     kind = settings.kinds.get(name, None) 
+#     lookups = _get_lookups(name = name, design = design, kind = kind)
+#     base = _get_base(lookups = lookups, options = options)
+#     parameters = amos.get_annotations(item = base)
+#     attributes, initialization = _parse_initialization(
+#         name = name,
+#         settings = settings,
+#         parameters = parameters)
+#     initialization['parameters'] = _get_runtime(
+#         lookups = lookups,
+#         settings = settings)
+#     component = base(name = name, **initialization)
+#     for key, value in attributes.items():
+#         setattr(component, key, value)
+#     return component
 
-def _get_lookups(
-    name: str, 
-    design: Optional[str], 
-    kind: Optional[str]) -> list[str]:
-    """[summary]
+# def _get_lookups(
+#     name: str, 
+#     design: Optional[str], 
+#     kind: Optional[str]) -> list[str]:
+#     """[summary]
 
-    Args:
-        name (str): [description]
-        design (Optional[str]): [description]
-        kind (Optional[str]): [description]
+#     Args:
+#         name (str): [description]
+#         design (Optional[str]): [description]
+#         kind (Optional[str]): [description]
 
-    Returns:
-        list[str]: [description]
+#     Returns:
+#         list[str]: [description]
         
-    """    
-    lookups = [name]
-    if design:
-        lookups.append(design)
-    if kind:
-        lookups.append(kind)
-    return lookups
+#     """    
+#     lookups = [name]
+#     if design:
+#         lookups.append(design)
+#     if kind:
+#         lookups.append(kind)
+#     return lookups
 
-def _get_base(
-    lookups: Sequence[str],
-    options: amos.Catalog) -> framework.Component:
-    """[summary]
+# def _get_base(
+#     lookups: Sequence[str],
+#     options: amos.Catalog) -> framework.Component:
+#     """[summary]
 
-    Args:
-        lookups (Sequence[str]): [description]
-        options (amos.Catalog): [description]
+#     Args:
+#         lookups (Sequence[str]): [description]
+#         options (amos.Catalog): [description]
 
-    Raises:
-        KeyError: [description]
+#     Raises:
+#         KeyError: [description]
 
-    Returns:
-        nodes.Component: [description]
+#     Returns:
+#         nodes.Component: [description]
         
-    """
-    for lookup in lookups:
-        try:
-            return options[lookup]
-        except KeyError:
-            pass
-    raise KeyError(f'No matches in the node options found for {lookups}')
+#     """
+#     for lookup in lookups:
+#         try:
+#             return options[lookup]
+#         except KeyError:
+#             pass
+#     raise KeyError(f'No matches in the node options found for {lookups}')
 
-def _get_runtime(
-    lookups: list[str], 
-    settings: framework.ProjectSettings) -> dict[Hashable, Any]:
-    """[summary]
+# def _get_runtime(
+#     lookups: list[str], 
+#     settings: framework.ProjectSettings) -> dict[Hashable, Any]:
+#     """[summary]
 
-    Args:
-        lookups (list[str]): [description]
-        settings (base.ProjectSettings): [description]
+#     Args:
+#         lookups (list[str]): [description]
+#         settings (base.ProjectSettings): [description]
 
-    Returns:
-        dict[Hashable, Any]: [description]
+#     Returns:
+#         dict[Hashable, Any]: [description]
         
-    """    
-    runtime = {}
-    for key in lookups:
-        try:
-            match = settings.runtime[key]
-            runtime[lookups[0]] = match
-            break
-        except KeyError:
-            pass
-    return runtime
+#     """    
+#     runtime = {}
+#     for key in lookups:
+#         try:
+#             match = settings.runtime[key]
+#             runtime[lookups[0]] = match
+#             break
+#         except KeyError:
+#             pass
+#     return runtime
 
-def _parse_initialization(
-    name: str,
-    settings: framework.ProjectSettings, 
-    parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
-    """[summary]
+# def _parse_initialization(
+#     name: str,
+#     settings: framework.ProjectSettings, 
+#     parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+#     """[summary]
 
-    Args:
-        name (str): [description]
-        settings (base.ProjectSettings): [description]
-        parameters (list[str]): [description]
+#     Args:
+#         name (str): [description]
+#         settings (base.ProjectSettings): [description]
+#         parameters (list[str]): [description]
 
-    Returns:
-        tuple[dict[str, Any], dict[str, Any]]: [description]
+#     Returns:
+#         tuple[dict[str, Any], dict[str, Any]]: [description]
         
-    """
-    if name in settings.initialization:
-        attributes = {}
-        initialization = {}
-        for key, value in settings.initialization[name].items(): 
-            if key in parameters:
-                initialization[key] = value
-            else:
-                attributes[key] = value
-        return attributes, initialization
-    else:
-        return {}, {}  
+#     """
+#     if name in settings.initialization:
+#         attributes = {}
+#         initialization = {}
+#         for key, value in settings.initialization[name].items(): 
+#             if key in parameters:
+#                 initialization[key] = value
+#             else:
+#                 attributes[key] = value
+#         return attributes, initialization
+#     else:
+#         return {}, {}  
 
-def _settings_to_adjacency(
-    settings: framework.ProjectSettings, 
-    components: dict[str, base.Projectnodes.Component],
-    system: Workflow) -> amos.Pipeline:
-    """[summary]
+# def _settings_to_adjacency(
+#     settings: framework.ProjectSettings, 
+#     components: dict[str, base.Projectnodes.Component],
+#     system: Workflow) -> amos.Pipeline:
+#     """[summary]
 
-    Args:
-        settings (base.ProjectSettings): [description]
-        components (dict[str, base.Projectnodes.Component]): [description]
-        system (Workflow): [description]
+#     Args:
+#         settings (base.ProjectSettings): [description]
+#         components (dict[str, base.Projectnodes.Component]): [description]
+#         system (Workflow): [description]
 
-    Returns:
-        Workflow: [description]
+#     Returns:
+#         Workflow: [description]
         
-    """    
-    for node, connects in settings.connections.items():
-        component = components[node]
-        system = component.integrate(item = system)    
-    return system
+#     """    
+#     for node, connects in settings.connections.items():
+#         component = components[node]
+#         system = component.integrate(item = system)    
+#     return system
 
-def _path_to_result(
-    path: amos.Pipeline,
-    project: base.Project,
-    **kwargs) -> amos.Pipeline:
-    """[summary]
+# def _path_to_result(
+#     path: amos.Pipeline,
+#     project: base.Project,
+#     **kwargs) -> amos.Pipeline:
+#     """[summary]
 
-    Args:
-        path (amos.Pipeline): [description]
-        project (base.Project): [description]
+#     Args:
+#         path (amos.Pipeline): [description]
+#         project (base.Project): [description]
 
-    Returns:
-        object: [description]
+#     Returns:
+#         object: [description]
         
-    """
-    result = amos.Pipeline()
-    for path in project.workflow.paths:
-        for node in path:
-            result.append(node.complete(project = project, *kwargs))
-    return result
+#     """
+#     result = amos.Pipeline()
+#     for path in project.workflow.paths:
+#         for node in path:
+#             result.append(node.complete(project = project, *kwargs))
+#     return result

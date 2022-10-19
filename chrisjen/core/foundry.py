@@ -36,34 +36,82 @@ import copy
 import itertools
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
-if TYPE_CHECKING:
-    from .core import base
-    from .. import components
-    from . import views
-    
+import amos
 
-def create_workflow(
-    project: base.Project,
-    name: Optional[str] = None,
-    base: Optional[Type[views.Workflow]] = None, 
-    **kwargs) -> views.Workflow:
-    """Creates workflow based on 'project'.
+if TYPE_CHECKING:
+    from . import base
+    from . import nodes
+
+
+_DEFAULT_DESIGN: str = 'waterfall'
+
+def complete_workflow(project: base.Project) -> base.Project:
+    """Populates workflow based on 'project.outline.'
+    
+    Args:
+        project (Project): an instance with 'outline' and 'workflow' attributes.
+        
+    Returns:
+        Project: with the 'workflow' attribute completed.
+        
+    """
+    suffixes = project.library.plurals
+    director_section = project.outline.director
+    all_connection_keys = [
+        k for k in director_section.keys() if k.endswith(suffixes)]
+    key = all_connection_keys[0]
+    design = find_design(name = key, project = project)
+    worker = project.library.withdraw(item = design)
+    worker = worker(name = project.name, project = project)
+    project.workflow = complete_worker(
+        name = key, 
+        worker = worker, 
+        project = project)
+    return project
+
+def find_design(name: str, project: base.Project) -> str:
+    """_summary_
 
     Args:
-        project (base.Project): project with information needed to create a
-            workflow.
-        name (Optional[str]): name of node from which to start the workflow. 
-            Defaults to None.
-        base (Optional[Type[base.Workflow]]): base workflow case to use. 
-            Defaults to None.
+        name (str): _description_
+        project (base.Project): _description_
 
     Returns:
-        views.Workflow: completed workflow.
+        str: _description_
         
-    """   
-    base = base or project.repository.keystones['workflow']
-    name = name or project.name
-    workflow = base(project = project, **kwargs)
-    connections = project.settings.connections
-    design = project.outline.designs[name]
+    """
+    try:
+        return project.outline.designs[name]
+    except KeyError:
+        return _DEFAULT_DESIGN
     
+def complete_worker(
+    name: str, 
+    worker: nodes.Worker, 
+    project: base.Project) -> nodes.Worker:
+    """_summary_
+
+    Args:
+        name (str): _description_
+        worker (nodes.Worker): _description_
+        project (base.Project): _description_
+
+    Returns:
+        nodes.Worker: _description_
+        
+    """
+    for name in amos.iterify(project.outline.connections[name]):
+        kind = project.outline.kinds[name]  
+        if kind in project.outline.suffixes['workers']:
+            design = find_design(name = name, project = project)
+            parameters = {'name': name, 'project': project}
+            worker = project.library.withdraw(
+                item = (name, design))
+            node = complete_worker(
+                name = name, 
+                worker = worker, 
+                project = project)
+            worker.append(node)
+        else:
+            worker.append(name) 
+    return worker

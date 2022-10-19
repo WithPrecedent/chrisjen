@@ -30,171 +30,171 @@ To Do:
 
             
 """
-from __future__ import annotations
-import abc
-from collections.abc import Hashable, MutableMapping, MutableSequence
-import contextlib
-import dataclasses
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+# from __future__ import annotations
+# import abc
+# from collections.abc import Hashable, MutableMapping, MutableSequence
+# import contextlib
+# import dataclasses
+# from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
-from .core import base
-from .core import foundry
+# from ..core import base
+# from ..core import foundry
 
     
-@dataclasses.dataclass
-class ProjectDirector(ProjectKeystone, abc.ABC):
-    """Constructor for chrisjen workflows.
+# @dataclasses.dataclass
+# class ProjectDirector(ProjectKeystone, abc.ABC):
+#     """Constructor for chrisjen workflows.
         
-    Args:
-        project (Project): linked Project instance to modify and control.
+#     Args:
+#         project (Project): linked Project instance to modify and control.
              
-    """
-    project: Project
+#     """
+#     project: Project
     
-    """ Initialization Methods """
+#     """ Initialization Methods """
 
-    def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        with contextlib.suppress(AttributeError):
-            super().__post_init__()
-        # Validates core attributes.
-        self.validate()
-        # Sets multiprocessing technique, if necessary.
-        workshop.set_parallelization(project = self.project)
-        # Completes 'project' if 'project.automatic' is True.
-        if self.project.automatic:
-            self.draft()
-            self.publish()
-            self.complete()
+#     def __post_init__(self) -> None:
+#         """Initializes and validates class instance attributes."""
+#         # Calls parent and/or mixin initialization method(s).
+#         with contextlib.suppress(AttributeError):
+#             super().__post_init__()
+#         # Validates core attributes.
+#         self.validate()
+#         # Sets multiprocessing technique, if necessary.
+#         workshop.set_parallelization(project = self.project)
+#         # Completes 'project' if 'project.automatic' is True.
+#         if self.project.automatic:
+#             self.draft()
+#             self.publish()
+#             self.complete()
                                  
-    """ Required Subclass Methods """
+#     """ Required Subclass Methods """
 
-    @abc.abstractmethod
-    def draft(self, *args: Any, **kwargs: Any) -> None:
-        """Creates views of workflow components."""
-        pass
+#     @abc.abstractmethod
+#     def draft(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates views of workflow components."""
+#         pass
 
-    @abc.abstractmethod
-    def publish(self, *args: Any, **kwargs: Any) -> None:
-        """Creates node classes and/or instances."""
-        pass
+#     @abc.abstractmethod
+#     def publish(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates node classes and/or instances."""
+#         pass
 
-    @abc.abstractmethod
-    def complete(self, *args: Any, **kwargs: Any) -> None:
-        """Applies all workflow components to 'project'."""
-        pass
+#     @abc.abstractmethod
+#     def complete(self, *args: Any, **kwargs: Any) -> None:
+#         """Applies all workflow components to 'project'."""
+#         pass
 
-    """ Public Methods """       
+#     """ Public Methods """       
     
-    def validate(self) -> None:
-        """Validates or creates required portions of 'project'."""
-        self.project = validators.validate_settings(project = self.project)
-        self.project = validators.validate_name(project = self.project)
-        self.project = validators.validate_id(project = self.project)
-        self.project = validators.validate_filer(project = self.project)
-        return
+#     def validate(self) -> None:
+#         """Validates or creates required portions of 'project'."""
+#         self.project = validators.validate_settings(project = self.project)
+#         self.project = validators.validate_name(project = self.project)
+#         self.project = validators.validate_id(project = self.project)
+#         self.project = validators.validate_filer(project = self.project)
+#         return
     
      
-@dataclasses.dataclass
-class UpFront(base.ProjectDirector):
-    """Constructor for chrisjen workflows.
+# @dataclasses.dataclass
+# class UpFront(base.ProjectDirector):
+#     """Constructor for chrisjen workflows.
         
-    Args:
-        project (base.Project): linked Project instance to modify and control.
+#     Args:
+#         project (base.Project): linked Project instance to modify and control.
              
-    """
-    project: base.Project
+#     """
+#     project: base.Project
                                  
-    """ Public Methods """
+#     """ Public Methods """
 
-    def draft(self) -> None:
-        """Creates str representations of workflow components."""
-        self.project.outline = foundry.create_outline(project = self.project)
-        self.project.workflow = foundry.create_workflow(project = self.project)
-        return
+#     def draft(self) -> None:
+#         """Creates str representations of workflow components."""
+#         self.project.outline = foundry.create_outline(project = self.project)
+#         self.project.workflow = foundry.create_workflow(project = self.project)
+#         return
 
-    def publish(self) -> None:
-        """Creates all component classes and instances."""
-        self.project.workflow.nodes = foundry.create_nodes(
-            project = self.project)
-        return 
+#     def publish(self) -> None:
+#         """Creates all component classes and instances."""
+#         self.project.workflow.nodes = foundry.create_nodes(
+#             project = self.project)
+#         return 
 
-    def complete(self, *args: Any, **kwargs: Any) -> None:
-        """Applies all workflow components to 'project'."""
-        for worker in self.contents:
-            self.project = worker.complete(self.project, *args, **kwargs)
-        return 
+#     def complete(self, *args: Any, **kwargs: Any) -> None:
+#         """Applies all workflow components to 'project'."""
+#         for worker in self.contents:
+#             self.project = worker.complete(self.project, *args, **kwargs)
+#         return 
 
  
-@dataclasses.dataclass
-class AsNeeded(base.ProjectDirector):
-    """Constructor for chrisjen workflows.
+# @dataclasses.dataclass
+# class AsNeeded(base.ProjectDirector):
+#     """Constructor for chrisjen workflows.
         
-    Args:
-        project (base.Project): linked Project instance to modify and control.
+#     Args:
+#         project (base.Project): linked Project instance to modify and control.
              
-    """
-    project: base.Project
+#     """
+#     project: base.Project
                                  
-    """ Public Methods """
+#     """ Public Methods """
 
-    def draft(self, *args: Any, **kwargs: Any) -> None:
-        """Creates str representations of all workflow components."""
-        self.project = validators.validate_workers(self.project)
-        self.project = validators.validate_outline(self.project)
-        self.project = foundry.create_workers(self.project, *args, **kwargs)
-        return
+#     def draft(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates str representations of all workflow components."""
+#         self.project = validators.validate_workers(self.project)
+#         self.project = validators.validate_outline(self.project)
+#         self.project = foundry.create_workers(self.project, *args, **kwargs)
+#         return
 
-    def publish(self, *args: Any, **kwargs: Any) -> None:
-        """Creates all component classes and instances."""
-        for component in self.contents:
-            self.project = foundry.create_component(
-                component,
-                self.project, 
-                *args, 
-                **kwargs)
-        return 
+#     def publish(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates all component classes and instances."""
+#         for component in self.contents:
+#             self.project = foundry.create_component(
+#                 component,
+#                 self.project, 
+#                 *args, 
+#                 **kwargs)
+#         return 
 
-    def complete(self, *args: Any, **kwargs: Any) -> None:
-        """Applies all workflow components to 'project'."""
-        for worker in self.contents:
-            self.project = worker.complete(self.project, *args, **kwargs)
-        return 
+#     def complete(self, *args: Any, **kwargs: Any) -> None:
+#         """Applies all workflow components to 'project'."""
+#         for worker in self.contents:
+#             self.project = worker.complete(self.project, *args, **kwargs)
+#         return 
   
    
-@dataclasses.dataclass
-class OnlyAsNeeded(base.ProjectDirector):
-    """Constructor for chrisjen workflows.
+# @dataclasses.dataclass
+# class OnlyAsNeeded(base.ProjectDirector):
+#     """Constructor for chrisjen workflows.
         
-    Args:
-        project (base.Project): linked Project instance to modify and control.
+#     Args:
+#         project (base.Project): linked Project instance to modify and control.
              
-    """
-    project: base.Project
+#     """
+#     project: base.Project
                                  
-    """ Public Methods """
+#     """ Public Methods """
 
-    def draft(self, *args: Any, **kwargs: Any) -> None:
-        """Creates str representations of all workflow components."""
-        self.project = validators.validate_workers(self.project)
-        self.project = validators.validate_outline(self.project)
-        self.project = foundry.create_workers(self.project, *args, **kwargs)
-        return
+#     def draft(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates str representations of all workflow components."""
+#         self.project = validators.validate_workers(self.project)
+#         self.project = validators.validate_outline(self.project)
+#         self.project = foundry.create_workers(self.project, *args, **kwargs)
+#         return
 
-    def publish(self, *args: Any, **kwargs: Any) -> None:
-        """Creates all component classes and instances."""
-        for component in self.contents:
-            self.project = foundry.create_component(
-                component,
-                self.project, 
-                *args, 
-                **kwargs)
-        return 
+#     def publish(self, *args: Any, **kwargs: Any) -> None:
+#         """Creates all component classes and instances."""
+#         for component in self.contents:
+#             self.project = foundry.create_component(
+#                 component,
+#                 self.project, 
+#                 *args, 
+#                 **kwargs)
+#         return 
 
-    def complete(self, *args: Any, **kwargs: Any) -> None:
-        """Applies all workflow components to 'project'."""
-        for worker in self.contents:
-            self.project = worker.complete(self.project, *args, **kwargs)
-        return 
+#     def complete(self, *args: Any, **kwargs: Any) -> None:
+#         """Applies all workflow components to 'project'."""
+#         for worker in self.contents:
+#             self.project = worker.complete(self.project, *args, **kwargs)
+#         return 
     

@@ -29,10 +29,7 @@ import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
 
-from .core import base
-
-if TYPE_CHECKING:
-    from .core import workshop
+from . import base
 
 
 def arrrange_parallel(
