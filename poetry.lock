@@ -75,11 +75,11 @@ amos = ">=0.1.5,<0.2.0"
 
 [[package]]
 name = "more-itertools"
-version = "8.14.0"
+version = "9.0.0"
 description = "More routines for operating on iterables, beyond itertools"
-category = "dev"
+category = "main"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.7"
 
 [[package]]
 name = "nagata"
@@ -167,7 +167,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "2ad10b40b57209043cf00c6ec65b3f64e49dcbd021af86e337bf69a03388b809"
+content-hash = "84e3f760679c3ffdc8efd78e13e154f41ed553f4908be772068e4c68e5561deb"
 
 [metadata.files]
 amos = [
@@ -198,8 +198,8 @@ miller = [
     {file = "miller-0.1.2.tar.gz", hash = "sha256:7753515c355a8e6f2d9479cd91b00909fb63d73806db43819941b4abd193996b"},
 ]
 more-itertools = [
-    {file = "more-itertools-8.14.0.tar.gz", hash = "sha256:c09443cd3d5438b8dafccd867a6bc1cb0894389e90cb53d227456b0b0bccb750"},
-    {file = "more_itertools-8.14.0-py3-none-any.whl", hash = "sha256:1bc4f91ee5b1b31ac7ceacc17c09befe6a40a503907baf9c839c229b5095cfd2"},
+    {file = "more-itertools-9.0.0.tar.gz", hash = "sha256:5a6257e40878ef0520b1803990e3e22303a41b5714006c32a3fd8304b26ea1ab"},
+    {file = "more_itertools-9.0.0-py3-none-any.whl", hash = "sha256:250e83d7e81d0c87ca6bd942e6aeab8cc9daa6096d12c5308f3f92fa5e5c1f41"},
 ]
 nagata = [
     {file = "nagata-0.1.1-py3-none-any.whl", hash = "sha256:b5f75715133d7ce6d99a251f6ec924b0b608414c34169e0c86c1160c065efbdb"},
