@@ -30,7 +30,6 @@ from __future__ import annotations
 import collections
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
-from configparser import _Section
 import dataclasses
 import itertools
 import pathlib
@@ -40,8 +39,7 @@ import amos
 import bobbie
 import holden
 
-if TYPE_CHECKING:
-    from . import base
+from . import base
 
 
 @dataclasses.dataclass
@@ -68,7 +66,21 @@ class Outline(base.ProjectKeystone):
         'workers': ('workers',)}
     
     """ Properties """       
+              
+    @property
+    def clerk(self) -> dict[str, Any]:
+        """Returns file settings in a chrisjen project.
 
+        Returns:
+            dict[str, Any]: dict of file settings.
+            
+        """
+        for name in self.suffixes['files']:
+            try:
+                return self[name]
+            except KeyError:
+                return {} 
+          
     @property
     def connections(self) -> dict[str, dict[str, list[str]]]:
         """Returns raw connections between nodes from 'project'.
@@ -78,29 +90,26 @@ class Outline(base.ProjectKeystone):
                 node connections for that worker.
             
         """
-        suffixes = self.project.library.plurals
+        suffixes = self.project.factory.plurals
         connections = {}
         for name, section in self.workers.items():
-            new_connections = {}
             keys = [k for k in section.keys() if k.endswith(suffixes)]
+            if name not in connections:
+                connections[name] = {}
             for key in keys:
                 prefix, suffix = amos.cleave_str(key)
-                values = list(amos.iterify(section[key]))
+
+                values = amos.listify(section[key])
                 if prefix == suffix:
-                    if prefix in new_connections:
-                        new_connections[name].extend(values)
+                    if name in connections[name]:
+                        connections[name][name].extend(values)
                     else:
-                        new_connections[name] = values
+                        connections[name][name] = values
                 else:
-                    if prefix in new_connections:
-                        new_connections[prefix].extend(values)
+                    if prefix in connections[name]:
+                        connections[name][prefix].extend(values)
                     else:
-                        new_connections[prefix] = values
-            for inner_key, inner_value in new_connections.items():
-                if inner_key in connections[key]:
-                    connections[key][inner_key].extend(inner_value)
-                else:
-                    connections[key][inner_key] = inner_value
+                        connections[name][prefix] = values
         return connections
                      
     @property
@@ -112,18 +121,18 @@ class Outline(base.ProjectKeystone):
             
         """
         designs = {}
-        for key, section in self.workers.items():
-            new_designs = {}
+        sections = self.workers
+        sections.update({self.project.name: self.director})
+        for key, section in sections.items():
             design_keys = [
                 k for k in section.keys() 
                 if k.endswith(self.suffixes['design'])]
-            for key in design_keys:
-                prefix, suffix = amos.cleave_str(key)
+            for design_key in design_keys:
+                prefix, suffix = amos.cleave_str(design_key)
                 if prefix == suffix:
-                    new_designs[key] = section[key]
+                    designs[key] = section[design_key]
                 else:
-                    new_designs[prefix] = section[key]
-            designs.update(new_designs)
+                    designs[prefix] = section[design_key]
         return designs
                      
     @property
@@ -142,21 +151,7 @@ class Outline(base.ProjectKeystone):
             if not name.endswith(suffixes):
                 return section
         return {}
-              
-    @property
-    def clerk(self) -> dict[str, Any]:
-        """Returns file settings in a chrisjen project.
-
-        Returns:
-            dict[str, Any]: dict of file settings.
-            
-        """
-        for name in self.suffixes['files']:
-            try:
-                return self[name]
-            except KeyError:
-                return {} 
-               
+     
     @property
     def general(self) -> dict[str, Any]:
         """Returns general settings in a chrisjen project.
@@ -205,7 +200,7 @@ class Outline(base.ProjectKeystone):
         """
         initialization = {}
         all_plurals = (
-            self.project.library.plurals
+            self.project.factory.plurals
             + self.suffixes['design']
             + self.suffixes['director'])
         for key, section in self.workers.items():   
@@ -223,7 +218,7 @@ class Outline(base.ProjectKeystone):
             
         """
         kinds = {}
-        suffixes = self.project.library.plurals
+        suffixes = self.project.factory.plurals
         for key, section in self.workers.items():
             new_kinds = {}
             keys = [k for k in section.keys() if k.endswith(suffixes)]
@@ -266,10 +261,10 @@ class Outline(base.ProjectKeystone):
             dict[str, dict[str, Any]]: workers-related sections of settings.
             
         """
-        suffixes = itertools.chain_from_iterable(self.suffixes.values())  
+        suffixes = tuple(itertools.chain.from_iterable(self.suffixes.values()))  
         return {
             k: v for k, v in self.project.settings.items()
-            if not k.endwsith(suffixes)}   
+            if not k.endswith(suffixes)}   
     
      
 # @dataclasses.dataclass

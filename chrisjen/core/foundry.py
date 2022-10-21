@@ -45,30 +45,6 @@ if TYPE_CHECKING:
 
 _DEFAULT_DESIGN: str = 'waterfall'
 
-def complete_workflow(project: base.Project) -> base.Project:
-    """Populates workflow based on 'project.outline.'
-    
-    Args:
-        project (Project): an instance with 'outline' and 'workflow' attributes.
-        
-    Returns:
-        Project: with the 'workflow' attribute completed.
-        
-    """
-    suffixes = project.library.plurals
-    director_section = project.outline.director
-    all_connection_keys = [
-        k for k in director_section.keys() if k.endswith(suffixes)]
-    key = all_connection_keys[0]
-    design = find_design(name = key, project = project)
-    worker = project.factory.create(item = design)
-    worker = worker(name = project.name, project = project)
-    project.workflow = complete_worker(
-        name = key, 
-        worker = worker, 
-        project = project)
-    return project
-
 def find_design(name: str, project: base.Project) -> str:
     """_summary_
 

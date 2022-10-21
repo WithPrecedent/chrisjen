@@ -293,7 +293,7 @@ def get_connections(
         dict[str, dict[str, list[str]]]: [description]
         
     """
-    suffixes = project.repository.nodes.plurals
+    suffixes = project.factory.plurals
     connections = {}
     for key, section in project.settings.components.items():
         connections[key] = {}
@@ -354,7 +354,7 @@ def get_initialization(project: base.Project) -> dict[str, dict[str, Any]]:
     for key, section in project.settings.components.items():   
         new_initialization = _get_section_initialization(
             section = section,
-            plurals = project.repository.nodes.plurals)
+            plurals = project.factory.plurals)
         initialization[key] = new_initialization
     return initialization
                           
@@ -372,7 +372,7 @@ def get_kinds(project: base.Project) -> dict[str, str]:
     for key, section in project.settings.components.items():
         new_kinds = _get_section_kinds(
             section = section,
-            plurals = project.repository.nodes.plurals)
+            plurals = project.factory.plurals)
         kinds.update(new_kinds)  
     return kinds
 
@@ -407,7 +407,7 @@ def get_worker_sections(
         dict[str, dict[Hashable, Any]]: [description]
         
     """
-    suffixes = project.repository.nodes.plurals
+    suffixes = project.factory.plurals
     return {
         k: v for k, v in project.settings.items() 
         if is_worker_section(section = v, suffixes = suffixes)}
@@ -422,7 +422,7 @@ def infer_project_name(project: base.Project) -> Optional[str]:
         Optional[str]: project name or None, if none is found.
                 
     """
-    suffixes = project.repository.nodes.plurals
+    suffixes = project.factory.plurals
     name = None    
     for key, section in project.settings.items():
         if (

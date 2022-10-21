@@ -83,7 +83,7 @@ class Waterfall(nodes.Worker):
 
     
 @dataclasses.dataclass
-class Research(holden.Paths, abc.ABC):
+class Researcher(holden.Paths, abc.ABC):
     """Base class for nodes that integrate criteria.
         
     Args:
@@ -162,7 +162,7 @@ class Research(holden.Paths, abc.ABC):
             
 
 @dataclasses.dataclass
-class Contest(Research):
+class Contest(Researcher):
     """Base class for tests that return one path from several.
         
     Args:
@@ -209,7 +209,7 @@ class Contest(Research):
             
 
 @dataclasses.dataclass
-class Lean(Research):
+class Lean(Researcher):
     """Iterative workflow that maximizes efficiency based on criteria.
         
     Args:
@@ -236,7 +236,7 @@ class Lean(Research):
             
 
 @dataclasses.dataclass
-class Survey(Research):
+class Pollster(Researcher):
     """Base class for research that averages results among several paths.
         
     Args:

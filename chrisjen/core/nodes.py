@@ -68,7 +68,7 @@ class Worker(holden.System, base.ProjectNode, abc.ABC):
     """ Public Methods """
 
     @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Worker:
+    def create(cls, name: str, project: base.Project) -> Worker:
         """Constructs and returns a Worker instance.
 
         Args:

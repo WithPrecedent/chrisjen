@@ -58,8 +58,10 @@ from .core.base import *
 from .core.filing import *
 from .core.foundry import *
 from .core.nodes import *
+from .core.tasks import *
 from .core.validators import *
 from .core.views import *
+from .core.workers import *
 from .core.workshop import *
 
 # from .variants.workers import *

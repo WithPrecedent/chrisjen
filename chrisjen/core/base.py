@@ -30,7 +30,6 @@ from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import contextlib
 import dataclasses
-from email.policy import default
 import inspect
 import itertools
 import pathlib
@@ -43,6 +42,17 @@ import holden
 import miller
 
 from . import foundry
+
+
+_DEFAULT_DESIGN: str = 'waterfall'
+_DEFAULT_SETTINGS: dict[Hashable, dict[Hashable, Any]] = {
+    'general': {
+        'verbose': False,
+        'parallelize': False,
+        'efficiency': 'up_front'},
+    'files': {
+        'file_encoding': 'windows-1252',
+        'threads': -1}}
 
 
 @dataclasses.dataclass
@@ -82,8 +92,8 @@ class ProjectFactory(ProjectKeystone):
     """
     project: Project
     store: amos.Library = amos.Library()
-    kinds: MutableMapping[str, Type[ProjectKeystone]] = dataclasses.field(
-        default_factory = dict)
+    # kinds: MutableMapping[str, Type[ProjectKeystone]] = dataclasses.field(
+    #     default_factory = dict)
 
     """ Properties """
     
@@ -104,17 +114,17 @@ class ProjectFactory(ProjectKeystone):
   
     """ Public Methods """
     
-    def add_kind(self, item: Type[ProjectKeystone]) -> None:
-        """Adds 'item' to 'kinds' dict.
+    # def add_kind(self, item: Type[ProjectKeystone]) -> None:
+    #     """Adds 'item' to 'kinds' dict.
         
-        Args:
-            item (Type[ProjectKeystone]
-        """
-        key = amos.namify(item = item)
-        if key.startswith('project_'):
-            key = key[8:]
-        self.kinds[key] = item
-        return
+    #     Args:
+    #         item (Type[ProjectKeystone]
+    #     """
+    #     key = amos.namify(item = item)
+    #     if key.startswith('project_'):
+    #         key = key[8:]
+    #     self.kinds[key] = item
+    #     return
 
     def create(self, name: str, **kwargs) -> ProjectNode:
         """_summary_
@@ -129,9 +139,11 @@ class ProjectFactory(ProjectKeystone):
         keys = [name]
         if name in self.project.outline.designs:
             keys.append(self.project.outline.designs[name])
+        elif name is self.project.name:
+            keys.append(_DEFAULT_DESIGN)
         if name in self.project.outline.kinds:
             keys.append(self.project.outline.kinds[name])
-        node = self.library.withdraw(item = keys)
+        node = self.store.withdraw(item = keys)
         return node.create(name = name, project = self.project, **kwargs)
            
          
@@ -166,7 +178,8 @@ class Project(object):
     director: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True
-    factory: ClassVar[ProjectFactory] = ProjectFactory()
+    factory: ClassVar[Union[ProjectFactory, Type[ProjectFactory]]] = (
+        ProjectFactory)
         
     """ Initialization Methods """
 
@@ -177,6 +190,7 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
+        self._validate_factory()
         self._validate_director()
        
     """ Public Class Methods """
@@ -212,6 +226,18 @@ class Project(object):
             self.director.project = self
         return
     
+    def _validate_factory(self) -> None:
+        """Creates or validates 'self.factory'."""
+        if self.factory is None:
+            self.factory = ProjectKeystone.keystones['factory']
+        elif isinstance(self.factory, str):
+            self.factory = ProjectKeystone.keystones[self.factory]
+        if inspect.isclass(self.factory):
+            self.factory = self.factory(project = self)
+        else:
+            self.factory.project = self
+        return
+        
     """ Dunder Methods """
     
     def __getattr__(self, item: str) -> Any:
@@ -255,17 +281,14 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         if self.project.automatic:
             self.complete()
                                  
-    """ Required Subclass Methods """
+    """ Public Methods """       
 
-    @abc.abstractmethod
     def complete(self) -> None:
         """Applies all workflow components to 'project'."""
         self.publish()
         self.execute()
         return
-
-    """ Public Methods """       
-    
+        
     def draft(self) -> None:
         """Adds a project outline to 'project'."""
         self.project.outline = ProjectKeystone.keystones['outline'](
@@ -274,14 +297,28 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
     
     def publish(self) -> None:
         """Adds a project workflow to 'project'."""
-        if self.project.name in self.project.outline.designs:
-            design = self.project.outline.designs[self.project.name]
-            workflow = self.project.factory.withdraw(item = design)
-        else:
-            workflow = ProjectKeystone.keystones['workflow'](
-                project = self.project)
-        self.project.workflow = workflow
-        self.project = foundry.complete_workflow(project = self.projectr)
+        # print('test project name', self.project.name)
+        # print('test designs', self.project.outline.designs)
+        
+        # if self.project.name in self.project.outline.designs:
+        #     design = self.project.outline.designs[self.project.name]
+        #     workflow = self.project.factory.store.withdraw(item = design)
+        # else:
+        #     workflow = ProjectKeystone.keystones['workflow'](
+        #         project = self.project)
+        # self.project.workflow = workflow
+        # self.project = foundry.complete_workflow(project = self.project)
+        # return
+        suffixes = self.project.factory.plurals
+        director_section = self.project.outline.director
+        all_connection_keys = [
+            k for k in director_section.keys() if k.endswith(suffixes)]
+        key = all_connection_keys[0]
+        worker = self.project.factory.create(name = self.project.name)
+        self.project.workflow = foundry.complete_worker(
+            name = key, 
+            worker = worker, 
+            project = self.project)
         return
         
     def validate(self) -> None:
@@ -336,28 +373,19 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         """Creates or validates 'project.settings'."""
         if inspect.isclass(self.project.settings):
             self.project.settings = self.project.settings()
-        if self.project.settings is None:
-            self.project.settings = self.project.settings.create(
-                item = self.project.settings,
-                default = {
-                    'general': {
-                        'verbose': False,
-                        'parallelize': False,
-                        'efficiency': 'up_front'},
-                    'files': {
-                        'file_encoding': 'windows-1252',
-                        'threads': -1}})
+        elif not isinstance(self.project.settings, bobbie.Settings):
+            base = bobbie.Settings
+            self.project.settings = base.create(
+                source = self.project.settings,
+                default = _DEFAULT_SETTINGS)        
         return
 
     def _infer_project_name(self) -> str:
         """Tries to infer project name from 'project.settings'."""
-        suffixes = self.project.repository.nodes.plurals
         name = None    
-        for key, section in self.project.settings.items():
-            if (
-                key not in ['general', 'files', 'filer', 'filer'] 
-                    and any(k.endswith(suffixes) for k in section.keys())):
-                name = key
+        for key in self.project.settings.keys():
+            if key.endswith('_project'):
+                name = key.removesuffix('_project')
                 break
         return name
 
@@ -519,9 +547,9 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.deposit(item = cls, name = key)
-        if ProjectNode in cls.__bases__:
-            Project.factory.add_kind(item = cls)
+        Project.factory.store.deposit(item = cls, name = key)
+        # if ProjectNode in cls.__bases__:
+        #     Project.factory.add_kind(item = cls)
             
     def __post_init__(self) -> None:
         """Initializes and validates class instance attributes."""
@@ -532,7 +560,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.deposit(item = self, name = key)
+        Project.factory.store.deposit(item = self, name = key)
                                       
     """ Required Subclass Methods """
 

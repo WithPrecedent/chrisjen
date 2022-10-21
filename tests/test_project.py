@@ -101,8 +101,9 @@ def test_project():
         'robust', 
         'normalize']
     assert project.outline.designs == {
-        'analyst': 'researcher', 
-        'critic': 'researcher'}
+        'wisconsin_cancer': 'waterfall',
+        'analyst': 'contest', 
+        'critic': 'waterfall'}
     assert project.outline.implementation['cleaver'] == {'include_all': True}
     assert project.outline.initialization['analyst'] == {
         'model_type': 'classify', 
@@ -114,10 +115,11 @@ def test_project():
     assert 'train_test' in project.outline.labels
     assert 'random_forest' in project.outline.labels
     assert 'critic' in project.outline.labels
-    assert project.outline.workers['wisconsin_cancer_project'][
-        'wisconsin_cancer_project_workers'] == [
-            'analyst', 
-            'critic']
+    assert project.outline.director['wisconsin_cancer_project_workers'] == [
+        'wrangler',
+        'analyst', 
+        'critic']
+    project.director.publish()
     print('test workflow', project.workflow)
     # Tests base libraries.
     # Tests workflow construction.
