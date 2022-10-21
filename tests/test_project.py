@@ -115,7 +115,7 @@ def test_project():
     assert 'train_test' in project.outline.labels
     assert 'random_forest' in project.outline.labels
     assert 'critic' in project.outline.labels
-    assert project.outline.director['wisconsin_cancer_project_workers'] == [
+    assert project.outline.director['wisconsin_cancer_workers'] == [
         'wrangler',
         'analyst', 
         'critic']

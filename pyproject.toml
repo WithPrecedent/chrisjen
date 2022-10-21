@@ -11,7 +11,7 @@ repository = "https://github.com/WithPrecedent/chrisjen"
 [tool.poetry.dependencies]
 python = "^3.9"
 more_itertools = "^9.0.0"
-amos = "^0.1.9"
+amos = "^0.1.10"
 bobbie = "0.1.1"
 holden = "^0.1.1"
 miller = "^0.1.2"

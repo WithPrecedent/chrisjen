@@ -53,6 +53,7 @@ _DEFAULT_SETTINGS: dict[Hashable, dict[Hashable, Any]] = {
     'files': {
         'file_encoding': 'windows-1252',
         'threads': -1}}
+_NONE_KEYS: list[Any] = ['None', 'none', None]
 
 
 @dataclasses.dataclass
@@ -136,7 +137,11 @@ class ProjectFactory(ProjectKeystone):
             ProjectNode: _description_
             
         """
-        keys = [name]
+        print('test factory create name', name)
+        if name in _NONE_KEYS:
+            keys = []
+        else:
+            keys = [name]
         if name in self.project.outline.designs:
             keys.append(self.project.outline.designs[name])
         elif name is self.project.name:

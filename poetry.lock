@@ -1,6 +1,6 @@
 [[package]]
 name = "amos"
-version = "0.1.9"
+version = "0.1.10"
 description = "Your Python project companion"
 category = "main"
 optional = false
@@ -167,12 +167,12 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "84e3f760679c3ffdc8efd78e13e154f41ed553f4908be772068e4c68e5561deb"
+content-hash = "c9d9fe2de2e779c5a0b38637882a6528f1d8a4e35e4566e5bc55eeb9ff4a97fc"
 
 [metadata.files]
 amos = [
-    {file = "amos-0.1.9-py3-none-any.whl", hash = "sha256:c36c606fb220deb1bd06dcbdf50d0799973861ea7950424362d712cee57d6fc5"},
-    {file = "amos-0.1.9.tar.gz", hash = "sha256:a0fe65926052902409ed484cafd8d03015ef6c77fb38e085646e71e82bab394f"},
+    {file = "amos-0.1.10-py3-none-any.whl", hash = "sha256:a1594b75fbb3e7f479a38b77a9fc30aea71bb27fa120647fd691fdc1b6c7db66"},
+    {file = "amos-0.1.10.tar.gz", hash = "sha256:c971f6f2778f0d106e88567d3d81a7f4576ee5ffef67ca575e4515d2f2b5dbdf"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},

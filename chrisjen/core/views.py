@@ -91,8 +91,10 @@ class Outline(base.ProjectKeystone):
             
         """
         suffixes = self.project.factory.plurals
+        sections = self.workers
+        sections.update({self.project.name: self.director})
         connections = {}
-        for name, section in self.workers.items():
+        for name, section in sections.items():
             keys = [k for k in section.keys() if k.endswith(suffixes)]
             if name not in connections:
                 connections[name] = {}

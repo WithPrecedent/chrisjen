@@ -81,9 +81,9 @@ class Worker(holden.System, base.ProjectNode, abc.ABC):
             
         """
         worker = cls(name = name, project = project)
-        for name in amos.iterify(project.outline.connections[name]):
-            node = project.library.create(name = name, project = project)
-            worker.append(item = node)
+        for sub_name in amos.iterify(project.outline.connections[name]):
+            project.factory.create(name = sub_name)
+            worker.append(item = sub_name)
         return worker
     
     def implement(self, item: Any, **kwargs: Any) -> Any:
