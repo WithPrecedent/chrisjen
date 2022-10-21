@@ -288,8 +288,8 @@ class Outline(base.ProjectKeystone):
 #     contents: MutableMapping[Hashable, Set[Hashable]] = (
 #         dataclasses.field(
 #             default_factory = lambda: collections.defaultdict(set)))
-#     nodes: base.ProjectLibrary = dataclasses.field(
-#         default_factory = base.ProjectLibrary)
+#     nodes: base.ProjectFactory = dataclasses.field(
+#         default_factory = base.ProjectFactory)
 
 #     """ Properties """
 

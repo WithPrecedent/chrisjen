@@ -61,7 +61,7 @@ def complete_workflow(project: base.Project) -> base.Project:
         k for k in director_section.keys() if k.endswith(suffixes)]
     key = all_connection_keys[0]
     design = find_design(name = key, project = project)
-    worker = project.library.withdraw(item = design)
+    worker = project.factory.create(item = design)
     worker = worker(name = project.name, project = project)
     project.workflow = complete_worker(
         name = key, 
@@ -105,8 +105,9 @@ def complete_worker(
         if kind in project.outline.suffixes['workers']:
             design = find_design(name = name, project = project)
             parameters = {'name': name, 'project': project}
-            worker = project.library.withdraw(
-                item = (name, design))
+            worker = project.factory.create(
+                item = (name, design),
+                parameters = parameters)
             node = complete_worker(
                 name = name, 
                 worker = worker, 

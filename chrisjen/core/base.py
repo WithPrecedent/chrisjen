@@ -73,22 +73,15 @@ class ProjectKeystone(abc.ABC):
 
         
 @dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library):
-    """Stores classes instances and classes in a chained mapping.
-    
-    When searching for matches, instances are prioritized over classes.
+class ProjectFactory(ProjectKeystone):
+    """Stores and creates node classes instances and classes.
     
     Args:
-        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
-            empty Catalog.
-        instances (amos.Catalog): a catalog of stored class instances. Defaults 
-            to an empty Catalog.
+        store (amos.Library): library of nodes.
                  
     """
-    classes: amos.Catalog[str, Type[ProjectKeystone]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, ProjectKeystone] = dataclasses.field(
-        default_factory = amos.Catalog)
+    project: Project
+    store: amos.Library = amos.Library()
     kinds: MutableMapping[str, Type[ProjectKeystone]] = dataclasses.field(
         default_factory = dict)
 
@@ -105,7 +98,7 @@ class ProjectLibrary(amos.Library):
         """
         suffixes = []
         for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self, catalog).keys()]
+            plurals = [k + 's' for k in getattr(self.store, catalog).keys()]
             suffixes.extend(plurals)
         return tuple(suffixes)
   
@@ -122,8 +115,26 @@ class ProjectLibrary(amos.Library):
             key = key[8:]
         self.kinds[key] = item
         return
-   
-      
+
+    def create(self, name: str, **kwargs) -> ProjectNode:
+        """_summary_
+
+        Args:
+            name (str): _description_
+
+        Returns:
+            ProjectNode: _description_
+            
+        """
+        keys = [name]
+        if name in self.project.outline.designs:
+            keys.append(self.project.outline.designs[name])
+        if name in self.project.outline.kinds:
+            keys.append(self.project.outline.kinds[name])
+        node = self.library.withdraw(item = keys)
+        return node.create(name = name, project = self.project, **kwargs)
+           
+         
 @dataclasses.dataclass
 class Project(object):
     """User interface for a chrisjen project.
@@ -145,7 +156,7 @@ class Project(object):
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        library (ClassVar[ProjectLibrary]): library of nodes for executing a
+        factory (ClassVar[ProjectFactory]): factory of nodes for executing a
             chrisjen project. 
     
     """
@@ -155,7 +166,7 @@ class Project(object):
     director: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+    factory: ClassVar[ProjectFactory] = ProjectFactory()
         
     """ Initialization Methods """
 
@@ -265,7 +276,7 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         """Adds a project workflow to 'project'."""
         if self.project.name in self.project.outline.designs:
             design = self.project.outline.designs[self.project.name]
-            workflow = self.project.library.withdraw(item = design)
+            workflow = self.project.factory.withdraw(item = design)
         else:
             workflow = ProjectKeystone.keystones['workflow'](
                 project = self.project)
@@ -351,6 +362,130 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         return name
 
 
+@dataclasses.dataclass    
+class Parameters(amos.Dictionary, ProjectKeystone):
+    """Creates and stores parameters for part of a chrisjen project.
+    
+    The use of Parameters is entirely optional, but it provides a handy 
+    tool for aggregating data from an array of sources, including those which 
+    only become apparent during execution of a chrisjen project, to create a 
+    unified set of implementation parameters.
+    
+    Parameters can be unpacked with '**', which will turn the contents of the
+    'contents' attribute into an ordinary set of kwargs. In this way, it can 
+    serve as a drop-in replacement for a dict that would ordinarily be used for 
+    accumulating keyword arguments.
+    
+    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
+    be called before that instance's 'implement' method in order for each of the 
+    parameter types to be incorporated.
+    
+    Args:
+        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
+            classes' 'implement' method. The 'finalize' method should be called
+            for 'contents' to be fully populated from all sources. Defaults to
+            an empty dict.
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout chrisjen. To properly match 
+            parameters in a Settings instance, 'name' should be the prefix to 
+            "_parameters" as a section name in a Settings instance. Defaults to 
+            None. 
+        default (Mapping[str, Any]): default parameters that will be used if 
+            they are not overridden. Defaults to an empty dict.
+        implementation (Mapping[str, str]): parameters with values that can only 
+            be determined at runtime due to dynamic nature of chrisjen and its 
+            workflows. The keys should be the names of the parameters and the 
+            values should be attributes or items in 'contents' of 'project' 
+            passed to the 'finalize' method. Defaults to an emtpy dict.
+        selected (MutableSequence[str]): an exclusive list of parameters that 
+            are allowed. If 'selected' is empty, all possible parameters are 
+            allowed. However, if any are listed, all other parameters that are
+            included are removed. This is can be useful when including 
+            parameters in an Outline instance for an entire step, only some of
+            which might apply to certain techniques. Defaults to an empty list.
+
+    """
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    name: Optional[str] = None
+    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    implementation: Mapping[str, str] = dataclasses.field(
+        default_factory = dict)
+    selected: MutableSequence[str] = dataclasses.field(default_factory = list)
+      
+    """ Public Methods """
+
+    def finalize(self, item: Any, **kwargs) -> None:
+        """Combines and selects final parameters into 'contents'.
+
+        Args:
+            item (Project): instance from which implementation and 
+                settings parameters can be derived.
+            
+        """
+        # Uses kwargs and 'default' parameters as a starting amos.
+        parameters = self.default
+        # Adds any parameters from 'outline'.
+        parameters.update(self._from_outline(item = item))
+        # Adds any implementation parameters.
+        parameters.update(self._at_runtime(item = item))
+        # Adds any parameters already stored in 'contents'.
+        parameters.update(self.contents)
+        # Adds any passed kwargs, which will override any other parameters.
+        parameters.update(kwargs)
+        # Limits parameters to those in 'selected'.
+        if self.selected:
+            parameters = {k: parameters[k] for k in self.selected}
+        self.contents = parameters
+        return self
+
+    """ Private Methods """
+     
+    def _from_outline(self, project: Project) -> dict[str, Any]: 
+        """Returns any applicable parameters from 'outline'.
+
+        Args:
+            project (base.Project): project has parameters from 'outline.'
+
+        Returns:
+            dict[str, Any]: any applicable outline parameters or an empty dict.
+            
+        """
+        keys = [self.name]
+        keys.append(project.outline.kinds[self.name])
+        try:
+            keys.append(project.outline.designs[self.name])
+        except KeyError:
+            pass
+        for key in keys:
+            try:
+                return project.outline.implementation[key]
+            except KeyError:
+                pass
+        return {}
+   
+    def _at_runtime(self, item: Any) -> dict[str, Any]:
+        """Adds implementation parameters to 'contents'.
+
+        Args:
+            item (Project): instance from which implementation 
+                parameters can be derived.
+
+        Returns:
+            dict[str, Any]: any applicable settings parameters or an empty dict.
+                   
+        """    
+        for parameter, attribute in self.implementation.items():
+            try:
+                self.contents[parameter] = getattr(item, attribute)
+            except AttributeError:
+                try:
+                    self.contents[parameter] = (
+                        item.settings['general'][attribute])
+                except (KeyError, AttributeError):
+                    pass
+        return self
+    
+    
 @dataclasses.dataclass
 class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
     """Base class for nodes in a chrisjen project.
@@ -363,13 +498,13 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
             to the 'complete' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty dict.
+            empty Parameters instance.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
+        default_factory = Parameters)
 
     """ Initialization Methods """
     
@@ -384,11 +519,10 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.library.deposit(item = cls, name = key)
+        Project.factory.deposit(item = cls, name = key)
         if ProjectNode in cls.__bases__:
-            Project.library.add_kind(item = cls)
+            Project.factory.add_kind(item = cls)
             
-        
     def __post_init__(self) -> None:
         """Initializes and validates class instance attributes."""
         # Calls parent and/or mixin initialization method(s).
@@ -398,12 +532,27 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.library.deposit(item = self, name = key)
+        Project.factory.deposit(item = self, name = key)
                                       
     """ Required Subclass Methods """
 
+    @abc.abstractclassmethod
+    def create(cls, name: str, project: Project, **kwargs) -> ProjectNode:
+        """Creates a ProjectNode instance based on passed arguments.
+
+        Args:
+            name (str): name of node instance to be created.
+            project (Project): project with information to create a node
+                instance.
+                
+        Returns:
+            ProjectNode: an instance based on passed arguments.
+            
+        """
+        pass
+    
     @abc.abstractmethod
-    def implement(self, item: Any, *args: Any, **kwargs: Any) -> Any:
+    def implement(self, item: Any, **kwargs: Any) -> Any:
         """Applies 'contents' to 'item'.
 
         Subclasses must provide their own methods.

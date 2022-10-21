@@ -45,40 +45,57 @@ import collections
 from collections.abc import Hashable, MutableMapping, MutableSequence, Set
 import contextlib
 import dataclasses
+import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
+import amos
+import holden
 import more_itertools
 
 from . import base
 from . import nodes
 from . import tasks
-from . import workshop
+
 
 @dataclasses.dataclass
 class Waterfall(nodes.Worker):
-    """Iterator for chrisjen workflows.
+    """A pre-planned, rigid workflow node.
         
     Args:
-        
-            
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
+                     
     """
+    name: Optional[str] = None
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = base.Parameters)
+    project: Optional[base.Project] = None
 
-    @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Waterfall:
-        connections = project.outline.connections[name]
-        return
-        
-
+    
 @dataclasses.dataclass
-class Researcher(nodes.Worker, abc.ABC):
-    """Iterator for chrisjen workflows.
+class Research(holden.Paths, abc.ABC):
+    """Base class for nodes that integrate criteria.
         
     Args:
-        project (Project): linked Project instance to modify and control.
-        worker (Optional[ProjectWorker]): specific project worker for which
-            the ProjectWorker is focused. Defaults to None. If None, the
-            ProjectWorker instance will control the top-level iteration of the
-            Project itself. 
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
             
     """
     name: Optional[str] = None
@@ -86,14 +103,14 @@ class Researcher(nodes.Worker, abc.ABC):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     project: Optional[base.Project] = None
     proctor: Optional[tasks.Proctor] = None
 
     """ Class Methods """
     
     @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Researcher:
+    def create(cls, name: str, project: nodes.Project) -> Research:
         """[summary]
 
         Args:
@@ -104,130 +121,148 @@ class Researcher(nodes.Worker, abc.ABC):
             [type]: [description]
             
         """
-        return create_researcher(
-            name = name, 
-            project = project,
-            base = cls)   
+        worker = cls(name = name, project = project)
+        steps = project.connections[name]
+        connections = project.connections[name]
+        possible = [connections[s] for s in steps]
+        combos = list(itertools.product(*possible))   
+        for combo in combos:
+            for i, task in enumerate(combo):
+                step = project.factory.create(
+                    name = steps[i], 
+                    project = project,
+                    technique = task)
+                if i > 0:
+                    worker.add()
+                    
+            recipes.append(recipe) 
+        return cls(name = name, project = project)
 
     """ Public Methods """
     
-    def implement(
-        self, 
-        project: nodes.Project, 
-        **kwargs) -> MutableMapping[Hashable, nodes.Project]:
-        """Applies 'contents' to 'project'.
+    def implement(self, item: Any, **kwargs: Any) -> Any:
+        """Applies 'contents' to 'item'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (nodes.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
 
         Returns:
-            MutableMapping[Hashable, nodes.Project]: dict of project 
-                instances, with possible changes made.
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
             
         """
-        projects = self.proctor.complete(project = project)
+        projects = self.proctor.complete(item = item)
         results = {}
         for i, (key, worker) in enumerate(self.contents.items()):
-            results[key] = worker.complete(project = projects[i], **kwargs)
+            results[key] = worker.complete(item = projects[i], **kwargs)
         return results
             
 
 @dataclasses.dataclass
-class Analyst(Researcher):
-    """Base class for tests that return one result from a Pipelines.
+class Contest(Research):
+    """Base class for tests that return one path from several.
         
     Args:
         name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow
+            used for internal and external referencing in a project workflow.
             Defaults to None.
-        contents (MutableMapping[Hashable, components.Worker]): keys are the 
-            names or other identifiers for the stored Worker instances and 
-            values are Worker instances. Defaults to an empty dict.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty nodes.Parameters instance.
-        proctor (Optional[Distributor]): node for copying, splitting, or
-            otherwise creating multiple projects for use by the Workers 
-            stored in 'contents'.
-        judge (Optional[Judge]): node for reducing the set of Workers
-            in 'contents' to a single Worker or Node.
-                                   
-    Attributes:
-        library (ClassVar[nodes.Options]): Component subclasses and
-            instances stored with str keys derived from the 'amos.namify' 
-            function.
-                          
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
+            
     """
     name: Optional[str] = None
     contents: MutableMapping[Hashable, Set[Hashable]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+        default_factory = base.Parameters)
     project: Optional[base.Project] = None
     proctor: Optional[tasks.Proctor] = None
     judge: Optional[tasks.Judge] = None
 
     """ Public Methods """
     
-    def implement(
-        self, 
-        project: nodes.Project, 
-        **kwargs) -> nodes.Project:
-        """Applies 'contents' to 'project'.
+    def implement(self, item: Any, **kwargs: Any) -> Any:
+        """Applies 'contents' to 'item'.
 
         Subclasses must provide their own methods.
 
         Args:
-            project (nodes.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
 
         Returns:
-            nodes.Project: with possible changes made.
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
             
         """
-        results = super().implement(project = project, **kwargs)
+        results = super().implement(item = item, **kwargs)
         project = self.judge.complete(projects = results)  
         return project
+            
 
-
-# @dataclasses.dataclass
-# class Pollster(Researcher):
-#     """Runs test to select average from 2+ pipelines.
+@dataclasses.dataclass
+class Lean(Research):
+    """Iterative workflow that maximizes efficiency based on criteria.
         
-#     Args:
-#         name (Optional[str]): designates the name of a class instance that is 
-#             used for internal and external referencing in a project workflow
-#             Defaults to None.
-#         contents (MutableMapping[Hashable, components.Worker]): keys are the 
-#             names or other identifiers for the stored Worker instances and 
-#             values are Worker instances. Defaults to an empty dict.
-#         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-#             'contents' when the 'implement' method is called. Defaults to an
-#             empty nodes.Parameters instance.
-#         proctor (Optional[Distributor]): node for copying, splitting, or
-#             otherwise creating multiple projects for use by the Workers 
-#             stored in 'contents'.
-#         judge (Optional[Judge]): node for reducing the set of Workers
-#             in 'contents' to a single Worker or Node.
-                                   
-#     Attributes:
-#         library (ClassVar[nodes.Options]): Component subclasses and
-#             instances stored with str keys derived from the 'amos.namify' 
-#             function.
-                          
-#     """
-#     name: Optional[str] = None
-#     contents: MutableMapping[Hashable, components.Worker] = dataclasses.field(
-#         default_factory = dict)
-#     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-#         default_factory = nodes.Parameters)
-#     proctor: Optional[tasks.Proctor] = None
-#     judge: Optional[tasks.Judge] = None
-    
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
+            
+    """
+    name: Optional[str] = None
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = base.Parameters)
+    project: Optional[base.Project] = None
+    proctor: Optional[tasks.Proctor] = None
+    judge: Optional[tasks.Judge] = None
+            
+
+@dataclasses.dataclass
+class Survey(Research):
+    """Base class for research that averages results among several paths.
+        
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
+            
+    """
+    name: Optional[str] = None
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = base.Parameters)
+    project: Optional[base.Project] = None
+    proctor: Optional[tasks.Proctor] = None
+    judge: Optional[tasks.Judge] = None
+
+
+
     
     
 

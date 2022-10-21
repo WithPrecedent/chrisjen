@@ -38,143 +38,23 @@ import holden
 import miller
 
 from . import base
+from . import nodes
 
-
-@dataclasses.dataclass    
-class Parameters(amos.Dictionary, base.ProjectKeystone):
-    """Creates and stores parameters for part of a chrisjen project.
-    
-    The use of Parameters is entirely optional, but it provides a handy 
-    tool for aggregating data from an array of sources, including those which 
-    only become apparent during execution of a chrisjen project, to create a 
-    unified set of implementation parameters.
-    
-    Parameters can be unpacked with '**', which will turn the contents of the
-    'contents' attribute into an ordinary set of kwargs. In this way, it can 
-    serve as a drop-in replacement for a dict that would ordinarily be used for 
-    accumulating keyword arguments.
-    
-    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
-    be called before that instance's 'implement' method in order for each of the 
-    parameter types to be incorporated.
-    
-    Args:
-        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
-            classes' 'implement' method. The 'finalize' method should be called
-            for 'contents' to be fully populated from all sources. Defaults to
-            an empty dict.
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout chrisjen. To properly match 
-            parameters in a Settings instance, 'name' should be the prefix to 
-            "_parameters" as a section name in a Settings instance. Defaults to 
-            None. 
-        default (Mapping[str, Any]): default parameters that will be used if 
-            they are not overridden. Defaults to an empty dict.
-        implementation (Mapping[str, str]): parameters with values that can only 
-            be determined at runtime due to dynamic nature of chrisjen and its 
-            workflows. The keys should be the names of the parameters and the 
-            values should be attributes or items in 'contents' of 'project' 
-            passed to the 'finalize' method. Defaults to an emtpy dict.
-        selected (MutableSequence[str]): an exclusive list of parameters that 
-            are allowed. If 'selected' is empty, all possible parameters are 
-            allowed. However, if any are listed, all other parameters that are
-            included are removed. This is can be useful when including 
-            parameters in an Outline instance for an entire step, only some of
-            which might apply to certain techniques. Defaults to an empty list.
-
-    """
-    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    name: Optional[str] = None
-    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    implementation: Mapping[str, str] = dataclasses.field(
-        default_factory = dict)
-    selected: MutableSequence[str] = dataclasses.field(default_factory = list)
-      
-    """ Public Methods """
-
-    def finalize(self, item: Any, **kwargs) -> None:
-        """Combines and selects final parameters into 'contents'.
-
-        Args:
-            item (Project): instance from which implementation and 
-                settings parameters can be derived.
-            
-        """
-        # Uses kwargs and 'default' parameters as a starting amos.
-        parameters = self.default
-        # Adds any parameters from 'outline'.
-        parameters.update(self._from_outline(item = item))
-        # Adds any implementation parameters.
-        parameters.update(self._at_runtime(item = item))
-        # Adds any parameters already stored in 'contents'.
-        parameters.update(self.contents)
-        # Adds any passed kwargs, which will override any other parameters.
-        parameters.update(kwargs)
-        # Limits parameters to those in 'selected'.
-        if self.selected:
-            parameters = {k: parameters[k] for k in self.selected}
-        self.contents = parameters
-        return self
-
-    """ Private Methods """
-     
-    def _from_outline(self, project: base.Project) -> dict[str, Any]: 
-        """Returns any applicable parameters from 'outline'.
-
-        Args:
-            project (base.Project): project has parameters from 'outline.'
-
-        Returns:
-            dict[str, Any]: any applicable outline parameters or an empty dict.
-            
-        """
-        keys = [self.name]
-        keys.append(project.outline.kinds[self.name])
-        try:
-            keys.append(project.outline.designs[self.name])
-        except KeyError:
-            pass
-        for key in keys:
-            try:
-                return project.outline.implementation[key]
-            except KeyError:
-                pass
-        return {}
-   
-    def _at_runtime(self, item: Any) -> dict[str, Any]:
-        """Adds implementation parameters to 'contents'.
-
-        Args:
-            item (Project): instance from which implementation 
-                parameters can be derived.
-
-        Returns:
-            dict[str, Any]: any applicable settings parameters or an empty dict.
-                   
-        """    
-        for parameter, attribute in self.implementation.items():
-            try:
-                self.contents[parameter] = getattr(item, attribute)
-            except AttributeError:
-                try:
-                    self.contents[parameter] = (
-                        item.settings['general'][attribute])
-                except (KeyError, AttributeError):
-                    pass
-        return self
-    
 
 @dataclasses.dataclass
-class Worker(holden.System, base.ProjectNode):
-    """Base class for creating, managing, and iterating a workflow.
+class Worker(holden.System, base.ProjectNode, abc.ABC):
+    """Base class for an iterative node.
         
     Args:
         name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
+            used for internal and external referencing in a project workflow.
             Defaults to None.
-        contents (MutableMapping[Hashable, Set[Hashable]]): keys are node labels 
-            and labels of nodes to which the key node is linked
-            Defaults to a defaultdict that has a set for its value format.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
+        project (Optional[base.Project]): related Project instance.
                      
     """
     name: Optional[str] = None
@@ -182,11 +62,30 @@ class Worker(holden.System, base.ProjectNode):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = base.Parameters)
     project: Optional[base.Project] = None
                          
-    """ Required Subclass Methods """
+    """ Public Methods """
 
+    @classmethod
+    def create(cls, name: str, project: nodes.Project) -> Worker:
+        """Constructs and returns a Worker instance.
+
+        Args:
+            name (str): name of node instance to be created.
+            project (Project): project with information to create a node
+                instance.
+                
+        Returns:
+            Worker: an instance based on passed arguments.
+            
+        """
+        worker = cls(name = name, project = project)
+        for name in amos.iterify(project.outline.connections[name]):
+            node = project.library.create(name = name, project = project)
+            worker.append(item = node)
+        return worker
+    
     def implement(self, item: Any, **kwargs: Any) -> Any:
         """Calls the 'implement' method after finalizing parameters.
 
@@ -200,52 +99,62 @@ class Worker(holden.System, base.ProjectNode):
             
         """
         for node in self.walk:
-            component = self.project.library.withdraw(item = node)
+            component = self.project.factory.create(item = node)
             self.project = component.complete(self.project, **kwargs)
         return
   
                  
 @dataclasses.dataclass
 class Task(base.ProjectNode):
-    """Base class for nodes in a project workflow.
+    """Base class for non-iterable nodes in a project workflow.
 
     Args:
         name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
+            used for internal and external referencing in a project workflow.
             Defaults to None.
         contents (Optional[Any]): stored item(s) that has/have an 'implement' 
             method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
+            'contents' when the 'implement' method is called. Defaults to an
+            empty Parameters instance.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = base.Parameters)
     
     """ Public Methods """
     
-    def implement(
-        self, 
-        project: base.Project, 
-        **kwargs) -> base.Project:
-        """Applies 'contents' to 'project'.
-
-        Args:
-            project (base.Project): instance from which data needed for 
-                implementation should be derived and all results be added.
+    @classmethod
+    def create(cls, name: str, project: nodes.Project, **kwargs: Any) -> Task:
+        """Creates a Task instance based on passed arguments.
 
         Returns:
-            base.Project: with possible changes made.
+            Task: an instance based on passed arguments.
+            
+        """
+        return cls(name = name, **kwargs)
+       
+    def implement(self, item: Any, **kwargs: Any) -> Any:
+        """Applies 'contents' to 'item'.
+
+        Subclasses must provide their own methods.
+
+        Args:
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
+
+        Returns:
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
             
         """
         try:
-            project = self.contents.complete(project = project, **kwargs)
+            item = self.contents.complete(item = item, **kwargs)
         except AttributeError:
-            project = self.contents(project, **kwargs)
-        return project   
+            item = self.contents(item, **kwargs)
+        return item   
 
 
 @dataclasses.dataclass   
