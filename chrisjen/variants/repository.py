@@ -1,5 +1,5 @@
 """
-repository: classes to store project assets
+repository: classes to library project assets
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0

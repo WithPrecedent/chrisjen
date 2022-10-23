@@ -53,7 +53,7 @@ _DEFAULT_SETTINGS: dict[Hashable, dict[Hashable, Any]] = {
     'files': {
         'file_encoding': 'windows-1252',
         'threads': -1}}
-_NONE_KEYS: list[Any] = ['None', 'none', None]
+_NONE_NAMES: list[Any] = ['None', 'none', None]
 
 
 @dataclasses.dataclass
@@ -88,13 +88,11 @@ class ProjectFactory(ProjectKeystone):
     """Stores and creates node classes instances and classes.
     
     Args:
-        store (amos.Library): library of nodes.
+        library (amos.Library): library of nodes.
                  
     """
     project: Project
-    store: amos.Library = amos.Library()
-    # kinds: MutableMapping[str, Type[ProjectKeystone]] = dataclasses.field(
-    #     default_factory = dict)
+    library: amos.Library = amos.Library()
 
     """ Properties """
     
@@ -109,23 +107,11 @@ class ProjectFactory(ProjectKeystone):
         """
         suffixes = []
         for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self.store, catalog).keys()]
+            plurals = [k + 's' for k in getattr(self.library, catalog).keys()]
             suffixes.extend(plurals)
         return tuple(suffixes)
   
     """ Public Methods """
-    
-    # def add_kind(self, item: Type[ProjectKeystone]) -> None:
-    #     """Adds 'item' to 'kinds' dict.
-        
-    #     Args:
-    #         item (Type[ProjectKeystone]
-    #     """
-    #     key = amos.namify(item = item)
-    #     if key.startswith('project_'):
-    #         key = key[8:]
-    #     self.kinds[key] = item
-    #     return
 
     def create(self, name: str, **kwargs) -> ProjectNode:
         """_summary_
@@ -138,18 +124,19 @@ class ProjectFactory(ProjectKeystone):
             
         """
         print('test factory create name', name)
-        if name in _NONE_KEYS:
-            keys = []
+        if name in _NONE_NAMES:
+            return 'none'
         else:
             keys = [name]
-        if name in self.project.outline.designs:
-            keys.append(self.project.outline.designs[name])
-        elif name is self.project.name:
-            keys.append(_DEFAULT_DESIGN)
-        if name in self.project.outline.kinds:
-            keys.append(self.project.outline.kinds[name])
-        node = self.store.withdraw(item = keys)
-        return node.create(name = name, project = self.project, **kwargs)
+            if name in self.project.outline.designs:
+                keys.append(self.project.outline.designs[name])
+            elif name is self.project.name:
+                keys.append(_DEFAULT_DESIGN)
+            if name in self.project.outline.kinds:
+                keys.append(self.project.outline.kinds[name])
+            print('test create keys', keys)
+            node = self.library.withdraw(item = keys)
+            return node.create(name = name, project = self.project, **kwargs)
            
          
 @dataclasses.dataclass
@@ -307,7 +294,7 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         
         # if self.project.name in self.project.outline.designs:
         #     design = self.project.outline.designs[self.project.name]
-        #     workflow = self.project.factory.store.withdraw(item = design)
+        #     workflow = self.project.factory.library.withdraw(item = design)
         # else:
         #     workflow = ProjectKeystone.keystones['workflow'](
         #         project = self.project)
@@ -397,7 +384,7 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
 
 @dataclasses.dataclass    
 class Parameters(amos.Dictionary, ProjectKeystone):
-    """Creates and stores parameters for part of a chrisjen project.
+    """Creates and librarys parameters for part of a chrisjen project.
     
     The use of Parameters is entirely optional, but it provides a handy 
     tool for aggregating data from an array of sources, including those which 
@@ -552,7 +539,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.store.deposit(item = cls, name = key)
+        Project.factory.library.deposit(item = cls, name = key)
         # if ProjectNode in cls.__bases__:
         #     Project.factory.add_kind(item = cls)
             
@@ -565,7 +552,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.store.deposit(item = self, name = key)
+        Project.factory.library.deposit(item = self, name = key)
                                       
     """ Required Subclass Methods """
 

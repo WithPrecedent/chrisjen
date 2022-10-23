@@ -95,8 +95,8 @@ def test_project():
     project = chrisjen.Project(
         settings = settings,
         automatic = False)
-    assert project.outline.connections['wrangler'] == {'wrangler': ['none']}
-    assert project.outline.connections['analyst']['scale'] == [
+    assert project.outline.connections['wrangler'] == ['none']
+    assert project.outline.connections['scale'] == [
         'minmax', 
         'robust', 
         'normalize']

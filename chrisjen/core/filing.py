@@ -185,7 +185,7 @@ default_parameters: MutableMapping[str, Any] = {
 class Filer(nagata.FileManager):
     """File and folder management for chrisjen.
 
-    Creates and stores dynamic and static file paths, properly formats files
+    Creates and librarys dynamic and static file paths, properly formats files
     for import and export, and provides methods for loading and saving
     chrisjen, pandas, and numpy objects.
 

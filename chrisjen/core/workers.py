@@ -110,7 +110,7 @@ class Researcher(holden.Paths, abc.ABC):
     """ Class Methods """
     
     @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Research:
+    def create(cls, name: str, project: nodes.Project) -> Researcher:
         """[summary]
 
         Args:
@@ -122,20 +122,19 @@ class Researcher(holden.Paths, abc.ABC):
             
         """
         worker = cls(name = name, project = project)
-        steps = project.connections[name]
         connections = project.connections[name]
+        steps = connections[name]
         possible = [connections[s] for s in steps]
         combos = list(itertools.product(*possible))   
         for combo in combos:
+            recipe = project.factory.create(item = 'worker')
             for i, task in enumerate(combo):
                 step = project.factory.create(
                     name = steps[i], 
                     project = project,
                     technique = task)
-                if i > 0:
-                    worker.add()
-                    
-            recipes.append(recipe) 
+                recipe.append(step)       
+            worker.add(recipe) 
         return cls(name = name, project = project)
 
     """ Public Methods """

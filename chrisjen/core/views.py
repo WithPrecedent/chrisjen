@@ -66,7 +66,33 @@ class Outline(base.ProjectKeystone):
         'workers': ('workers',)}
     
     """ Properties """       
-              
+                     
+    @property
+    def associations(self) -> dict[str, str]:
+        """Returns associated worker of nodes in a chrisjen project.
+
+        Returns:
+            dict[str, str]: keys are node names and values are associated worker 
+                names for the key nodes.
+            
+        """
+        associations = {}
+        for node, connections in self.connections.items():
+            new_associations = {c: node for c in connections}
+            associations.update(new_associations)
+        return associations
+        # associations = {}
+        # suffixes = self.project.factory.plurals
+        # for key, section in self.workers.items():
+        #     worker_keys = [k for k in section.keys() if k.endswith(suffixes)]
+        #     for design_key in worker_keys:
+        #         prefix, suffix = amos.cleave_str(design_key)
+        #         if prefix == suffix:
+        #             associations[key] = key
+        #         else:
+        #             associations[prefix] = key
+        # return associations 
+                            
     @property
     def clerk(self) -> dict[str, Any]:
         """Returns file settings in a chrisjen project.
@@ -79,10 +105,11 @@ class Outline(base.ProjectKeystone):
             try:
                 return self[name]
             except KeyError:
-                return {} 
+                pass
+        return {} 
           
     @property
-    def connections(self) -> dict[str, dict[str, list[str]]]:
+    def connections(self) -> dict[str, list[str]]:
         """Returns raw connections between nodes from 'project'.
         
         Returns:
@@ -91,27 +118,26 @@ class Outline(base.ProjectKeystone):
             
         """
         suffixes = self.project.factory.plurals
-        sections = self.workers
-        sections.update({self.project.name: self.director})
         connections = {}
-        for name, section in sections.items():
-            keys = [k for k in section.keys() if k.endswith(suffixes)]
-            if name not in connections:
-                connections[name] = {}
-            for key in keys:
+        for name, section in self.workers.items():
+            if name.startswith(self.project.name):
+                label = self.project.name
+            else:
+                label = name  
+            worker_keys = [k for k in section.keys() if k.endswith(suffixes)]
+            for key in worker_keys:
                 prefix, suffix = amos.cleave_str(key)
-
                 values = amos.listify(section[key])
                 if prefix == suffix:
-                    if name in connections[name]:
-                        connections[name][name].extend(values)
+                    if label in connections:
+                        connections[label].extend(values)
                     else:
-                        connections[name][name] = values
+                        connections[label] = values
                 else:
-                    if prefix in connections[name]:
-                        connections[name][prefix].extend(values)
+                    if prefix in connections:
+                        connections[prefix].extend(values)
                     else:
-                        connections[name][prefix] = values
+                        connections[prefix] = values
         return connections
                      
     @property
@@ -123,9 +149,7 @@ class Outline(base.ProjectKeystone):
             
         """
         designs = {}
-        sections = self.workers
-        sections.update({self.project.name: self.director})
-        for key, section in sections.items():
+        for key, section in self.workers.items():
             design_keys = [
                 k for k in section.keys() 
                 if k.endswith(self.suffixes['design'])]
@@ -166,7 +190,8 @@ class Outline(base.ProjectKeystone):
             try:
                 return self[name]
             except KeyError:
-                return {}  
+                pass
+        return {}  
                                     
     @property
     def implementation(self) -> dict[str, dict[str, Any]]:
@@ -245,11 +270,9 @@ class Outline(base.ProjectKeystone):
             
         """
         labels = []    
-        for key, section in self.connections.items():
+        for key, values in self.connections.items():
             labels.append(key)
-            for inner_key, inner_values in section.items():
-                labels.append(inner_key)
-                labels.extend(list(itertools.chain(inner_values)))
+            labels.extend(values)
         return amos.deduplicate_list(item = labels)    
                                   
     @property
@@ -263,11 +286,24 @@ class Outline(base.ProjectKeystone):
             dict[str, dict[str, Any]]: workers-related sections of settings.
             
         """
-        suffixes = tuple(itertools.chain.from_iterable(self.suffixes.values()))  
-        return {
-            k: v for k, v in self.project.settings.items()
-            if not k.endswith(suffixes)}   
-    
+        sections = {}
+        suffixes = self.project.factory.plurals
+        for name, section in self.project.settings.items():
+            if any(k.endswith(suffixes) for k in section.keys()):
+                sections[name] = section
+        return sections
+
+        # exclude = []
+        # for category, suffixes in self.suffixes.items():
+        #     if category is not 'director':
+        #         exclude.extend(suffixes) 
+        # return {
+        #     k: v for k, v in self.project.settings.items()
+        #     if not k.endswith(tuple(exclude))}   
+
+
+# def extendify(
+#     dictionary: dict[str, list[str]]) -> dict[str, list[str]]:    
      
 # @dataclasses.dataclass
 # class Workflow(holden.System, base.ProjectKeystone):
