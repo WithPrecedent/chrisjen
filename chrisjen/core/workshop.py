@@ -51,9 +51,9 @@ def set_parallelization(project: base.Project) -> None:
         project (Project): project containing parallelization settings.
         
     """
-    if ('general' in project.settings
-            and 'parallelize' in project.settings['general'] 
-            and project.settings['general']['parallelize']):
+    if ('general' in project.idea
+            and 'parallelize' in project.idea['general'] 
+            and project.idea['general']['parallelize']):
         if not globals()['multiprocessing']:
             import multiprocessing
         multiprocessing.set_start_method('spawn') 
@@ -214,7 +214,7 @@ def create_researcher(
         
     """ 
     base = base or project.base.node.library['researcher']
-    section = project.settings[name]
+    section = project.idea[name]
     first_key = list(item.keys())[0]
     self.append(first_key)
     possible = [v for k, v in item.items() if k in item[first_key]]
@@ -295,7 +295,7 @@ def get_connections(
     """
     suffixes = project.library.plurals
     connections = {}
-    for key, section in project.settings.components.items():
+    for key, section in project.idea.components.items():
         connections[key] = {}
         new_connections = _get_section_connections(
             section = section,
@@ -319,7 +319,7 @@ def get_designs(project: base.Project) -> dict[str, str]:
         
     """
     designs = {}
-    for key, section in project.settings.components.items():
+    for key, section in project.idea.components.items():
         new_designs = _get_section_designs(section = section, name = key)
         designs.update(new_designs)
     return designs
@@ -335,7 +335,7 @@ def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
         
     """
     implementation = {}
-    for key, section in project.settings.parameters.items():
+    for key, section in project.idea.parameters.items():
         new_key = key.removesuffix('_' + framework._PARAMETERS_SUFFIX)
         implementation[new_key] = section
     return implementation
@@ -351,7 +351,7 @@ def get_initialization(project: base.Project) -> dict[str, dict[str, Any]]:
         
     """
     initialization = {}
-    for key, section in project.settings.components.items():   
+    for key, section in project.idea.components.items():   
         new_initialization = _get_section_initialization(
             section = section,
             plurals = project.library.plurals)
@@ -369,7 +369,7 @@ def get_kinds(project: base.Project) -> dict[str, str]:
         
     """
     kinds = {}
-    for key, section in project.settings.components.items():
+    for key, section in project.idea.components.items():
         new_kinds = _get_section_kinds(
             section = section,
             plurals = project.library.plurals)
@@ -377,14 +377,14 @@ def get_kinds(project: base.Project) -> dict[str, str]:
     return kinds
 
 def get_labels(project: base.Project) -> list[str]:
-    """Returns names of nodes based on 'project.settings'.
+    """Returns names of nodes based on 'project.idea'.
 
     Args:
         project (base.Project): an instance of Project with 'settings' and
             'connections'.
         
     Returns:
-        list[str]: names of all nodes that are listed in 'project.settings'.
+        list[str]: names of all nodes that are listed in 'project.idea'.
         
     """ 
     labels = []
@@ -409,7 +409,7 @@ def get_worker_sections(
     """
     suffixes = project.library.plurals
     return {
-        k: v for k, v in project.settings.items() 
+        k: v for k, v in project.idea.items() 
         if is_worker_section(section = v, suffixes = suffixes)}
 
 def infer_project_name(project: base.Project) -> Optional[str]:
@@ -424,7 +424,7 @@ def infer_project_name(project: base.Project) -> Optional[str]:
     """
     suffixes = project.library.plurals
     name = None    
-    for key, section in project.settings.items():
+    for key, section in project.idea.items():
         if (
             key not in ['general', 'files', 'clerk', 'clerk'] 
                 and any(k.endswith(suffixes) for k in section.keys())):
@@ -839,10 +839,10 @@ def _path_to_result(
         
 #     """
 #     try:
-#         structure = project.settings[project.name][f'{project.name}_structure']
+#         structure = project.idea[project.name][f'{project.name}_structure']
 #     except KeyError:
 #         try:
-#             structure = project.settings[project.name]['structure']
+#             structure = project.idea[project.name]['structure']
 #         except KeyError:
 #             structure = project.base.workflow_structure
 #     return amos.Composite.create(structure)

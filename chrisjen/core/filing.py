@@ -229,8 +229,8 @@ class Filer(nagata.FileManager):
         self.root_folder = self.validate_path(path = self.root_folder)
         self.input_folder = self._validate_io_folder(path = self.input_folder)
         self.output_folder = self._validate_io_folder(path = self.output_folder)
-        # Adds and/overrides 'parameters' from 'project.settings'.
-        self.project.settings = self.project.settings or {}
+        # Adds and/overrides 'parameters' from 'project.idea'.
+        self.project.idea = self.project.idea or {}
         self._add_settings()
         return
 
@@ -392,12 +392,12 @@ class Filer(nagata.FileManager):
             return self.validate_path(path = self.root_folder / path)
 
     def _add_settings(self) -> None:
-        """Mixes 'project.settings' with default parameters, if needed."""
+        """Mixes 'project.idea' with default parameters, if needed."""
         # Gets default parameters for file transfers from 'settings'.
         base = copy.deepcopy(default_parameters)
         self.parameters = base
         try:
-            self.parameters.update(self.project.settings.clerk)
+            self.parameters.update(self.project.idea.clerk)
         except KeyError:
             pass
         return

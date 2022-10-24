@@ -279,18 +279,18 @@ def create_researcher(
         Experiment: [description]
         
     """    
-    design = project.settings.designs.get(name, None) 
-    kind = project.settings.kinds.get(name, None) 
+    design = project.idea.designs.get(name, None) 
+    kind = project.idea.kinds.get(name, None) 
     lookups = _get_lookups(name = name, design = design, kind = kind)
     base = project.components.withdraw(item = lookups)
     parameters = amos.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
         name = name,
-        settings = project.settings,
+        settings = project.idea,
         parameters = parameters)
     initialization['parameters'] = _get_runtime(
         lookups = lookups,
-        settings = project.settings)
+        settings = project.idea)
     component = base(name = name, **initialization)
     for key, value in attributes.items():
         setattr(component, key, value)
@@ -361,7 +361,7 @@ def test_implement(
     connections = project.workflow[node]
     # Makes copies of project for each pipeline in a test.
     copies = [copy.deepcopy(project) for _ in connections]
-    # if project.settings['general']['parallelize']:
+    # if project.idea['general']['parallelize']:
     #     method = _test_implement_parallel
     # else:
     #     method = _test_implement_serial

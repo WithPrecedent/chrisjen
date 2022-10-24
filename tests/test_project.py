@@ -93,7 +93,7 @@ class Dynamite(chrisjen.Technique):
 def test_project():
     settings = pathlib.Path('tests') / 'cancer_settings.ini'
     project = chrisjen.Project(
-        settings = settings,
+        idea = settings,
         automatic = False)
     assert project.outline.connections['wrangler'] == ['none']
     assert project.outline.connections['scale'] == [

@@ -44,7 +44,7 @@ from . import base
 
 @dataclasses.dataclass
 class Outline(base.ProjectKeystone):
-    """Provides a different view of data stored in 'project.settings'.
+    """Provides a different view of data stored in 'project.idea'.
     
     The properties in Outline are used in the construction of a Workflow. So,
     even if you do not have any interest in using its view of the configuration
@@ -153,10 +153,10 @@ class Outline(base.ProjectKeystone):
             dict[str, Any]: director settings for a chrisjen project
             
         """
-        for name, section in self.project.settings.items():
+        for name, section in self.project.idea.items():
             if name.endswith(self.suffixes['director']):
                 return section
-        for name, section in self.project.settings.items():
+        for name, section in self.project.idea.items():
             suffixes = itertools.chain_from_iterable(self.suffixes.values()) 
             if not name.endswith(suffixes):
                 return section
@@ -190,7 +190,7 @@ class Outline(base.ProjectKeystone):
             
         """
         implementation = {}      
-        for name, section in self.project.settings.items():
+        for name, section in self.project.idea.items():
             for suffix in self.suffixes['parameters']:
                 if name.endswith(suffix):
                     key = name.removesuffix('_' + suffix)
@@ -272,7 +272,7 @@ class Outline(base.ProjectKeystone):
         """
         sections = {}
         suffixes = self.project.library.plurals
-        for name, section in self.project.settings.items():
+        for name, section in self.project.idea.items():
             if any(k.endswith(suffixes) for k in section.keys()):
                 sections[name] = section
         return sections

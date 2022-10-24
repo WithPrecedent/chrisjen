@@ -103,9 +103,12 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
             Worker: an instance based on passed arguments.
             
         """
+        print('test node name at create', name)
+        print('test node connections at create', project.outline.connections[name])
         worker = cls(name = name, project = project)
-        for node in amos.iterify(project.outline.connections[name]):
-            project.library.build(name = node)
+        for key in amos.iterify(project.outline.connections[name]):
+            print('test subnode name at create', key)
+            node = project.library.build(name = key) 
             worker.append(item = node)
         return worker
                          
@@ -130,7 +133,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
         if isinstance(item, holden.Graph):
             current_endpoints = self.endpoint
             form = holden.what_form(item = item)
-            if form is 'adjacency':
+            if form == 'adjacency':
                 other = item
             else:
                 transformer = globals()[f'{form}_to_adjacency']
@@ -139,7 +142,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
             for endpoint in current_endpoints:
                 for root in holden.get_roots_adjacency(item = other):
                     self.connect((endpoint, root))
-        elif holden.is_node(item = item):
+        elif isinstance(item, base.ProjectNode):
             current_endpoints = self.endpoint
             for endpoint in current_endpoints:
                 self.connect((endpoint, item))            
@@ -184,7 +187,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
         if isinstance(item, base.Graph):
             current_roots = self.root
             form = holden.what_form(item = item)
-            if form is 'adjacency':
+            if form == 'adjacency':
                 other = item
             else:
                 transformer = globals()[f'{form}_to_adjacency']
@@ -288,7 +291,7 @@ class Task(base.ProjectNode):
     
 @dataclasses.dataclass
 class NullNode(base.ProjectNode):
-    """Base class for nodes in a chrisjen project.
+    """Class for null nodes in a chrisjen project.
 
     Args:
         name (Optional[str]): designates the name of a class instance that is 
@@ -305,15 +308,6 @@ class NullNode(base.ProjectNode):
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
-
-    """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass."""
-        with contextlib.suppress(AttributeError):
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        base.Project.library.deposit(item = cls, name = 'none')
                                       
     """ Class Methods """
 
@@ -422,7 +416,7 @@ class Criteria(base.ProjectKeystone):
     #         base.Project: with possible changes made.
             
     #     """
-    #     if len(self.contents) > 1 and project.settings.general['parallelize']:
+    #     if len(self.contents) > 1 and project.idea.general['parallelize']:
     #         project = self._implement_in_parallel(project = project, **kwargs)
     #     else:
     #         project = self._implement_in_serial(project = project, **kwargs)

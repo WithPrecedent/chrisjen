@@ -67,7 +67,7 @@ from ..core import workshop
 #         kwargs['contents'] = amos.Composite.create(kwargs['contents'])
 #     workflow = base(**kwargs)
 #     return _settings_to_workflow(
-#         settings = project.settings,
+#         settings = project.idea,
 #         options = project.options,
 #         workflow = workflow)
     
@@ -85,11 +85,11 @@ from ..core import workshop
 #         Workflow: [description]
         
 #     """    
-#     print('test settings kinds', project.settings.kinds) 
+#     print('test settings kinds', project.idea.kinds) 
 #     base = base or Workflow
 #     workflow = base(**kwargs)
 #     return _settings_to_workflow(
-#         settings = project.settings,
+#         settings = project.idea,
 #         options = project.options,
 #         workflow = workflow)
 
@@ -126,10 +126,10 @@ from ..core import workshop
         
 #     """
 #     try:
-#         structure = project.settings[project.name][f'{project.name}_structure']
+#         structure = project.idea[project.name][f'{project.name}_structure']
 #     except KeyError:
 #         try:
-#             structure = project.settings[project.name]['structure']
+#             structure = project.idea[project.name]['structure']
 #         except KeyError:
 #             structure = project.base.default_workflow
 #     return amos.Composite.create(structure)
