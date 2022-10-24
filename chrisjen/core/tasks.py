@@ -88,21 +88,21 @@ class Step(nodes.Task):
     
     """ Public Methods """
     
-    @classmethod
-    def create(
-        cls, 
-        name: str, 
-        technique: str, 
-        project: nodes.Project, 
-        **kwargs: Any) -> Technique:
-        """Creates a Task instance based on passed arguments.
+    # @classmethod
+    # def create(
+    #     cls, 
+    #     name: str, 
+    #     technique: str, 
+    #     project: nodes.Project, 
+    #     **kwargs: Any) -> Technique:
+    #     """Creates a Task instance based on passed arguments.
 
-        Returns:
-            Task: an instance based on passed arguments.
+    #     Returns:
+    #         Task: an instance based on passed arguments.
             
-        """
-        contents = project.factory.create(name = technique)
-        return cls(name = name, contents = contents, **kwargs)
+    #     """
+    #     contents = project.library.build(name = technique)
+    #     return cls(name = name, contents = contents, **kwargs)
         
     def implement(self, item: Any, **kwargs: Any) -> Any:
         """Applies 'contents' to 'item'.

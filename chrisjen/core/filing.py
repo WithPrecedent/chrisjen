@@ -238,19 +238,19 @@ class Filer(nagata.FileManager):
     
     @classmethod
     def validate(cls, project: base.Project) -> base.Project:
-        """Creates or validates 'project.filer'.
+        """Creates or validates 'project.clerk'.
 
         Args:
-            project (base.Project): an instance with a 'filer' attribute.
+            project (base.Project): an instance with a 'clerk' attribute.
 
         Returns:
-            base.Project: an instance with a validated 'filer' attribute.
+            base.Project: an instance with a validated 'clerk' attribute.
             
         """  
-        if inspect.isclass(project.filer):
-            project.filer = project.filer(project = project)
-        elif project.filer is None:
-            project.filer = cls.create(project = project)
+        if inspect.isclass(project.clerk):
+            project.clerk = project.clerk(project = project)
+        elif project.clerk is None:
+            project.clerk = cls.create(project = project)
         return project    
        
     """ Public Methods """
@@ -271,12 +271,12 @@ class Filer(nagata.FileManager):
             file_path (Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (str): file name without extension. Defaults to
                 None.
             file_format (Union[str, FileFormat]]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -315,12 +315,12 @@ class Filer(nagata.FileManager):
             file_path (Union[str, Path]]): a complete file path.
                 Defaults to None.
             folder (Union[str, Path]]): a complete folder path or the
-                name of a folder stored in 'filer'. Defaults to None.
+                name of a folder stored in 'clerk'. Defaults to None.
             file_name (str): file name without extension. Defaults to
                 None.
             file_format (Union[str, FileFormat]]): object with
                 information about how the file should be loaded or the key to
-                such an object stored in 'filer'. Defaults to None
+                such an object stored in 'clerk'. Defaults to None
             **kwargs: can be passed if additional options are desired specific
                 to the pandas or python method used internally.
 
@@ -397,7 +397,7 @@ class Filer(nagata.FileManager):
         base = copy.deepcopy(default_parameters)
         self.parameters = base
         try:
-            self.parameters.update(self.project.settings.filer)
+            self.parameters.update(self.project.settings.clerk)
         except KeyError:
             pass
         return
@@ -442,7 +442,7 @@ def combine_path(
     folder: str,
     file_name: Optional[str] = None,
     extension: Optional[str] = None,
-    filer: Optional[Filer] = None) -> pathlib.Path:
+    clerk: Optional[Filer] = None) -> pathlib.Path:
     """Converts strings to pathlib Path object.
 
     If 'folder' matches an attribute, the value stored in that attribute
@@ -455,15 +455,15 @@ def combine_path(
         folder (str): folder for file location.
         name (str): the name of the file.
         extension (str): the extension of the file.
-        filer (Optional[Filer]): a Filer instance that may have attributes with
+        clerk (Optional[Filer]): a Filer instance that may have attributes with
             folder paths. Defaults to None.
 
     Returns:
         Path: formed from string arguments.
 
     """
-    if filer is not None and hasattr(filer, folder):
-        folder = getattr(filer, folder)
+    if clerk is not None and hasattr(clerk, folder):
+        folder = getattr(clerk, folder)
     if file_name and extension:
         return pathlib.Path(folder).joinpath(f'{file_name}.{extension}')
     else:
@@ -501,11 +501,11 @@ def prepare_transfer(
     Args:
         file_path (Union[str, Path]): a complete file path.
         folder (Union[str, Path]): a complete folder path or the name of a
-            folder stored in 'filer'.
+            folder stored in 'clerk'.
         file_name (str): file name without extension.
         file_format (Union[str, FileFormat]): object with information about
             how the file should be loaded or the key to such an object
-            stored in 'filer'.
+            stored in 'clerk'.
         **kwargs: can be passed if additional options are desired specific
             to the pandas or python method used internally.
 

@@ -105,7 +105,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
         """
         worker = cls(name = name, project = project)
         for node in amos.iterify(project.outline.connections[name]):
-            project.factory.create(name = node)
+            project.library.build(name = node)
             worker.append(item = node)
         return worker
                          
@@ -160,7 +160,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
             
         """
         for name in self.walk:
-            node = self.project.factory.library.withdraw(
+            node = self.project.library.withdraw(
                 item = name,
                 parameters = {})
             item = node.complete(item, **kwargs)
@@ -264,16 +264,6 @@ class Task(base.ProjectNode):
         default_factory = base.Parameters)
     
     """ Public Methods """
-    
-    @classmethod
-    def create(cls, name: str, project: nodes.Project, **kwargs: Any) -> Task:
-        """Creates a Task instance based on passed arguments.
-
-        Returns:
-            Task: an instance based on passed arguments.
-            
-        """
-        return cls(name = name, **kwargs)
        
     def implement(self, item: Any, **kwargs: Any) -> Any:
         """Applies 'contents' to 'item'.
@@ -294,7 +284,90 @@ class Task(base.ProjectNode):
         except AttributeError:
             item = self.contents(item, **kwargs)
         return item   
+   
+    
+@dataclasses.dataclass
+class NullNode(base.ProjectNode):
+    """Base class for nodes in a chrisjen project.
 
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a project workflow.
+            Defaults to 'none'.
+        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+            to the 'complete' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an
+            empty dict.
+              
+    """
+    name: Optional[str] = 'none'
+    contents: Optional[Any] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass."""
+        with contextlib.suppress(AttributeError):
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        base.Project.library.deposit(item = cls, name = 'none')
+                                      
+    """ Class Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        name: str, 
+        project: base.Project, 
+        **kwargs) -> NullNode:
+        """Creates a ProjectNode instance based on passed arguments.
+
+        Args:
+            name (str): name of node instance to be created.
+            project (Project): project with information to create a node
+                instance.
+                
+        Returns:
+            ProjectNode: an instance based on passed arguments.
+            
+        """
+        return cls()
+
+    """ Public Methods """
+    
+    def complete(self, item: Any, **kwargs: Any) -> Any:
+        """Calls the 'implement' method after finalizing parameters.
+
+        Args:
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
+
+        Returns:
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
+            
+        """
+        return item 
+    
+    def implement(self, item: Any, **kwargs: Any) -> Any:
+        """Applies 'contents' to 'item'.
+
+        Subclasses must provide their own methods.
+
+        Args:
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
+
+        Returns:
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
+            
+        """
+        return item
+        
 
 @dataclasses.dataclass   
 class Criteria(base.ProjectKeystone):

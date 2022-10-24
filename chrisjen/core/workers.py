@@ -127,9 +127,9 @@ class Researcher(holden.Paths, abc.ABC):
         possible = [connections[s] for s in steps]
         combos = list(itertools.product(*possible))   
         for combo in combos:
-            recipe = project.factory.create(item = 'worker')
+            recipe = project.library.build(name = 'worker')
             for i, task in enumerate(combo):
-                step = project.factory.create(
+                step = project.library.build(
                     name = steps[i], 
                     project = project,
                     technique = task)

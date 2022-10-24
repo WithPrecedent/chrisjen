@@ -41,30 +41,49 @@ import bobbie
 import holden
 import miller
 
-from . import foundry
+if TYPE_CHECKING:
+    from . import nodes
 
 
-_DEFAULT_DESIGN: str = 'waterfall'
-_DEFAULT_SETTINGS: dict[Hashable, dict[Hashable, Any]] = {
-    'general': {
-        'verbose': False,
-        'parallelize': False,
-        'efficiency': 'up_front'},
-    'files': {
-        'file_encoding': 'windows-1252',
-        'threads': -1}}
-_NONE_NAMES: list[Any] = ['None', 'none', None]
+@dataclasses.dataclass
+class ProjectFramework(abc.ABC):
+    """Default values and classes for a chrisjen project.
+
+    Args:
+        default_design (ClassVar[str]): key name of the default worker design.
+            Defaults to 'waterfall'
+        default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
+            default settings for a chrisjen project's idea. Defaults to the
+            values in the dataclass field.
+        none_names (ClassVar[list[Any]]): lists of key names that indicate a
+            null node. Defaults to ['none', 'None', None].
+        keystones (ClassVar[amos.Catalog[str, ProjectKeystone]]): catalog of 
+            ProjectKeystone instances. Defaults to an empty Catalog.        
+        
+    """
+    default_design: ClassVar[str] = 'waterfall'
+    default_settings: ClassVar[dict[Hashable, dict[Hashable, Any]]] = {
+        'general': {
+            'verbose': False,
+            'parallelize': False,
+            'efficiency': 'up_front'},
+        'files': {
+            'file_encoding': 'windows-1252',
+            'threads': -1}}
+    defined_suffixes: ClassVar[dict[str, tuple[str]]] = {
+        'design': ('design',),
+        'director': ('director', 'project'),
+        'files': ('filer', 'files', 'clerk'),
+        'general': ('general',),
+        'parameters': ('parameters',), 
+        'workers': ('workers',)}
+    none_names: ClassVar[list[Any]] = ['none', 'None', None]
+    keystones: ClassVar[amos.Catalog] = amos.Catalog()
 
 
 @dataclasses.dataclass
 class ProjectKeystone(abc.ABC):
-    """Mixin for required project base classes.
-    
-    Args:
-        keystones (ClassVar[amos.Catalog]):
-    
-    """
-    keystones: ClassVar[amos.Catalog] = amos.Catalog()
+    """Mixin for required project base classes."""
 
     """ Initialization Methods """
     
@@ -80,19 +99,26 @@ class ProjectKeystone(abc.ABC):
             # Removes 'project_' prefix if it exists.
             if key.startswith('project_'):
                 key = key[8:]
-            ProjectKeystone.keystones[key] = cls
+            ProjectFramework.keystones.add({key: cls})
 
         
 @dataclasses.dataclass  # type: ignore
-class ProjectFactory(ProjectKeystone):
+class ProjectLibrary(amos.Library, ProjectKeystone):
     """Stores and creates node classes instances and classes.
     
     Args:
-        library (amos.Library): library of nodes.
+        project (Optional[Project]): related project instance. Defaults to None.
+        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
+            empty amos.Catalog.
+        instances (amos.Catalog): a catalog of stored class instances. Defaults 
+            to an empty amos.Catalog.
                  
     """
-    project: Project
-    library: amos.Library = amos.Library()
+    project: Optional[Project] = None
+    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
+        default_factory = amos.Catalog)
+    instances: amos.Catalog[str, object] = dataclasses.field(
+        default_factory = amos.Catalog)
 
     """ Properties """
     
@@ -107,14 +133,18 @@ class ProjectFactory(ProjectKeystone):
         """
         suffixes = []
         for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self.library, catalog).keys()]
+            plurals = [k + 's' for k in getattr(self, catalog).keys()]
             suffixes.extend(plurals)
+        # suffixes = amos.deduplicate(item = suffixes)
         return tuple(suffixes)
   
     """ Public Methods """
 
-    def create(self, name: str, **kwargs) -> ProjectNode:
-        """_summary_
+    def build(
+        self, 
+        name: Union[str, tuple[str, str]], 
+        **kwargs: Any) -> ProjectNode:
+        """Constructs a project node.
 
         Args:
             name (str): _description_
@@ -123,21 +153,102 @@ class ProjectFactory(ProjectKeystone):
             ProjectNode: _description_
             
         """
-        print('test factory create name', name)
-        if name in _NONE_NAMES:
-            return 'none'
+        if isinstance(name, tuple):
+            step = self.build(name = name[0])
+            technique = self.build(name = name[1])
+            return step.create(
+                name = name[0], 
+                technique = technique,
+                project = self.project)
+        else:
+            lookups = self._get_lookups(name = name)
+            # initialization = self._get_initialization(lookups = lookups)
+            # initialization.update(**kwargs)
+            node = self._get_node(lookups = lookups)
+            return node.create(name = name, project = self.project, **kwargs)
+    
+    """ Private Methods """
+    
+    # def _get_implementation(self, lookups: list[str]) -> dict[str, Any]:
+    #     """_summary_
+
+    #     Args:
+    #         lookups (list[str]): _description_
+
+    #     Raises:
+    #         TypeError: _description_
+
+    #     Returns:
+    #         dict[str, Any]: _description_
+            
+    #     """
+    #     for key in lookups:
+    #         try:
+    #             return self.project.outline.implementation[key]
+    #         except KeyError:
+    #             pass
+    #     return {}
+        
+    # def _get_initialization(self, lookups: list[str]) -> dict[str, Any]:
+    #     """_summary_
+
+    #     Args:
+    #         lookups (list[str]): _description_
+
+    #     Raises:
+    #         TypeError: _description_
+
+    #     Returns:
+    #         dict[str, Any]: _description_
+    #     """
+    #     for key in lookups:
+    #         try:
+    #             return self.project.outline.initialization[key]
+    #         except KeyError:
+    #             pass
+    #     return {}
+        
+    def _get_lookups(self, name: str) -> list[str]:
+        """_summary_
+
+        Args:
+            name (str): _description_
+
+        Returns:
+            list[str]: _description_
+            
+        """
+        if name in ProjectFramework.none_names:
+            return [ProjectFramework.none_names[0]]
         else:
             keys = [name]
             if name in self.project.outline.designs:
                 keys.append(self.project.outline.designs[name])
             elif name is self.project.name:
-                keys.append(_DEFAULT_DESIGN)
+                keys.append(ProjectFramework.default_design)
             if name in self.project.outline.kinds:
                 keys.append(self.project.outline.kinds[name])
-            print('test create keys', keys)
-            node = self.library.withdraw(item = keys)
-            return node.create(name = name, project = self.project, **kwargs)
-           
+            return keys
+    
+    def _get_node(self, lookups: list[str]) -> ProjectNode:
+        """_summary_
+
+        Args:
+            lookups (list[str]): _description_
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            ProjectNode: _description_
+        """
+        for key in lookups:
+            try:
+                return self.classes[key]
+            except KeyError:
+                pass
+        raise KeyError(f'No matching node found for these: {lookups}')         
+
          
 @dataclasses.dataclass
 class Project(object):
@@ -146,7 +257,7 @@ class Project(object):
     Args:
         name (Optional[str]): designates the name of a class instance that is 
             used for internal referencing throughout chrisjen. Defaults to None. 
-        settings (Optional[ProjectKeystone]): configuration settings for the 
+        idea (Optional[ProjectKeystone]): configuration settings for the 
             project. Defaults to None.
         clerk (Optional[ProjectKeystone]): a filing clerk for loading and saving 
             files throughout a chrisjen project. Defaults to None.
@@ -156,22 +267,24 @@ class Project(object):
             chrisjen project. The name is primarily used for creating file 
             folders related to the project. If it is None, a str will be created 
             from 'name' and the date and time. This prevents files from one 
-            project from overwriting another. Defaults to None.   
+            project from overwriting another. Defaults to None. 
+        framework  
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        factory (ClassVar[ProjectFactory]): factory of nodes for executing a
+        library (ClassVar[ProjectLibrary]): library of nodes for executing a
             chrisjen project. 
     
     """
     name: Optional[str] = None
-    settings: Optional[bobbie.Settings] = None
+    idea: Optional[bobbie.Settings] = None
     clerk: Optional[ProjectKeystone] = None
     director: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
+    framework: Optional[ProjectFramework] = ProjectFramework
     automatic: Optional[bool] = True
-    factory: ClassVar[Union[ProjectFactory, Type[ProjectFactory]]] = (
-        ProjectFactory)
+    library: ClassVar[Union[ProjectLibrary, Type[ProjectLibrary]]] = (
+        ProjectLibrary())
         
     """ Initialization Methods """
 
@@ -182,7 +295,7 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
-        self._validate_factory()
+        self._validate_library()
         self._validate_director()
        
     """ Public Class Methods """
@@ -190,44 +303,44 @@ class Project(object):
     @classmethod
     def create(
         cls, 
-        settings: Union[pathlib.Path, str, bobbie.Settings],
+        idea: Union[pathlib.Path, str, bobbie.Settings],
         **kwargs) -> Project:
-        """Returns a Project instance based on 'settings' and kwargs.
+        """Returns a Project instance based on 'idea' and kwargs.
 
         Args:
-            settings (Union[pathlib.Path, str, bobbie.Settings]): a path to a 
+            idea (Union[pathlib.Path, str, bobbie.Settings]): a path to a 
                 file containing configuration settings or a Settings instance.
 
         Returns:
-            Project: an instance based on 'settings' and kwargs.
+            Project: an instance based on 'idea' and kwargs.
             
         """        
-        return cls(settings = settings, **kwargs)   
+        return cls(idea = idea, **kwargs)   
     
     """ Private Methods """
     
     def _validate_director(self) -> None:
-        """Creates or validates 'self.director'."""
+        """Creates or validates 'director'."""
         if self.director is None:
-            self.director = ProjectKeystone.keystones['director']
+            self.director = ProjectFramework.keystones['director']
         elif isinstance(self.director, str):
-            self.director = ProjectKeystone.keystones[self.director]
+            self.director = ProjectFramework.keystones[self.director]
         if inspect.isclass(self.director):
             self.director = self.director(project = self)
         else:
             self.director.project = self
         return
     
-    def _validate_factory(self) -> None:
-        """Creates or validates 'self.factory'."""
-        if self.factory is None:
-            self.factory = ProjectKeystone.keystones['factory']
-        elif isinstance(self.factory, str):
-            self.factory = ProjectKeystone.keystones[self.factory]
-        if inspect.isclass(self.factory):
-            self.factory = self.factory(project = self)
+    def _validate_library(self) -> None:
+        """Creates or validates 'library'."""
+        if self.library is None:
+            self.library = ProjectFramework.keystones['library']
+        elif isinstance(self.library, str):
+            self.library = ProjectFramework.keystones[self.library]
+        if inspect.isclass(self.library):
+            self.library = self.library(project = self)
         else:
-            self.factory.project = self
+            self.library.project = self
         return
         
     """ Dunder Methods """
@@ -246,7 +359,7 @@ class Project(object):
             return getattr(self.director, item)
         except AttributeError:
             return AttributeError(
-                f'{item} is not in the project or its manager')
+                f'{item} is not in the project or its director')
            
 
 @dataclasses.dataclass
@@ -282,49 +395,29 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
         return
         
     def draft(self) -> None:
-        """Adds a project outline to 'project'."""
-        self.project.outline = ProjectKeystone.keystones['outline'](
+        """Adds an outline to 'project'."""
+        self.project.outline = ProjectFramework.keystones['outline'](
             project = self.project)
         return
     
     def publish(self) -> None:
-        """Adds a project workflow to 'project'."""
-        # print('test project name', self.project.name)
-        # print('test designs', self.project.outline.designs)
-        
-        # if self.project.name in self.project.outline.designs:
-        #     design = self.project.outline.designs[self.project.name]
-        #     workflow = self.project.factory.library.withdraw(item = design)
-        # else:
-        #     workflow = ProjectKeystone.keystones['workflow'](
-        #         project = self.project)
-        # self.project.workflow = workflow
-        # self.project = foundry.complete_workflow(project = self.project)
-        # return
-        suffixes = self.project.factory.plurals
-        director_section = self.project.outline.director
-        all_connection_keys = [
-            k for k in director_section.keys() if k.endswith(suffixes)]
-        key = all_connection_keys[0]
-        worker = self.project.factory.create(name = self.project.name)
-        self.project.workflow = foundry.complete_worker(
-            name = key, 
-            worker = worker, 
-            project = self.project)
+        """Adds a workflow to 'project'."""
+        self.project.workflow = self.project.library.build(
+            name = self.project.name)
         return
         
     def validate(self) -> None:
         """Validates or creates required portions of 'project'."""
-        self._validate_settings()
+        self._validate_idea()
         self._validate_name()
         self._validate_id()
-        self._validate_filer()
+        self._validate_clerk()
         return
     
     """ Private Methods """ 
     
-    def _validate_filer(self) -> None:
-        """Creates or validates 'project.filer'.
+    def _validate_clerk(self) -> None:
+        """Creates or validates 'project.clerk'.
         
         The default method performs no validation but is included as a hook for
         subclasses to override if validation of the 'data' attribute is 
@@ -354,28 +447,28 @@ class ProjectDirector(ProjectKeystone, abc.ABC):
     def _validate_name(self) -> None:
         """Creates or validates 'project.name'."""
         if self.project.name is None:
-            settings_name = self._infer_project_name()
-            if settings_name is None:
+            idea_name = self._infer_project_name()
+            if idea_name is None:
                 self.project.name = amos.namify(item = self.project)
             else:
-                self.project.name = settings_name
+                self.project.name = idea_name
         return  
         
-    def _validate_settings(self) -> None:
-        """Creates or validates 'project.settings'."""
-        if inspect.isclass(self.project.settings):
-            self.project.settings = self.project.settings()
-        elif not isinstance(self.project.settings, bobbie.Settings):
+    def _validate_idea(self) -> None:
+        """Creates or validates 'project.idea'."""
+        if inspect.isclass(self.project.idea):
+            self.project.idea = self.project.idea()
+        elif not isinstance(self.project.idea, bobbie.Settings):
             base = bobbie.Settings
-            self.project.settings = base.create(
-                source = self.project.settings,
-                default = _DEFAULT_SETTINGS)        
+            self.project.idea = base.create(
+                source = self.project.idea,
+                default = ProjectFramework.default_settings)        
         return
 
     def _infer_project_name(self) -> str:
-        """Tries to infer project name from 'project.settings'."""
+        """Tries to infer project name from 'project.idea'."""
         name = None    
-        for key in self.project.settings.keys():
+        for key in self.project.idea.keys():
             if key.endswith('_project'):
                 name = key.removesuffix('_project')
                 break
@@ -491,7 +584,7 @@ class Parameters(amos.Dictionary, ProjectKeystone):
                 parameters can be derived.
 
         Returns:
-            dict[str, Any]: any applicable settings parameters or an empty dict.
+            dict[str, Any]: any applicable idea parameters or an empty dict.
                    
         """    
         for parameter, attribute in self.implementation.items():
@@ -500,7 +593,7 @@ class Parameters(amos.Dictionary, ProjectKeystone):
             except AttributeError:
                 try:
                     self.contents[parameter] = (
-                        item.settings['general'][attribute])
+                        item.idea['general'][attribute])
                 except (KeyError, AttributeError):
                     pass
         return self
@@ -539,9 +632,9 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.library.deposit(item = cls, name = key)
+        Project.library.deposit(item = cls, name = key)
         # if ProjectNode in cls.__bases__:
-        #     Project.factory.add_kind(item = cls)
+        #     Project.library.add_kind(item = cls)
             
     def __post_init__(self) -> None:
         """Initializes and validates class instance attributes."""
@@ -552,11 +645,11 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.factory.library.deposit(item = self, name = key)
+        Project.library.deposit(item = self, name = key)
                                       
-    """ Required Subclass Methods """
+    """ Class Methods """
 
-    @abc.abstractclassmethod
+    @classmethod
     def create(cls, name: str, project: Project, **kwargs) -> ProjectNode:
         """Creates a ProjectNode instance based on passed arguments.
 
@@ -569,7 +662,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
             ProjectNode: an instance based on passed arguments.
             
         """
-        pass
+        return cls(name = name, **kwargs)
     
     @abc.abstractmethod
     def implement(self, item: Any, **kwargs: Any) -> Any:
@@ -602,11 +695,9 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
                 instance of 'Project'.
             
         """
-        if self.contents not in [None, 'None', 'none']:
-            with contextlib.suppress(AttributeError):
-                self.parameters.finalize(item = item)
-            result = self.implement(item = item, **self.parameters, **kwargs)
-        return result 
+        with contextlib.suppress(AttributeError):
+            self.parameters.finalize(item = item)
+        return self.implement(item = item, **self.parameters, **kwargs)
            
     """ Dunder Methods """
 
@@ -655,3 +746,36 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
                 return item is self.contents
             except TypeError:
                 return item == self.contents 
+
+    
+# def complete_worker(
+#     name: str, 
+#     worker: nodes.Worker, 
+#     project: Project) -> nodes.Worker:
+#     """_summary_
+
+#     Args:
+#         name (str): _description_
+#         worker (nodes.Worker): _description_
+#         project (base.Project): _description_
+
+#     Returns:
+#         nodes.Worker: _description_
+        
+#     """
+#     for name in amos.iterify(project.outline.connections[name]):
+#         kind = project.outline.kinds[name]  
+#         if kind in project.outline.suffixes['workers']:
+#             design = find_design(name = name, project = project)
+#             parameters = {'name': name, 'project': project}
+#             worker = project.library.build(
+#                 item = (name, design),
+#                 parameters = parameters)
+#             node = complete_worker(
+#                 name = name, 
+#                 worker = worker, 
+#                 project = project)
+#             worker.append(node)
+#         else:
+#             worker.append(name) 
+#     return worker

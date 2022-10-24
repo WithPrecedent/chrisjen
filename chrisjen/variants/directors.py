@@ -92,7 +92,7 @@ To Do:
 #         self.project = validators.validate_settings(project = self.project)
 #         self.project = validators.validate_name(project = self.project)
 #         self.project = validators.validate_id(project = self.project)
-#         self.project = validators.validate_filer(project = self.project)
+#         self.project = validators.validate_clerk(project = self.project)
 #         return
     
      

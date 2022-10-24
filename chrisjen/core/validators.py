@@ -85,7 +85,7 @@ def validate_outline(project: base.Project) -> base.Project:
     #         or not amos.has_attributes(
     #             item = self,
     #             attributes = [
-    #                 'filer', 'component', 'manager', 'settings', 'stage', 
+    #                 'clerk', 'component', 'manager', 'settings', 'stage', 
     #                 'workflow'])):
     #         self.keystones = base.ProjectKeystones()
     #     return self

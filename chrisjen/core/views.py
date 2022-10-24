@@ -57,13 +57,8 @@ class Outline(base.ProjectKeystone):
 
     """
     project: base.Project
-    suffixes: ClassVar[dict[str, tuple[str]]] = {
-        'design': ('design',),
-        'director': ('director', 'project'),
-        'files': ('filer', 'files', 'clerk'),
-        'general': ('general',),
-        'parameters': ('parameters',), 
-        'workers': ('workers',)}
+    suffixes: ClassVar[dict[str, tuple[str]]] = (
+        base.ProjectFramework.defined_suffixes)
     
     """ Properties """       
                      
@@ -81,17 +76,6 @@ class Outline(base.ProjectKeystone):
             new_associations = {c: node for c in connections}
             associations.update(new_associations)
         return associations
-        # associations = {}
-        # suffixes = self.project.factory.plurals
-        # for key, section in self.workers.items():
-        #     worker_keys = [k for k in section.keys() if k.endswith(suffixes)]
-        #     for design_key in worker_keys:
-        #         prefix, suffix = amos.cleave_str(design_key)
-        #         if prefix == suffix:
-        #             associations[key] = key
-        #         else:
-        #             associations[prefix] = key
-        # return associations 
                             
     @property
     def clerk(self) -> dict[str, Any]:
@@ -117,7 +101,7 @@ class Outline(base.ProjectKeystone):
                 node connections for that worker.
             
         """
-        suffixes = self.project.factory.plurals
+        suffixes = self.project.library.plurals
         connections = {}
         for name, section in self.workers.items():
             if name.startswith(self.project.name):
@@ -227,7 +211,7 @@ class Outline(base.ProjectKeystone):
         """
         initialization = {}
         all_plurals = (
-            self.project.factory.plurals
+            self.project.library.plurals
             + self.suffixes['design']
             + self.suffixes['director'])
         for key, section in self.workers.items():   
@@ -245,7 +229,7 @@ class Outline(base.ProjectKeystone):
             
         """
         kinds = {}
-        suffixes = self.project.factory.plurals
+        suffixes = self.project.library.plurals
         for key, section in self.workers.items():
             new_kinds = {}
             keys = [k for k in section.keys() if k.endswith(suffixes)]
@@ -287,21 +271,29 @@ class Outline(base.ProjectKeystone):
             
         """
         sections = {}
-        suffixes = self.project.factory.plurals
+        suffixes = self.project.library.plurals
         for name, section in self.project.settings.items():
             if any(k.endswith(suffixes) for k in section.keys()):
                 sections[name] = section
         return sections
 
-        # exclude = []
-        # for category, suffixes in self.suffixes.items():
-        #     if category is not 'director':
-        #         exclude.extend(suffixes) 
-        # return {
-        #     k: v for k, v in self.project.settings.items()
-        #     if not k.endswith(tuple(exclude))}   
+    """ Class Methods """
 
+    @classmethod
+    def create(cls, project: base.Project, **kwargs) -> Outline:
+        """Creates an Outline instance based on passed arguments.
 
+        Args:
+            project (Project): project with information to create an Outline
+                instance.
+                
+        Returns:
+            Outline: an instance based on passed arguments.
+            
+        """
+        cls.suffixes = project.framework.defined_suffixes
+        return cls(project = project, **kwargs)
+    
 # def extendify(
 #     dictionary: dict[str, list[str]]) -> dict[str, list[str]]:    
      
@@ -321,8 +313,8 @@ class Outline(base.ProjectKeystone):
 #     contents: MutableMapping[Hashable, Set[Hashable]] = (
 #         dataclasses.field(
 #             default_factory = lambda: collections.defaultdict(set)))
-#     nodes: base.ProjectFactory = dataclasses.field(
-#         default_factory = base.ProjectFactory)
+#     nodes: base.ProjectLibrary = dataclasses.field(
+#         default_factory = base.ProjectLibrary)
 
 #     """ Properties """
 

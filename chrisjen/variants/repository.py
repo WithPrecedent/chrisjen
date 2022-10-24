@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
      
 # @dataclasses.dataclass  # type: ignore
-# class ProjectFactory(amos.Library):
+# class ProjectLibrary(amos.Library):
 #     """Stores classes instances and classes in a chained mapping.
     
 #     When searching for matches, instances are prioritized over classes.
@@ -92,7 +92,7 @@ if TYPE_CHECKING:
 #     keystones: ClassVar[amos.Catalog] = amos.Catalog()
 #     directors: ClassVar[amos.Catalog] = amos.Catalog()
 #     managers: ClassVar[amos.Catalog] = amos.Catalog()
-#     nodes: ClassVar[ProjectFactory] = ProjectFactory()
+#     nodes: ClassVar[ProjectLibrary] = ProjectLibrary()
 #     subtypes: ClassVar[amos.Catalog] = amos.Catalog()
 #     categories: ClassVar[MutableMapping[str, str]] = dataclasses.field(
 #         default_factory = dict)
