@@ -103,11 +103,8 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
             Worker: an instance based on passed arguments.
             
         """
-        print('test node name at create', name)
-        print('test node connections at create', project.outline.connections[name])
         worker = cls(name = name, project = project)
         for key in amos.iterify(project.outline.connections[name]):
-            print('test subnode name at create', key)
             node = project.library.build(name = key) 
             worker.append(item = node)
         return worker

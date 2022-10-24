@@ -153,7 +153,6 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
             ProjectNode: _description_
             
         """
-        print('test node name at build', name)
         if isinstance(name, tuple):
             step = self.build(name = name[0])
             technique = self.build(name = name[1])
@@ -163,11 +162,9 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
                 project = self.project)
         else:
             lookups = self._get_lookups(name = name)
-            print('test lookups at build', lookups)
             # initialization = self._get_initialization(lookups = lookups)
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
-            print('test node class at build', node)
             return node.create(name = name, project = self.project, **kwargs)
     
     """ Private Methods """
@@ -245,10 +242,8 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
         Returns:
             ProjectNode: _description_
         """
-        print('test classes keys at _get_node', self.classes.keys())
         for key in lookups:
             try:
-                print('test none in classes', key in self.classes)
                 return self.classes[key]
             except KeyError:
                 pass
