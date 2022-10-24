@@ -89,7 +89,7 @@ class ProjectKeystone(abc.ABC):
     
     @classmethod
     def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass in 'registry'."""
+        """Automatically registers subclass.."""
         # Because ProjectKeystone will be used as a mixin, it is important to 
         # call other base class '__init_subclass__' methods, if they exist.
         with contextlib.suppress(AttributeError):
@@ -600,7 +600,7 @@ class Parameters(amos.Dictionary, ProjectKeystone):
     
     
 @dataclasses.dataclass
-class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
+class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -623,7 +623,14 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
     
     @classmethod
     def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass in 'registry'."""
+        """Automatically registers subclasses and adds hash dunder methods.
+
+        This method forces subclasses to use the same hash methods as 
+        ProjectNode. This is necessary because dataclasses, by design, do not 
+        automatically inherit the hash and equivalance dunder methods from their 
+        parent classes.        
+        
+        """
         # Because ProjectNode will be used as a mixin, it is important to 
         # call other base class '__init_subclass__' methods, if they exist.
         with contextlib.suppress(AttributeError):
@@ -635,7 +642,11 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
         Project.library.deposit(item = cls, name = key)
         # if ProjectNode in cls.__bases__:
         #     Project.library.add_kind(item = cls)
-            
+        # Copies hashing related methods to a subclass.
+        cls.__hash__ = ProjectNode.__hash__ # type: ignore
+        cls.__eq__ = ProjectNode.__eq__ # type: ignore
+        cls.__ne__ = ProjectNode.__ne__ # type: ignore  
+                  
     def __post_init__(self) -> None:
         """Initializes and validates class instance attributes."""
         # Calls parent and/or mixin initialization method(s).
@@ -746,6 +757,19 @@ class ProjectNode(holden.Labeled, ProjectKeystone, abc.ABC):
                 return item is self.contents
             except TypeError:
                 return item == self.contents 
+    
+    def __hash__(self) -> int:
+        """Makes Node hashable so that it can be used as a key in a dict.
+
+        Rather than using the object ID, this method prevents two Nodes with
+        the same name from being used in a graph object that uses a dict as
+        its base storage type.
+        
+        Returns:
+            int: hashable of 'name'.
+            
+        """
+        return hash(self.name)
 
     
 # def complete_worker(

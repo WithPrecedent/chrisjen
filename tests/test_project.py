@@ -120,7 +120,7 @@ def test_project():
         'analyst', 
         'critic']
     project.director.publish()
-    print('test workflow', project.workflow)
+    print('test workflow', project.workflow.labels)
     # Tests base libraries.
     # Tests workflow construction.
     # print('test project workflow', project.workflow)

@@ -141,6 +141,8 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
                     self.connect((endpoint, root))
         elif isinstance(item, base.ProjectNode):
             current_endpoints = self.endpoint
+            if item not in self:
+                self.add(item = item)
             for endpoint in current_endpoints:
                 self.connect((endpoint, item))            
         else:
