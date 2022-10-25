@@ -120,7 +120,8 @@ def test_project():
         'analyst', 
         'critic']
     project.director.publish()
-    print('test workflow', project.workflow.labels)
+    print('test workflow', [k.name for k in project.workflow.contents.keys()])
+    print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])
     # Tests base libraries.
     # Tests workflow construction.
     # print('test project workflow', project.workflow)
