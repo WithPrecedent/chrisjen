@@ -38,11 +38,10 @@ import holden
 import miller
 
 from . import base
-from . import nodes
 
 
 @dataclasses.dataclass
-class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
+class Worker(holden.System, holden.Labeled):
     """Base class for an iterative node.
         
     Args:
@@ -68,25 +67,25 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
     
     """ Properties """
 
-    @property
-    def endpoint(self) -> MutableSequence[Hashable]:
-        """Returns the endpoints of the stored graph."""
-        return holden.get_endpoints_adjacency(item = self.contents)
+    # @property
+    # def endpoint(self) -> MutableSequence[Hashable]:
+    #     """Returns the endpoints of the stored graph."""
+    #     return holden.get_endpoints_adjacency(item = self.contents)
                     
-    @property
-    def root(self) -> MutableSequence[Hashable]:
-        """Returns the roots of the stored graph."""
-        return holden.get_roots_adjacency(item = self.contents)
+    # @property
+    # def root(self) -> MutableSequence[Hashable]:
+    #     """Returns the roots of the stored graph."""
+    #     return holden.get_roots_adjacency(item = self.contents)
 
-    @property
-    def parallel(self) -> Collection[Hashable]:
-        """Returns all paths through the stored as a list of paths."""
-        return holden.adjacency_to_parallel(item = self.contents)
+    # @property
+    # def parallel(self) -> Collection[Hashable]:
+    #     """Returns all paths through the stored as a list of paths."""
+    #     return holden.adjacency_to_parallel(item = self.contents)
     
-    @property
-    def serial(self) -> base.Path:
-        """Returns stored graph as a path."""
-        return holden.adjacency_to_serial(item = self.contents)     
+    # @property
+    # def serial(self) -> base.Path:
+    #     """Returns stored graph as a path."""
+    #     return holden.adjacency_to_serial(item = self.contents)     
                         
     """ Class Methods """
 
@@ -129,7 +128,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
         """
         if isinstance(item, holden.Graph):
             current_endpoints = self.endpoint
-            form = holden.what_form(item = item)
+            form = holden.classify(item = item)
             if form == 'adjacency':
                 other = item
             else:
@@ -185,7 +184,7 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
         """
         if isinstance(item, base.Graph):
             current_roots = self.root
-            form = holden.what_form(item = item)
+            form = holden.classify(item = item)
             if form == 'adjacency':
                 other = item
             else:
@@ -203,24 +202,24 @@ class Worker(holden.Adjacency, holden.Directed, base.ProjectNode):
             raise TypeError('item is not a recognized graph type')
         return
     
-    def walk(self, start: Hashable, stop: Hashable) -> Worker:
-        """Returns all paths in graph from 'start' to 'stop'.
+    # def walk(self, start: Hashable, stop: Hashable) -> Worker:
+    #     """Returns all paths in graph from 'start' to 'stop'.
 
-        The code here is adapted from: https://www.python.org/doc/essays/graphs/
+    #     The code here is adapted from: https://www.python.org/doc/essays/graphs/
         
-        Args:
-            start (Hashable): node to start paths from.
-            stop (Hashable): node to stop paths.
+    #     Args:
+    #         start (Hashable): node to start paths from.
+    #         stop (Hashable): node to stop paths.
             
-        Returns:
-            Path: a list of possible paths (each path is a list nodes) from 
-                'start' to 'stop'.
+    #     Returns:
+    #         Path: a list of possible paths (each path is a list nodes) from 
+    #             'start' to 'stop'.
             
-        """
-        return holden.walk_adjacency(
-            item = self.contents, 
-            start = start, 
-            stop = stop)
+    #     """
+    #     return holden.walk_adjacency(
+    #         item = self.contents, 
+    #         start = start, 
+    #         stop = stop)
 
     """ Private Methods """
     

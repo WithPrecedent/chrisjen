@@ -30,16 +30,16 @@ class EvenAnother(chrisjen.Task):
 
 def test_workflow():
     # Tests adjacency matrix constructor
-    matrix = tuple([[[0, 0, 1], [1, 0, 0], [0, 0, 0]],
-                    ['scorpion', 'frog', 'river']])
-    workflow = chrisjen.Workflow.from_matrix(item = matrix)
+    matrix = tuple(
+        [[[0, 0, 1], [1, 0, 0], [0, 0, 0]], ['scorpion', 'frog', 'river']])
+    workflow = chrisjen.Worker.from_matrix(item = matrix)
     assert 'scorpion' in workflow['frog']
     assert 'river' not in workflow['frog']
     # Tests adjacency list constructor
     adjacency = {'grumpy': {'sleepy'},
-                 'doc': {},
+                 'doc': set(),
                  'sneezy': {'grumpy', 'bashful'}}
-    workflow = chrisjen.Workflow.from_adjacency(item = adjacency)
+    workflow = chrisjen.Worker.from_adjacency(item = adjacency)
     assert 'sleepy' in workflow['grumpy']
     assert 'bashful' in workflow['sneezy']
     assert 'bashful' not in workflow['doc']
@@ -48,21 +48,21 @@ def test_workflow():
              ('camera', 'man'), 
              ('person', 'man'), 
              ('tv', 'person')]
-    workflow_edges = chrisjen.Workflow.from_edges(item = edges)
+    workflow_edges = chrisjen.Worker.from_edges(item = edges)
     assert 'woman' in workflow_edges['camera']
     assert 'man' in workflow_edges['camera']
     assert 'tv' not in workflow_edges['person']
     # Tests manual construction
-    workflow = chrisjen.Workflow()
+    workflow = chrisjen.Worker()
     workflow.add('bonnie')
     workflow.add('clyde')
     workflow.add('butch')
     workflow.add('sundance')
     workflow.add('henchman')
-    workflow.connect('bonnie', 'clyde')
-    workflow.connect('butch', 'sundance')
-    workflow.connect('bonnie', 'henchman')
-    workflow.connect('sundance', 'henchman')
+    workflow.connect(('bonnie', 'clyde'))
+    workflow.connect(('butch', 'sundance'))
+    workflow.connect(('bonnie', 'henchman'))
+    workflow.connect(('sundance', 'henchman'))
     assert 'clyde' in workflow['bonnie']
     assert 'henchman' in workflow ['bonnie']
     assert 'henchman' not in workflow['butch']
@@ -72,19 +72,19 @@ def test_workflow():
     # breadth_search = workflow.search(depth_first = False)
     # print(breadth_search)
     # assert breadth_search == ['clyde', 'bonnie', 'henchman']
-    all_paths = workflow.paths
+    all_paths = workflow.walk()
     assert ['butch', 'sundance', 'henchman'] in all_paths
     assert ['bonnie', 'clyde'] in all_paths
     assert ['bonnie', 'henchman'] in all_paths
     workflow.merge(item = workflow_edges)
-    new_workflow = chrisjen.Workflow()
+    new_workflow = chrisjen.Worker()
     something = Something()
     another_thing = AnotherThing()
     even_another = EvenAnother()
-    new_workflow.add(node = something)
-    new_workflow.add(node = another_thing)
-    new_workflow.add(node= even_another)
-    new_workflow.connect('something', 'another_thing')
+    new_workflow.add(item = something)
+    new_workflow.add(item = another_thing)
+    new_workflow.add(item = even_another)
+    new_workflow.connect(('something', 'another_thing'))
     assert 'another_thing' in new_workflow['something']
     assert 'another_thing' in new_workflow[something]
     assert another_thing in new_workflow[something]

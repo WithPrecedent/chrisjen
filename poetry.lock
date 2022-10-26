@@ -44,23 +44,23 @@ amos = ">=0.1.9,<0.2.0"
 
 [[package]]
 name = "colorama"
-version = "0.4.5"
+version = "0.4.6"
 description = "Cross-platform colored terminal text."
 category = "dev"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
 
 [[package]]
 name = "holden"
-version = "0.1.1"
+version = "0.1.3"
 description = "lightweight, accessible, flexible composite data structures"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-amos = ">=0.1.7,<0.2.0"
-miller = ">=0.1.1,<0.2.0"
+amos = ">=0.1.10,<0.2.0"
+miller = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "miller"
@@ -167,7 +167,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "c9d9fe2de2e779c5a0b38637882a6528f1d8a4e35e4566e5bc55eeb9ff4a97fc"
+content-hash = "97a382b6d877b7e1bb58469fbc7392140ce53d91ae884ac9784fc5799a9e8c65"
 
 [metadata.files]
 amos = [
@@ -186,12 +186,12 @@ bobbie = [
     {file = "bobbie-0.1.1.tar.gz", hash = "sha256:35cb9ca5fe93cf72ca263a7efd382f63aefef3427a9021737876d36df51d9d44"},
 ]
 colorama = [
-    {file = "colorama-0.4.5-py2.py3-none-any.whl", hash = "sha256:854bf444933e37f5824ae7bfc1e98d5bce2ebe4160d46b5edf346a89358e99da"},
-    {file = "colorama-0.4.5.tar.gz", hash = "sha256:e6c6b4334fc50988a639d9b98aa429a0b57da6e17b9a44f0451f930b6967b7a4"},
+    {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
+    {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 holden = [
-    {file = "holden-0.1.1-py3-none-any.whl", hash = "sha256:c16242e8defa439ffad9804fe755fbc8e7665de69fae5c161f251f6217bda97c"},
-    {file = "holden-0.1.1.tar.gz", hash = "sha256:b96139e885be9f70d690ddf16d00e2213dbacd6c5dea4b1cbb761c4e58d114d5"},
+    {file = "holden-0.1.3-py3-none-any.whl", hash = "sha256:956e570f2dd3aa1ae79af41d9dfc590816899323e51d61ed265cf9fedd3fb823"},
+    {file = "holden-0.1.3.tar.gz", hash = "sha256:1c83773396c5b4cf9043f243bbcaa171c864c7715d3b98d06786a84bb2be85ac"},
 ]
 miller = [
     {file = "miller-0.1.2-py3-none-any.whl", hash = "sha256:487b5756e3048d2834e768dda7987ac4a343e1647092d5fc4ef37c68069d9d27"},

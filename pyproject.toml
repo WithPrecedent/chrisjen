@@ -13,7 +13,7 @@ python = "^3.9"
 more_itertools = "^9.0.0"
 amos = "^0.1.10"
 bobbie = "0.1.1"
-holden = "^0.1.1"
+holden = "^0.1.3"
 miller = "^0.1.2"
 nagata = "^0.1.1"
 
