@@ -33,17 +33,17 @@ import miller
 from . import workshop
 
 if TYPE_CHECKING:
-    from . import base
+    from ..core import keystones
 
     
-def validate_workers(project: base.Project) -> base.Project:
+def validate_workers(project: framework.Project) -> framework.Project:
     """Creates or validates 'project.manager.contents'.
     
     Args:
-        project (base.Project): project to examine and validate.
+        project (framework.Project): project to examine and validate.
         
     Returns:
-        base.Project: validated base.Project instance.
+        framework.Project: validated framework.Project instance.
         
     """
     if not project.outline.workers:
@@ -56,14 +56,14 @@ def validate_workers(project: base.Project) -> base.Project:
     project.manager.contents = workers
     return project        
   
-def validate_outline(project: base.Project) -> base.Project:
+def validate_outline(project: framework.Project) -> framework.Project:
     """Creates or validates 'project.outline'.
     
     Args:
-        project (base.Project): project to examine and validate.
+        project (framework.Project): project to examine and validate.
         
     Returns:
-        base.Project: validated base.Project instance.
+        framework.Project: validated framework.Project instance.
         
     """
     if not project.outline.workers:
@@ -81,13 +81,13 @@ def validate_outline(project: base.Project) -> base.Project:
     #     """Creates or validates 'keystones'."""
     #     if inspect.isclass(self.keystones):
     #         self.keystones = self.keystones()
-    #     if (not isinstance(self.keystones, base.ProjectKeystones)
+    #     if (not isinstance(self.keystones, framework.ProjectKeystones)
     #         or not amos.has_attributes(
     #             item = self,
     #             attributes = [
     #                 'clerk', 'component', 'manager', 'settings', 'stage', 
     #                 'workflow'])):
-    #         self.keystones = base.ProjectKeystones()
+    #         self.keystones = framework.ProjectKeystones()
     #     return self
 
     

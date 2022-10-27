@@ -17,7 +17,10 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-
+    Manager
+    Librarian
+    Parameters
+    Node
 
 To Do:
 
@@ -25,132 +28,162 @@ To Do:
 """
 from __future__ import annotations
 import abc
-import collections
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import contextlib
 import dataclasses
 import inspect
 import itertools
-import pathlib
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
-import warnings
+from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
 import amos
 import bobbie
 import holden
 import miller
 
-if TYPE_CHECKING:
-    from . import nodes
-
+from . import framework
+           
 
 @dataclasses.dataclass
-class ProjectFramework(abc.ABC):
-    """Default values and classes for a chrisjen project.
-
-    Args:
-        default_design (ClassVar[str]): key name of the default worker design.
-            Defaults to 'waterfall'
-        default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
-            default settings for a chrisjen project's idea. Defaults to the
-            values in the dataclass field.
-        none_names (ClassVar[list[Any]]): lists of key names that indicate a
-            null node. Defaults to ['none', 'None', None].
-        keystones (ClassVar[amos.Catalog[str, ProjectKeystone]]): catalog of 
-            ProjectKeystone instances. Defaults to an empty Catalog.        
+class Manager(framework.ProjectKeystone, abc.ABC):
+    """Controller for chrisjen projects.
         
+    Args:
+        project (framework.Project): linked Project instance to modify and 
+            control.
+             
     """
-    default_design: ClassVar[str] = 'waterfall'
-    default_settings: ClassVar[dict[Hashable, dict[Hashable, Any]]] = {
-        'general': {
-            'verbose': False,
-            'parallelize': False,
-            'efficiency': 'up_front'},
-        'files': {
-            'file_encoding': 'windows-1252',
-            'threads': -1}}
-    defined_suffixes: ClassVar[dict[str, tuple[str]]] = {
-        'design': ('design',),
-        'director': ('director', 'project'),
-        'files': ('filer', 'files', 'clerk'),
-        'general': ('general',),
-        'parameters': ('parameters',), 
-        'workers': ('workers',)}
-    none_names: ClassVar[list[Any]] = ['none', 'None', None]
-    keystones: ClassVar[amos.Catalog] = amos.Catalog()
-
-
-@dataclasses.dataclass
-class ProjectKeystone(abc.ABC):
-    """Mixin for required project base classes."""
-
+    project: framework.Project
+    librarian: Optional[Librarian] = None
+    
     """ Initialization Methods """
-    
-    @classmethod
-    def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass.."""
-        # Because ProjectKeystone will be used as a mixin, it is important to 
-        # call other base class '__init_subclass__' methods, if they exist.
+
+    def __post_init__(self) -> None:
+        """Initializes and validates an instance."""
+        # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
-            super().__init_subclass__(*args, **kwargs) # type: ignore
-        if ProjectKeystone in cls.__bases__:
-            key = amos.namify(item = cls)
-            # Removes 'project_' prefix if it exists.
-            if key.startswith('project_'):
-                key = key[8:]
-            ProjectFramework.keystones.add({key: cls})
-
+            super().__post_init__()
+        # Validates core attributes.
+        self.validate()
+        # Completes 'project' if 'project.automatic' is True.
+        self.draft()
+        if self.project.automatic:
+            self.complete()
+                                 
+    """ Public Methods """   
         
-@dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library, ProjectKeystone):
-    """Stores and creates node classes instances and classes.
-    
-    Args:
-        project (Optional[Project]): related project instance. Defaults to None.
-        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
-            empty amos.Catalog.
-        instances (amos.Catalog): a catalog of stored class instances. Defaults 
-            to an empty amos.Catalog.
-                 
-    """
-    project: Optional[Project] = None
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-
-    """ Properties """
-    
-    @property
-    def plurals(self) -> tuple[str]:
-        """Returns all stored subclass names as naive plurals of those names.
+    def complete(self) -> None:
+        """Applies all workflow components to 'project'."""
+        self.publish()
+        self.execute()
+        return
         
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
+    def draft(self) -> None:
+        """Adds an outline to 'project'."""
+        self.project.outline = framework.ProjectKeystones['outline'](
+            project = self.project)
+        return
+    
+    def publish(self) -> None:
+        """Adds a workflow to 'project'."""
+        self.project.workflow = self.project.library.build(
+            name = self.project.name)
+        return
+        
+    def validate(self) -> None:
+        """Validates or creates required portions of 'project'."""
+        self._validate_idea()
+        self._validate_name()
+        self._validate_id()
+        self._validate_clerk()
+        self._validate_librarian()
+        return
+    
+    """ Private Methods """ 
+    
+    def _validate_clerk(self) -> None:
+        """Creates or validates 'project.clerk'.
+        
+        The default method performs no validation but is included as a hook for
+        subclasses to override if validation of the 'data' attribute is 
+        required.
+        
         """
-        suffixes = []
-        for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self, catalog).keys()]
-            suffixes.extend(plurals)
-        # suffixes = amos.deduplicate(item = suffixes)
-        return tuple(suffixes)
-  
-    """ Public Methods """
+        return  
+        
+    def _validate_id(self) -> None:
+        """Creates unique 'project.identification' if one doesn't exist.
+        
+        By default, 'identification' is set to the 'name' attribute followed by
+        an underscore and the date and time.
 
+        Args:
+            project (Project): project to examine and validate.
+        
+        """
+        if self.project.identification is None:
+            prefix = self.project.name + '_'
+            self.project.identification = miller.how_soon_is_now(
+                prefix = prefix)
+        elif not isinstance(self.project.identification, str):
+            raise TypeError('identification must be a str or None type')
+        return
+            
+    def _validate_name(self) -> None:
+        """Creates or validates 'project.name'."""
+        if self.project.name is None:
+            idea_name = self._infer_project_name()
+            if idea_name is None:
+                self.project.name = amos.namify(item = self.project)
+            else:
+                self.project.name = idea_name
+        return  
+        
+    def _validate_idea(self) -> None:
+        """Creates or validates 'project.idea'."""
+        if inspect.isclass(self.project.idea):
+            self.project.idea = self.project.idea()
+        elif not isinstance(self.project.idea, bobbie.Settings):
+            base = bobbie.Settings
+            self.project.idea = base.create(
+                source = self.project.idea,
+                default = framework.ProjectDefaults.default_settings)        
+        return
+
+    def _infer_project_name(self) -> str:
+        """Tries to infer project name from 'project.idea'."""
+        name = None    
+        for key in self.project.idea.keys():
+            if key.endswith('_project'):
+                name = key.removesuffix('_project')
+                break
+        return name
+
+
+@dataclasses.dataclass
+class Librarian(framework.ProjectKeystone, abc.ABC):
+    """Constructor for chrisjen workflows.
+        
+    Args:
+        project (framework.Project): linked Project instance to modify and 
+            control.
+             
+    """
+    project: framework.Project
+    
+    """ Public Methods """   
+        
     def build(
         self, 
         name: Union[str, tuple[str, str]], 
-        **kwargs: Any) -> ProjectNode:
+        **kwargs: Any) -> Node:
         """Constructs a project node.
 
         Args:
             name (str): _description_
 
         Returns:
-            ProjectNode: _description_
+            Node: _description_
             
         """
         if isinstance(name, tuple):
@@ -166,7 +199,7 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
             return node.create(name = name, project = self.project, **kwargs)
-    
+
     """ Private Methods """
     
     # def _get_implementation(self, lookups: list[str]) -> dict[str, Any]:
@@ -218,19 +251,19 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
             list[str]: _description_
             
         """
-        if name in ProjectFramework.none_names:
+        if name in framework.ProjectDefaults.none_names:
             return ['null_node']
         else:
             keys = [name]
             if name in self.project.outline.designs:
                 keys.append(self.project.outline.designs[name])
             elif name is self.project.name:
-                keys.append(ProjectFramework.default_design)
+                keys.append(framework.ProjectDefaults.default_worker)
             if name in self.project.outline.kinds:
                 keys.append(self.project.outline.kinds[name])
             return keys
     
-    def _get_node(self, lookups: list[str]) -> ProjectNode:
+    def _get_node(self, lookups: list[str]) -> Node:
         """_summary_
 
         Args:
@@ -240,243 +273,18 @@ class ProjectLibrary(amos.Library, ProjectKeystone):
             KeyError: _description_
 
         Returns:
-            ProjectNode: _description_
+            Node: _description_
         """
         for key in lookups:
             try:
-                return self.classes[key]
+                return self.project.library.classes[key]
             except KeyError:
                 pass
-        raise KeyError(f'No matching node found for these: {lookups}')         
-
-         
-@dataclasses.dataclass
-class Project(object):
-    """User interface for a chrisjen project.
+        raise KeyError(f'No matching node found for these: {lookups}')  
     
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal referencing throughout chrisjen. Defaults to None. 
-        idea (Optional[ProjectKeystone]): configuration settings for the 
-            project. Defaults to None.
-        clerk (Optional[ProjectKeystone]): a filing clerk for loading and saving 
-            files throughout a chrisjen project. Defaults to None.
-        director (Optional[ProjectKeystone]): constructor for a chrisjen 
-            project. Defaults to None.
-        identification (Optional[str]): a unique identification name for a 
-            chrisjen project. The name is primarily used for creating file 
-            folders related to the project. If it is None, a str will be created 
-            from 'name' and the date and time. This prevents files from one 
-            project from overwriting another. Defaults to None. 
-        framework  
-        automatic (bool): whether to automatically iterate through the project
-            stages (True) or whether it must be iterating manually (False). 
-            Defaults to True.
-        library (ClassVar[ProjectLibrary]): library of nodes for executing a
-            chrisjen project. 
-    
-    """
-    name: Optional[str] = None
-    idea: Optional[bobbie.Settings] = None
-    clerk: Optional[ProjectKeystone] = None
-    director: Optional[ProjectKeystone] = None
-    identification: Optional[str] = None
-    framework: Optional[ProjectFramework] = ProjectFramework
-    automatic: Optional[bool] = True
-    library: ClassVar[Union[ProjectLibrary, Type[ProjectLibrary]]] = (
-        ProjectLibrary())
-        
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
-        # Removes various python warnings from console output.
-        warnings.filterwarnings('ignore')
-        # Calls parent and/or mixin initialization method(s).
-        with contextlib.suppress(AttributeError):
-            super().__post_init__()
-        self._validate_library()
-        self._validate_director()
-       
-    """ Public Class Methods """
-
-    @classmethod
-    def create(
-        cls, 
-        idea: Union[pathlib.Path, str, bobbie.Settings],
-        **kwargs) -> Project:
-        """Returns a Project instance based on 'idea' and kwargs.
-
-        Args:
-            idea (Union[pathlib.Path, str, bobbie.Settings]): a path to a 
-                file containing configuration settings or a Settings instance.
-
-        Returns:
-            Project: an instance based on 'idea' and kwargs.
-            
-        """        
-        return cls(idea = idea, **kwargs)   
-    
-    """ Private Methods """
-    
-    def _validate_director(self) -> None:
-        """Creates or validates 'director'."""
-        if self.director is None:
-            self.director = ProjectFramework.keystones['director']
-        elif isinstance(self.director, str):
-            self.director = ProjectFramework.keystones[self.director]
-        if inspect.isclass(self.director):
-            self.director = self.director(project = self)
-        else:
-            self.director.project = self
-        return
-    
-    def _validate_library(self) -> None:
-        """Creates or validates 'library'."""
-        if self.library is None:
-            self.library = ProjectFramework.keystones['library']
-        elif isinstance(self.library, str):
-            self.library = ProjectFramework.keystones[self.library]
-        if inspect.isclass(self.library):
-            self.library = self.library(project = self)
-        else:
-            self.library.project = self
-        return
-        
-    """ Dunder Methods """
-    
-    def __getattr__(self, item: str) -> Any:
-        """Checks 'director' for attribute named 'item'.
-
-        Args:
-            item (str): name of attribute to check.
-
-        Returns:
-            Any: contents of director attribute named 'item'.
-            
-        """
-        try:
-            return getattr(self.director, item)
-        except AttributeError:
-            return AttributeError(
-                f'{item} is not in the project or its director')
-           
-
-@dataclasses.dataclass
-class ProjectDirector(ProjectKeystone, abc.ABC):
-    """Constructor for chrisjen workflows.
-        
-    Args:
-        project (Project): linked Project instance to modify and control.
-             
-    """
-    project: Project
-    
-    """ Initialization Methods """
-
-    def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
-        # Calls parent and/or mixin initialization method(s).
-        with contextlib.suppress(AttributeError):
-            super().__post_init__()
-        # Validates core attributes.
-        self.validate()
-        # Completes 'project' if 'project.automatic' is True.
-        self.draft()
-        if self.project.automatic:
-            self.complete()
-                                 
-    """ Public Methods """       
-
-    def complete(self) -> None:
-        """Applies all workflow components to 'project'."""
-        self.publish()
-        self.execute()
-        return
-        
-    def draft(self) -> None:
-        """Adds an outline to 'project'."""
-        self.project.outline = ProjectFramework.keystones['outline'](
-            project = self.project)
-        return
-    
-    def publish(self) -> None:
-        """Adds a workflow to 'project'."""
-        self.project.workflow = self.project.library.build(
-            name = self.project.name)
-        return
-        
-    def validate(self) -> None:
-        """Validates or creates required portions of 'project'."""
-        self._validate_idea()
-        self._validate_name()
-        self._validate_id()
-        self._validate_clerk()
-        return
-    
-    """ Private Methods """ 
-    
-    def _validate_clerk(self) -> None:
-        """Creates or validates 'project.clerk'.
-        
-        The default method performs no validation but is included as a hook for
-        subclasses to override if validation of the 'data' attribute is 
-        required.
-        
-        """
-        return  
-        
-    def _validate_id(self) -> None:
-        """Creates unique 'project.identification' if one doesn't exist.
-        
-        By default, 'identification' is set to the 'name' attribute followed by
-        an underscore and the date and time.
-
-        Args:
-            project (Project): project to examine and validate.
-        
-        """
-        if self.project.identification is None:
-            prefix = self.project.name + '_'
-            self.project.identification = miller.how_soon_is_now(
-                prefix = prefix)
-        elif not isinstance(self.project.identification, str):
-            raise TypeError('identification must be a str or None type')
-        return
-            
-    def _validate_name(self) -> None:
-        """Creates or validates 'project.name'."""
-        if self.project.name is None:
-            idea_name = self._infer_project_name()
-            if idea_name is None:
-                self.project.name = amos.namify(item = self.project)
-            else:
-                self.project.name = idea_name
-        return  
-        
-    def _validate_idea(self) -> None:
-        """Creates or validates 'project.idea'."""
-        if inspect.isclass(self.project.idea):
-            self.project.idea = self.project.idea()
-        elif not isinstance(self.project.idea, bobbie.Settings):
-            base = bobbie.Settings
-            self.project.idea = base.create(
-                source = self.project.idea,
-                default = ProjectFramework.default_settings)        
-        return
-
-    def _infer_project_name(self) -> str:
-        """Tries to infer project name from 'project.idea'."""
-        name = None    
-        for key in self.project.idea.keys():
-            if key.endswith('_project'):
-                name = key.removesuffix('_project')
-                break
-        return name
-
 
 @dataclasses.dataclass    
-class Parameters(amos.Dictionary, ProjectKeystone):
+class Parameters(amos.Dictionary, framework.ProjectKeystone):
     """Creates and librarys parameters for part of a chrisjen project.
     
     The use of Parameters is entirely optional, but it provides a handy 
@@ -553,11 +361,11 @@ class Parameters(amos.Dictionary, ProjectKeystone):
 
     """ Private Methods """
      
-    def _from_outline(self, project: Project) -> dict[str, Any]: 
+    def _from_outline(self, project: framework.Project) -> dict[str, Any]: 
         """Returns any applicable parameters from 'outline'.
 
         Args:
-            project (base.Project): project has parameters from 'outline.'
+            project (framework.Project): project has parameters from 'outline.'
 
         Returns:
             dict[str, Any]: any applicable outline parameters or an empty dict.
@@ -600,7 +408,7 @@ class Parameters(amos.Dictionary, ProjectKeystone):
     
     
 @dataclasses.dataclass
-class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
+class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -626,12 +434,12 @@ class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
         """Automatically registers subclasses and adds hash dunder methods.
 
         This method forces subclasses to use the same hash methods as 
-        ProjectNode. This is necessary because dataclasses, by design, do not 
+        Node. This is necessary because dataclasses, by design, do not 
         automatically inherit the hash and equivalance dunder methods from their 
         parent classes.        
         
         """
-        # Because ProjectNode will be used as a mixin, it is important to 
+        # Because Node will be used as a mixin, it is important to 
         # call other base class '__init_subclass__' methods, if they exist.
         with contextlib.suppress(AttributeError):
             super().__init_subclass__(*args, **kwargs) # type: ignore
@@ -639,16 +447,16 @@ class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.library.deposit(item = cls, name = key)
-        # if ProjectNode in cls.__bases__:
+        framework.Project.library.deposit(item = cls, name = key)
+        # if Node in cls.__bases__:
         #     Project.library.add_kind(item = cls)
         # Copies hashing related methods to a subclass.
-        cls.__hash__ = ProjectNode.__hash__ # type: ignore
-        cls.__eq__ = ProjectNode.__eq__ # type: ignore
-        cls.__ne__ = ProjectNode.__ne__ # type: ignore  
+        cls.__hash__ = Node.__hash__ # type: ignore
+        cls.__eq__ = Node.__eq__ # type: ignore
+        cls.__ne__ = Node.__ne__ # type: ignore  
                   
     def __post_init__(self) -> None:
-        """Initializes and validates class instance attributes."""
+        """Initializes and validates an instance."""
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
@@ -656,13 +464,17 @@ class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
         # Removes 'project_' prefix if it exists.
         if key.startswith('project_'):
             key = key[8:]
-        Project.library.deposit(item = self, name = key)
+        framework.Project.library.deposit(item = self, name = key)
                                       
     """ Class Methods """
 
     @classmethod
-    def create(cls, name: str, project: Project, **kwargs) -> ProjectNode:
-        """Creates a ProjectNode instance based on passed arguments.
+    def create(
+        cls, 
+        name: str, 
+        project: framework.Project, 
+        **kwargs) -> Node:
+        """Creates a Node instance based on passed arguments.
 
         Args:
             name (str): name of node instance to be created.
@@ -670,7 +482,7 @@ class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
                 instance.
                 
         Returns:
-            ProjectNode: an instance based on passed arguments.
+            Node: an instance based on passed arguments.
             
         """
         return cls(name = name, **kwargs)
@@ -771,35 +583,39 @@ class ProjectNode(holden.Labeled, ProjectKeystone, Hashable, abc.ABC):
         """
         return hash(self.name)
 
+
+@dataclasses.dataclass   
+class Criteria(framework.ProjectKeystone):
+    """Used to evaluate workflows.
     
-# def complete_worker(
-#     name: str, 
-#     worker: nodes.Worker, 
-#     project: Project) -> nodes.Worker:
-#     """_summary_
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+            
+    """
+    name: Optional[str] = None
+    contents: Optional[Callable] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
 
-#     Args:
-#         name (str): _description_
-#         worker (nodes.Worker): _description_
-#         project (Project): _description_
 
-#     Returns:
-#         nodes.Worker: _description_
-        
-#     """
-#     for name in amos.iterify(project.outline.connections[name]):
-#         kind = project.outline.kinds[name]  
-#         if kind in project.outline.suffixes['workers']:
-#             design = find_design(name = name, project = project)
-#             parameters = {'name': name, 'project': project}
-#             worker = project.library.build(
-#                 item = (name, design),
-#                 parameters = parameters)
-#             node = complete_worker(
-#                 name = name, 
-#                 worker = worker, 
-#                 project = project)
-#             worker.append(node)
-#         else:
-#             worker.append(name) 
-#     return worker
+@dataclasses.dataclass   
+class View(framework.ProjectKeystone, abc.ABC):
+    """Organizes data in a related project to increase accessibility.
+    
+    View subclasses should emphasize the used of properties so that any changes
+    to the related project are automatically reflected in the View subclass.
+    
+    Args:
+        project (framework.Project): a related project instance which has data from 
+            which the properties of a View can be derived.
+            
+    """
+    project: framework.Project
+    

@@ -39,35 +39,21 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 import amos
 
 if TYPE_CHECKING:
-    from . import base
+    from ..core import keystones
     
 
 """ Public Functions """
          
-def set_parallelization(project: base.Project) -> None:
-    """Sets multiprocessing method based on 'settings'.
-    
-    Args:
-        project (Project): project containing parallelization settings.
-        
-    """
-    if ('general' in project.idea
-            and 'parallelize' in project.idea['general'] 
-            and project.idea['general']['parallelize']):
-        if not globals()['multiprocessing']:
-            import multiprocessing
-        multiprocessing.set_start_method('spawn') 
-    return 
 
 def create_node(
     name: str,
-    project: base.Project,
-    **kwargs) -> framework.Component:
+    project: framework.Project,
+    **kwargs) -> defaults.Component:
     """Creates node based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         nodes.Component: [description]
@@ -78,13 +64,13 @@ def create_node(
     return builder(name = name, project = project, **kwargs)
 
 def create_workflow(
-    project: base.Project,
-    base: Optional[Type[framework.Workflow]] = None, 
-    **kwargs) -> framework.Workflow:
+    project: framework.Project,
+    base: Optional[Type[defaults.Workflow]] = None, 
+    **kwargs) -> defaults.Workflow:
     """Creates workflow based on 'project' and 'kwargs'.
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[base.Workflow]]): [description]. Defaults to None.
 
     Returns:
@@ -101,14 +87,14 @@ def create_workflow(
 
 def create_component(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[str] = None,  
-    **kwargs) -> framework.Component:
+    **kwargs) -> defaults.Component:
     """Creates component based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Worker]]): [description]. Defaults to 
             None.
 
@@ -149,14 +135,14 @@ def create_component(
 
 def create_worker(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[str] = None,  
     **kwargs) -> components.Worker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Worker]]): [description]. Defaults to 
             None.
 
@@ -178,19 +164,19 @@ def create_worker(
 
 def create_worker(
     name: str,
-    project: base.Project,
-    base: Optional[Type[base.ProjectWorker]] = None,  
-    **kwargs) -> base.ProjectWorker:
+    project: framework.Project,
+    base: Optional[Type[framework.ProjectWorker]] = None,  
+    **kwargs) -> framework.ProjectWorker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
-        base (Optional[Type[base.ProjectWorker]]): [description]. Defaults to 
+        project (framework.Project): [description]
+        base (Optional[Type[framework.ProjectWorker]]): [description]. Defaults to 
             None.
 
     Returns:
-        base.ProjectWorker: [description]
+        framework.ProjectWorker: [description]
         
     """ 
     base = base or project.base.node.library['worker']
@@ -198,14 +184,14 @@ def create_worker(
 
 def create_researcher(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[Type[components.Researcher]] = None,  
     **kwargs) -> components.Researcher:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Researcher]]): [description]. Defaults to 
             None.
 
@@ -224,14 +210,14 @@ def create_researcher(
 
 def create_judge(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[Type[components.Judge]] = None,  
     **kwargs) -> components.Judge:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Judge]]): [description]. Defaults to 
             None.
 
@@ -244,14 +230,14 @@ def create_judge(
 
 def create_step(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[Type[components.Step]] = None,  
     **kwargs) -> components.Step:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Step]]): [description]. Defaults to 
             None.
 
@@ -264,14 +250,14 @@ def create_step(
 
 def create_technique(
     name: str,
-    project: base.Project,
+    project: framework.Project,
     base: Optional[Type[components.Technique]] = None,  
     **kwargs) -> components.Technique:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (base.Project): [description]
+        project (framework.Project): [description]
         base (Optional[Type[components.Technique]]): [description]. Defaults to 
             None.
 
@@ -283,11 +269,11 @@ def create_technique(
     return  
 
 def get_connections(
-    project: base.Project) -> dict[str, dict[str, list[str]]]:
+    project: framework.Project) -> dict[str, dict[str, list[str]]]:
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, dict[str, list[str]]]: [description]
@@ -308,11 +294,11 @@ def get_connections(
                 connections[key][inner_key] = inner_value
     return connections
 
-def get_designs(project: base.Project) -> dict[str, str]:
+def get_designs(project: framework.Project) -> dict[str, str]:
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, str]: [description]
@@ -324,11 +310,11 @@ def get_designs(project: base.Project) -> dict[str, str]:
         designs.update(new_designs)
     return designs
          
-def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
+def get_implementation(project: framework.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, dict[str, Any]]: [description]
@@ -336,15 +322,15 @@ def get_implementation(project: base.Project) -> dict[str, dict[str, Any]]:
     """
     implementation = {}
     for key, section in project.idea.parameters.items():
-        new_key = key.removesuffix('_' + framework._PARAMETERS_SUFFIX)
+        new_key = key.removesuffix('_' + defaults._PARAMETERS_SUFFIX)
         implementation[new_key] = section
     return implementation
    
-def get_initialization(project: base.Project) -> dict[str, dict[str, Any]]:
+def get_initialization(project: framework.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, dict[str, Any]]: [description]
@@ -358,11 +344,11 @@ def get_initialization(project: base.Project) -> dict[str, dict[str, Any]]:
         initialization[key] = new_initialization
     return initialization
                           
-def get_kinds(project: base.Project) -> dict[str, str]:
+def get_kinds(project: framework.Project) -> dict[str, str]:
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, str]: [description]
@@ -376,11 +362,11 @@ def get_kinds(project: base.Project) -> dict[str, str]:
         kinds.update(new_kinds)  
     return kinds
 
-def get_labels(project: base.Project) -> list[str]:
+def get_labels(project: framework.Project) -> list[str]:
     """Returns names of nodes based on 'project.idea'.
 
     Args:
-        project (base.Project): an instance of Project with 'settings' and
+        project (framework.Project): an instance of Project with 'settings' and
             'connections'.
         
     Returns:
@@ -397,11 +383,11 @@ def get_labels(project: base.Project) -> list[str]:
     return amos.deduplicate_list(item = labels)     
 
 def get_worker_sections(
-    project: base.Project) -> dict[str, dict[Hashable, Any]]: 
+    project: framework.Project) -> dict[str, dict[Hashable, Any]]: 
     """Returns names of sections containing data for worker creation.
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[str, dict[Hashable, Any]]: [description]
@@ -412,11 +398,11 @@ def get_worker_sections(
         k: v for k, v in project.idea.items() 
         if is_worker_section(section = v, suffixes = suffixes)}
 
-def infer_project_name(project: base.Project) -> Optional[str]:
+def infer_project_name(project: framework.Project) -> Optional[str]:
     """Tries to infer project name from settings contents.
     
     Args:
-        project (base.Project): an instance of Project with 'settings'.
+        project (framework.Project): an instance of Project with 'settings'.
         
     Returns:
         Optional[str]: project name or None, if none is found.
@@ -472,7 +458,7 @@ def is_design(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + framework._DESIGN_Library)
+    return key.endswith('_' + defaults._DESIGN_Library)
 
 def is_parameters(key: str) -> bool:
     """[summary]
@@ -485,7 +471,7 @@ def is_parameters(key: str) -> bool:
         bool: [description]
         
     """    
-    return key.endswith('_' + framework._PARAMETERS_Library)
+    return key.endswith('_' + defaults._PARAMETERS_Library)
  
 """ Private Functions """
     
@@ -539,7 +525,7 @@ def _get_section_designs(
     designs = {}
     design_keys = [
         k for k in section.keys() 
-        if k.endswith(framework._DESIGN_SUFFIX)]
+        if k.endswith(defaults._DESIGN_SUFFIX)]
     for key in design_keys:
         prefix, suffix = amos.cleave_str(key)
         if prefix == suffix:
@@ -561,7 +547,7 @@ def _get_section_initialization(
         dict[str, Any]: [description]
         
     """
-    all_plurals = plurals + tuple([framework._DESIGN_SUFFIX])
+    all_plurals = plurals + tuple([defaults._DESIGN_SUFFIX])
     return {
         k: v for k, v in section.items() if not k.endswith(all_plurals)}
 
@@ -591,11 +577,11 @@ def _get_section_kinds(
             kinds.update(dict.fromkeys(values, kind))
     return kinds  
 
-def _get_worker_names(project: base.Project) -> list[str]: 
+def _get_worker_names(project: framework.Project) -> list[str]: 
     """[summary]
 
     Args:
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         list[str]: [description]
@@ -612,13 +598,13 @@ def _get_worker_names(project: base.Project) -> list[str]:
                 f'outline')
         
 def _settings_to_workflow(
-    settings: framework.ProjectSettings, 
+    settings: defaults.ProjectSettings, 
     options: amos.Catalog, 
-    workflow: framework.Workflow) -> framework.Workflow:
+    workflow: defaults.Workflow) -> defaults.Workflow:
     """[summary]
 
     Args:
-        settings (base.ProjectSettings): [description]
+        settings (framework.ProjectSettings): [description]
         options (amos.Catalog): [description]
         workflow (base.Workflow): [description]
 
@@ -640,17 +626,17 @@ def _settings_to_workflow(
 
 def _settings_to_composite(
     name: str, 
-    settings: framework.ProjectSettings,
-    options: amos.Catalog) -> base.Projectnodes.Component:
+    settings: defaults.ProjectSettings,
+    options: amos.Catalog) -> framework.Projectnodes.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (base.ProjectSettings): [description]
+        settings (framework.ProjectSettings): [description]
         options (amos.Catalog): [description]
 
     Returns:
-        base.Projectnodes.Component: [description]
+        framework.Projectnodes.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -672,7 +658,7 @@ def _settings_to_composite(
 
 def _get_lookups(
     name: str, 
-    project: base.Project,
+    project: framework.Project,
     base: Optional[str] = None) -> list[str]:
     """[summary]
 
@@ -696,12 +682,12 @@ def _get_lookups(
 
 def _finalize_implementation(
     lookups: list[str], 
-    project: base.Project) -> dict[Hashable, Any]:
+    project: framework.Project) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -718,13 +704,13 @@ def _finalize_implementation(
 
 def _finalize_initializaton(
     lookups: list[str], 
-    project: base.Project,
+    project: framework.Project,
     **kwargs) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -755,12 +741,12 @@ def _finalize_initializaton(
 
 def _finalize_worker(
     worker: components.Worker,
-    project: base.Project) -> components.Worker:
+    project: framework.Project) -> components.Worker:
     """[summary]
 
     Args:
         worker (components.Worker): [description]
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         components.Worker: [description]
@@ -775,12 +761,12 @@ def _finalize_worker(
 
 def _get_component(
     lookups: list[str], 
-    project: base.Project) -> framework.Component:
+    project: framework.Project) -> defaults.Component:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         nodes.Component: [description]
@@ -789,14 +775,14 @@ def _get_component(
     return project.base.node.library.withdraw(item = lookups)
 
 def _settings_to_adjacency(
-    settings: framework.ProjectSettings, 
-    components: dict[str, base.Projectnodes.Component],
-    system: framework.Workflow) -> amos.Pipeline:
+    settings: defaults.ProjectSettings, 
+    components: dict[str, framework.Projectnodes.Component],
+    system: defaults.Workflow) -> amos.Pipeline:
     """[summary]
 
     Args:
-        settings (base.ProjectSettings): [description]
-        components (dict[str, base.Projectnodes.Component]): [description]
+        settings (framework.ProjectSettings): [description]
+        components (dict[str, framework.Projectnodes.Component]): [description]
         system (base.Workflow): [description]
 
     Returns:
@@ -810,13 +796,13 @@ def _settings_to_adjacency(
 
 def _path_to_result(
     path: amos.Pipeline,
-    project: base.Project,
+    project: framework.Project,
     **kwargs) -> amos.Pipeline:
     """[summary]
 
     Args:
         path (amos.Pipeline): [description]
-        project (base.Project): [description]
+        project (framework.Project): [description]
 
     Returns:
         object: [description]
@@ -828,11 +814,11 @@ def _path_to_result(
             result.append(node.complete(project = project, *kwargs))
     return result
 
-# def _get_workflow_structure(project: base.Project) -> amos.Composite:
+# def _get_workflow_structure(project: framework.Project) -> amos.Composite:
 #     """[summary]
 
 #     Args:
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 
 #     Returns:
 #         amos.Composite: [description]

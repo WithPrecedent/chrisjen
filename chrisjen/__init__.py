@@ -46,24 +46,21 @@ any other package maintainer - I want to ensure the package is as accessible and
 useful as possible.
      
 """
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 __package__ = 'chrisjen'
 
 __author__ = 'Corey Rayburn Yung'
 
 
-from .core.base import *
-
+from .core.keystones import *
 from .core.filing import *
-from .core.nodes import *
-from .core.tasks import *
-from .core.validators import *
-from .core.views import *
-from .core.workers import *
-from .core.workshop import *
+from .core.framework import *
 
-# from .variants.workers import *
-# from .variants.directors import *
-# from .variants.repository import *
-# from .variants.tasks import *
+from .options.librarians import *
+from .options.nodes import *
+from .options.research import *
+from .options.supervisers import *
+from .options.tasks import *
+from .options.views import *
+from .options.workers import *

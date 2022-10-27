@@ -37,11 +37,12 @@ import amos
 import holden
 import miller
 
-from . import base
+from ..core import framework
+from ..core import keystones
 
 
 @dataclasses.dataclass
-class Worker(holden.System, holden.Labeled):
+class Worker(keystones.Node, holden.System, holden.Labeled):
     """Base class for an iterative node.
         
     Args:
@@ -54,7 +55,7 @@ class Worker(holden.System, holden.Labeled):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
+        project (Optional[framework.Project]): related Project instance.
                      
     """
     name: Optional[str] = None
@@ -62,8 +63,8 @@ class Worker(holden.System, holden.Labeled):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
+        default_factory = keystones.Parameters)
+    project: Optional[framework.Project] = None
     
     """ Properties """
 
@@ -90,7 +91,7 @@ class Worker(holden.System, holden.Labeled):
     """ Class Methods """
 
     @classmethod
-    def create(cls, name: str, project: base.Project) -> Worker:
+    def create(cls, name: str, project: framework.Project) -> Worker:
         """Constructs and returns a Worker instance.
 
         Args:
@@ -110,7 +111,7 @@ class Worker(holden.System, holden.Labeled):
                          
     """ Public Methods """
     
-    def append(self, item: base.Graph) -> None:
+    def append(self, item: keystones.Graph) -> None:
         """Appends 'item' to the endpoints of the stored graph.
 
         Appending creates an edge between every endpoint of this instance's
@@ -138,7 +139,7 @@ class Worker(holden.System, holden.Labeled):
             for endpoint in current_endpoints:
                 for root in holden.get_roots_adjacency(item = other):
                     self.connect((endpoint, root))
-        elif isinstance(item, base.ProjectNode):
+        elif isinstance(item, keystones.Node):
             current_endpoints = self.endpoint
             if item not in self:
                 self.add(item = item)
@@ -167,7 +168,7 @@ class Worker(holden.System, holden.Labeled):
             item = node.complete(item, **kwargs)
         return item
   
-    def prepend(self, item: base.Graph) -> None:
+    def prepend(self, item: keystones.Graph) -> None:
         """Prepends 'item' to the roots of the stored graph.
 
         Prepending creates an edge between every endpoint of 'item' and every
@@ -182,7 +183,7 @@ class Worker(holden.System, holden.Labeled):
                 or Collection[Hashable] type.
                 
         """
-        if isinstance(item, base.Graph):
+        if isinstance(item, keystones.Graph):
             current_roots = self.root
             form = holden.classify(item = item)
             if form == 'adjacency':
@@ -245,7 +246,7 @@ class Worker(holden.System, holden.Labeled):
   
                  
 @dataclasses.dataclass
-class Task(base.ProjectNode):
+class Task(keystones.Node):
     """Base class for non-iterable nodes in a project workflow.
 
     Args:
@@ -262,7 +263,7 @@ class Task(base.ProjectNode):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = keystones.Parameters)
     
     """ Public Methods """
        
@@ -288,7 +289,7 @@ class Task(base.ProjectNode):
    
     
 @dataclasses.dataclass
-class NullNode(base.ProjectNode):
+class NullNode(keystones.Node):
     """Class for null nodes in a chrisjen project.
 
     Args:
@@ -313,9 +314,9 @@ class NullNode(base.ProjectNode):
     def create(
         cls, 
         name: str, 
-        project: base.Project, 
+        project: framework.Project, 
         **kwargs) -> NullNode:
-        """Creates a ProjectNode instance based on passed arguments.
+        """Creates a Node instance based on passed arguments.
 
         Args:
             name (str): name of node instance to be created.
@@ -323,7 +324,7 @@ class NullNode(base.ProjectNode):
                 instance.
                 
         Returns:
-            ProjectNode: an instance based on passed arguments.
+            Node: an instance based on passed arguments.
             
         """
         return cls()
@@ -360,27 +361,6 @@ class NullNode(base.ProjectNode):
         """
         return item
         
-
-@dataclasses.dataclass   
-class Criteria(base.ProjectKeystone):
-    """Evaluates paths for use by Judge.
-    
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-            
-    """
-    name: Optional[str] = None
-    contents: Optional[Callable] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-
  
 # def is_component(item: Union[object, Type[Any]]) -> bool:
 #     """Returns whether 'item' is a component.
@@ -402,16 +382,16 @@ class Criteria(base.ProjectKeystone):
            
     # def implement(
     #     self,
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
+    #     project: framework.Project, 
+    #     **kwargs) -> framework.Project:
     #     """Applies 'contents' to 'project'.
         
     #     Args:
-    #         project (base.Project): instance from which data needed for 
+    #         project (framework.Project): instance from which data needed for 
     #             implementation should be derived and all results be added.
 
     #     Returns:
-    #         base.Project: with possible changes made.
+    #         framework.Project: with possible changes made.
             
     #     """
     #     if len(self.contents) > 1 and project.idea.general['parallelize']:
@@ -424,8 +404,8 @@ class Criteria(base.ProjectKeystone):
    
     # def _implement_in_parallel(
     #     self, 
-    #     project: base.Project, 
-    #     **kwargs) -> base.Project:
+    #     project: framework.Project, 
+    #     **kwargs) -> framework.Project:
     #     """Applies 'implementation' to 'project' using multiple cores.
 
     #     Args:
@@ -445,3 +425,35 @@ class Criteria(base.ProjectKeystone):
     #     return project 
   
 
+    
+# def complete_worker(
+#     name: str, 
+#     worker: nodes.Worker, 
+#     project: Project) -> nodes.Worker:
+#     """_summary_
+
+#     Args:
+#         name (str): _description_
+#         worker (nodes.Worker): _description_
+#         project (Project): _description_
+
+#     Returns:
+#         nodes.Worker: _description_
+        
+#     """
+#     for name in amos.iterify(project.outline.connections[name]):
+#         kind = project.outline.kinds[name]  
+#         if kind in project.outline.suffixes['workers']:
+#             design = find_design(name = name, project = project)
+#             parameters = {'name': name, 'project': project}
+#             worker = project.library.build(
+#                 item = (name, design),
+#                 parameters = parameters)
+#             node = complete_worker(
+#                 name = name, 
+#                 worker = worker, 
+#                 project = project)
+#             worker.append(node)
+#         else:
+#             worker.append(name) 
+#     return worker

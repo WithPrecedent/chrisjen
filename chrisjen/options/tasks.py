@@ -26,7 +26,8 @@ from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
 from typing import Any, Optional, TYPE_CHECKING, Union
 
-from . import base 
+from ..core import framework
+from ..core import keystones
 from . import nodes
 
 
@@ -53,7 +54,7 @@ class Step(nodes.Task):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = keystones.Parameters)
                     
     """ Properties """
     
@@ -153,7 +154,7 @@ class Technique(nodes.Task):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = keystones.Parameters)
     step: Optional[Step] = None
         
     """ Properties """
@@ -192,7 +193,7 @@ class Technique(nodes.Task):
               
 
 @dataclasses.dataclass
-class Proctor(nodes.Task):
+class Superviser(nodes.Task):
     """Base class for making multiple instances of a project.
     
     Args:
@@ -209,7 +210,7 @@ class Proctor(nodes.Task):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = keystones.Parameters)
     
     """ Public Methods """
      
@@ -248,7 +249,7 @@ class Judge(nodes.Task):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)    
+        default_factory = keystones.Parameters)    
     
     """ Public Methods """
      
@@ -287,7 +288,7 @@ class Scorer(nodes.Task):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
+        default_factory = keystones.Parameters)
     score_attribute: Optional[str] = None
     
     """ Public Methods """

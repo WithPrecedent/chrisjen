@@ -40,19 +40,19 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 import holden
 
-from ..core import workshop
+from . import workshop
 
  
 # """ Public Functions """
 
 # def create_workflow(
-#     project: base.Project,
+#     project: framework.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
 #     """[summary]
 
 #     Args:
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 #         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
 #     Returns:
@@ -72,13 +72,13 @@ from ..core import workshop
 #         workflow = workflow)
     
 # def create_workflow(
-#     project: base.Project,
+#     project: framework.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
 #     """[summary]
 
 #     Args:
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 #         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
 #     Returns:
@@ -94,13 +94,13 @@ from ..core import workshop
 #         workflow = workflow)
 
 # def create_results(
-#     project: base.Project,
+#     project: framework.Project,
 #     base: Optional[Type[Results]] = None, 
 #     **kwargs) -> Results:
 #     """[summary]
 
 #     Args:
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 #         base (Optional[Type[Results]]): [description]. Defaults to None.
 
 #     Returns:
@@ -115,11 +115,11 @@ from ..core import workshop
 
 # """ Private Functions """
 
-# def _get_structure(project: base.Project) -> amos.Composite:
+# def _get_structure(project: framework.Project) -> amos.Composite:
 #     """[summary]
 
 #     Args:
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 
 #     Returns:
 #         amos.Composite: [description]
@@ -131,17 +131,17 @@ from ..core import workshop
 #         try:
 #             structure = project.idea[project.name]['structure']
 #         except KeyError:
-#             structure = project.base.default_workflow
+#             structure = project.base.default_worker
 #     return amos.Composite.create(structure)
     
 # def _settings_to_workflow(
-#     settings: framework.ProjectSettings, 
+#     settings: defaults.ProjectSettings, 
 #     options: amos.Catalog, 
 #     workflow: Workflow) -> Workflow:
 #     """[summary]
 
 #     Args:
-#         settings (base.ProjectSettings): [description]
+#         settings (framework.ProjectSettings): [description]
 #         options (base.LIBRARY): [description]
 
 #     Returns:
@@ -162,17 +162,17 @@ from ..core import workshop
 
 # def _settings_to_component(
 #     name: str, 
-#     settings: framework.ProjectSettings,
-#     options: amos.Catalog) -> base.Projectnodes.Component:
+#     settings: defaults.ProjectSettings,
+#     options: amos.Catalog) -> framework.Projectnodes.Component:
 #     """[summary]
 
 #     Args:
 #         name (str): [description]
-#         settings (base.ProjectSettings): [description]
+#         settings (framework.ProjectSettings): [description]
 #         options (amos.Catalog): [description]
 
 #     Returns:
-#         base.Projectnodes.Component: [description]
+#         framework.Projectnodes.Component: [description]
         
 #     """    
 #     design = settings.designs.get(name, None) 
@@ -216,7 +216,7 @@ from ..core import workshop
 
 # def _get_base(
 #     lookups: Sequence[str],
-#     options: amos.Catalog) -> framework.Component:
+#     options: amos.Catalog) -> defaults.Component:
 #     """[summary]
 
 #     Args:
@@ -239,12 +239,12 @@ from ..core import workshop
 
 # def _get_runtime(
 #     lookups: list[str], 
-#     settings: framework.ProjectSettings) -> dict[Hashable, Any]:
+#     settings: defaults.ProjectSettings) -> dict[Hashable, Any]:
 #     """[summary]
 
 #     Args:
 #         lookups (list[str]): [description]
-#         settings (base.ProjectSettings): [description]
+#         settings (framework.ProjectSettings): [description]
 
 #     Returns:
 #         dict[Hashable, Any]: [description]
@@ -262,13 +262,13 @@ from ..core import workshop
 
 # def _parse_initialization(
 #     name: str,
-#     settings: framework.ProjectSettings, 
+#     settings: defaults.ProjectSettings, 
 #     parameters: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
 #     """[summary]
 
 #     Args:
 #         name (str): [description]
-#         settings (base.ProjectSettings): [description]
+#         settings (framework.ProjectSettings): [description]
 #         parameters (list[str]): [description]
 
 #     Returns:
@@ -288,14 +288,14 @@ from ..core import workshop
 #         return {}, {}  
 
 # def _settings_to_adjacency(
-#     settings: framework.ProjectSettings, 
-#     components: dict[str, base.Projectnodes.Component],
+#     settings: defaults.ProjectSettings, 
+#     components: dict[str, framework.Projectnodes.Component],
 #     system: Workflow) -> amos.Pipeline:
 #     """[summary]
 
 #     Args:
-#         settings (base.ProjectSettings): [description]
-#         components (dict[str, base.Projectnodes.Component]): [description]
+#         settings (framework.ProjectSettings): [description]
+#         components (dict[str, framework.Projectnodes.Component]): [description]
 #         system (Workflow): [description]
 
 #     Returns:
@@ -309,13 +309,13 @@ from ..core import workshop
 
 # def _path_to_result(
 #     path: amos.Pipeline,
-#     project: base.Project,
+#     project: framework.Project,
 #     **kwargs) -> amos.Pipeline:
 #     """[summary]
 
 #     Args:
 #         path (amos.Pipeline): [description]
-#         project (base.Project): [description]
+#         project (framework.Project): [description]
 
 #     Returns:
 #         object: [description]

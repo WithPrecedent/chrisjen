@@ -39,11 +39,12 @@ import amos
 import bobbie
 import holden
 
-from . import base
+from ..core import framework
+from ..core import keystones
 
 
 @dataclasses.dataclass
-class Outline(base.ProjectKeystone):
+class Outline(keystones.View):
     """Provides a different view of data stored in 'project.idea'.
     
     The properties in Outline are used in the construction of a Workflow. So,
@@ -52,13 +53,13 @@ class Outline(base.ProjectKeystone):
     functions for creating a Workflow). 
 
     Args:
-        project (base.Project): a related project instance which has data
+        project (framework.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
 
     """
-    project: base.Project
-    suffixes: ClassVar[dict[str, tuple[str]]] = (
-        base.ProjectFramework.defined_suffixes)
+    project: framework.Project
+    rules: ClassVar[dict[str, tuple[str]]] = (
+        framework.ProjectDefaults.default_rules)
     
     """ Properties """       
                      
@@ -85,7 +86,7 @@ class Outline(base.ProjectKeystone):
             dict[str, Any]: dict of file settings.
             
         """
-        for name in self.suffixes['files']:
+        for name in self.rules['files']:
             try:
                 return self[name]
             except KeyError:
@@ -136,7 +137,7 @@ class Outline(base.ProjectKeystone):
         for key, section in self.workers.items():
             design_keys = [
                 k for k in section.keys() 
-                if k.endswith(self.suffixes['design'])]
+                if k.endswith(self.rules['design'])]
             for design_key in design_keys:
                 prefix, suffix = amos.cleave_str(design_key)
                 if prefix == suffix:
@@ -146,18 +147,18 @@ class Outline(base.ProjectKeystone):
         return designs
                      
     @property
-    def director(self) -> dict[str, Any]:
-        """Returns director settings of a chrisjen project.
+    def manager(self) -> dict[str, Any]:
+        """Returns manager settings of a chrisjen project.
 
         Returns:
-            dict[str, Any]: director settings for a chrisjen project
+            dict[str, Any]: manager settings for a chrisjen project
             
         """
         for name, section in self.project.idea.items():
-            if name.endswith(self.suffixes['director']):
+            if name.endswith(self.rules['manager']):
                 return section
         for name, section in self.project.idea.items():
-            suffixes = itertools.chain_from_iterable(self.suffixes.values()) 
+            suffixes = itertools.chain_from_iterable(self.rules.values()) 
             if not name.endswith(suffixes):
                 return section
         return {}
@@ -170,7 +171,7 @@ class Outline(base.ProjectKeystone):
             dict[str, Any]: dict of general settings.
             
         """       
-        for name in self.suffixes['general']:
+        for name in self.rules['general']:
             try:
                 return self[name]
             except KeyError:
@@ -191,7 +192,7 @@ class Outline(base.ProjectKeystone):
         """
         implementation = {}      
         for name, section in self.project.idea.items():
-            for suffix in self.suffixes['parameters']:
+            for suffix in self.rules['parameters']:
                 if name.endswith(suffix):
                     key = name.removesuffix('_' + suffix)
                     implementation[key] = section
@@ -212,8 +213,8 @@ class Outline(base.ProjectKeystone):
         initialization = {}
         all_plurals = (
             self.project.library.plurals
-            + self.suffixes['design']
-            + self.suffixes['director'])
+            + self.rules['design']
+            + self.rules['manager'])
         for key, section in self.workers.items():   
             initialization[key] = {
                 k: v for k, v in section.items() if not k.endswith(all_plurals)}
@@ -280,7 +281,7 @@ class Outline(base.ProjectKeystone):
     """ Class Methods """
 
     @classmethod
-    def create(cls, project: base.Project, **kwargs) -> Outline:
+    def create(cls, project: framework.Project, **kwargs) -> Outline:
         """Creates an Outline instance based on passed arguments.
 
         Args:
@@ -291,18 +292,19 @@ class Outline(base.ProjectKeystone):
             Outline: an instance based on passed arguments.
             
         """
-        cls.suffixes = project.framework.defined_suffixes
+        cls.suffixes = project.defaults.default_rules
         return cls(project = project, **kwargs)
+    
     
 # def extendify(
 #     dictionary: dict[str, list[str]]) -> dict[str, list[str]]:    
      
 # @dataclasses.dataclass
-# class Workflow(holden.System, base.ProjectKeystone):
+# class Workflow(holden.System, framework.ProjectKeystone):
 #     """Graph view of a chrisjen project workflow.
     
 #     Args:
-#         project (base.Project): a related project instance which has data
+#         project (framework.Project): a related project instance which has data
 #             from which the properties of an Outline can be derived.
 #         contents (MutableMapping[str, Set[str]]): keys are names of nodes and
 #             values are sets of names of nodes. Defaults to a defaultdict that 
@@ -313,8 +315,8 @@ class Outline(base.ProjectKeystone):
 #     contents: MutableMapping[Hashable, Set[Hashable]] = (
 #         dataclasses.field(
 #             default_factory = lambda: collections.defaultdict(set)))
-#     nodes: base.ProjectLibrary = dataclasses.field(
-#         default_factory = base.ProjectLibrary)
+#     nodes: framework.ProjectLibrary = dataclasses.field(
+#         default_factory = framework.ProjectLibrary)
 
 #     """ Properties """
 
@@ -326,7 +328,7 @@ class Outline(base.ProjectKeystone):
 #         """[summary]
 
 #         Args:
-#             project (base.Project): [description]
+#             project (framework.Project): [description]
 
 #         Returns:
 #             Workflow: [description]
@@ -391,11 +393,11 @@ class Outline(base.ProjectKeystone):
 #     """ Public Methods """
 
 #     @classmethod
-#     def create(cls, project: base.Project) -> Summary:
+#     def create(cls, project: framework.Project) -> Summary:
 #         """[summary]
 
 #         Args:
-#             project (base.Project): [description]
+#             project (framework.Project): [description]
 
 #         Returns:
 #             Results: [description]
@@ -405,16 +407,16 @@ class Outline(base.ProjectKeystone):
 
 #     # def complete(
 #     #     self, 
-#     #     project: base.Project, 
-#     #     **kwargs) -> base.Project:
+#     #     project: framework.Project, 
+#     #     **kwargs) -> framework.Project:
 #     #     """Calls the 'implement' method the number of times in 'iterations'.
 
 #     #     Args:
-#     #         project (base.Project): instance from which data needed for 
+#     #         project (framework.Project): instance from which data needed for 
 #     #             implementation should be derived and all results be added.
 
 #     #     Returns:
-#     #         base.Project: with possible changes made.
+#     #         framework.Project: with possible changes made.
             
 #     #     """
 #     #     if self.contents not in [None, 'None', 'none']:

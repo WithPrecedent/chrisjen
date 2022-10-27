@@ -1,5 +1,5 @@
 """
-workers: composite nodes
+workflows: iteration patterns
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -24,16 +24,8 @@ Contents:
         greater user control and intervention.
     Pert (nodes.Worker): workflow that focuses on efficient use of 
         parallel resources, including identifying the critical path.
-    Research (nodes.Worker, abc.ABC): base class for workflows that
+    Study (nodes.Worker, abc.ABC): base class for workflows that
          integrate criteria.
-    Agile (Research): a dynamic workflow structure that changes direction based 
-        on one or more criteria.
-    Contest (Research): evaluates and selects best workflow among several based 
-        on one or more criteria.
-    Lean (Research): an iterative workflow that maximizes efficiency based on
-        one or more criteria.
-    Survey (Research): averages multiple workflows based on one or more 
-        criteria.
         
 To Do:
 
@@ -52,7 +44,8 @@ import amos
 import holden
 import more_itertools
 
-from . import base
+from ..core import framework
+from ..core import keystones
 from . import nodes
 from . import tasks
 
@@ -70,7 +63,7 @@ class Waterfall(nodes.Worker):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
+        project (Optional[framework.Project]): related Project instance.
                      
     """
     name: Optional[str] = None
@@ -78,12 +71,12 @@ class Waterfall(nodes.Worker):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
+        default_factory = keystones.Parameters)
+    project: Optional[framework.Project] = None
 
     
 @dataclasses.dataclass
-class Researcher(holden.Paths, abc.ABC):
+class Research(holden.Parallel, abc.ABC):
     """Base class for nodes that integrate criteria.
         
     Args:
@@ -95,22 +88,21 @@ class Researcher(holden.Paths, abc.ABC):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
+        project (Optional[framework.Project]): related Project instance.
             
     """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
-    proctor: Optional[tasks.Proctor] = None
+    contents: Optional[MutableSequence[nodes.Worker]] = dataclasses.field(
+        default_factory = list)
+    steps: Optional[MutableSequence[Hashable]] = dataclasses.field(
+        default_factory = list)
+    project: Optional[framework.Project] = None
+    superviser: Optional[tasks.Superviser] = None
 
     """ Class Methods """
     
     @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Researcher:
+    def create(cls, name: str, project: nodes.Project) -> Study:
         """[summary]
 
         Args:
@@ -153,17 +145,17 @@ class Researcher(holden.Paths, abc.ABC):
                 instance of 'Project'.
             
         """
-        projects = self.proctor.complete(item = item)
+        projects = self.superviser.complete(item = item)
         results = {}
         for i, (key, worker) in enumerate(self.contents.items()):
             results[key] = worker.complete(item = projects[i], **kwargs)
         return results
-            
+              
 
 @dataclasses.dataclass
-class Contest(Researcher):
-    """Base class for tests that return one path from several.
-        
+class Superviser(nodes.Worker):
+    """Base class for making multiple instances of a project.
+    
     Args:
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow.
@@ -173,21 +165,15 @@ class Contest(Researcher):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
-            
+              
     """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
+    contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
-    proctor: Optional[tasks.Proctor] = None
-    judge: Optional[tasks.Judge] = None
-
-    """ Public Methods """
+        default_factory = keystones.Parameters)
     
+    """ Public Methods """
+     
     def implement(self, item: Any, **kwargs: Any) -> Any:
         """Applies 'contents' to 'item'.
 
@@ -202,73 +188,14 @@ class Contest(Researcher):
                 instance of 'Project'.
             
         """
-        results = super().implement(item = item, **kwargs)
-        project = self.judge.complete(projects = results)  
-        return project
-            
-
-@dataclasses.dataclass
-class Lean(Researcher):
-    """Iterative workflow that maximizes efficiency based on criteria.
-        
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
-            to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
-            
-    """
-    name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
-    proctor: Optional[tasks.Proctor] = None
-    judge: Optional[tasks.Judge] = None
-            
-
-@dataclasses.dataclass
-class Pollster(Researcher):
-    """Base class for research that averages results among several paths.
-        
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
-            to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
-        project (Optional[base.Project]): related Project instance.
-            
-    """
-    name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = base.Parameters)
-    project: Optional[base.Project] = None
-    proctor: Optional[tasks.Proctor] = None
-    judge: Optional[tasks.Judge] = None
+        pass
+     
 
 
-
-    
-    
-
-def create_researcher(
+def create_research(
     name: str, 
     project: nodes.Project,
-    **kwargs) -> Researcher:
+    **kwargs) -> Studyer:
     """[summary]
 
     Args:
@@ -393,7 +320,7 @@ def task_implement(
         project = node(project, **kwargs)
     return project    
 
-def count_ancestors(node: nodes.Component, workflow: framework.Stage) -> int:
+def count_ancestors(node: nodes.Component, workflow: defaults.Stage) -> int:
     connections = list(more_itertools.collapse(workflow.values()))
     return connections.count(node)
     

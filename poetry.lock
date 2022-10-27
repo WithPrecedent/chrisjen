@@ -52,7 +52,7 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7
 
 [[package]]
 name = "holden"
-version = "0.1.3"
+version = "0.1.4"
 description = "lightweight, accessible, flexible composite data structures"
 category = "main"
 optional = false
@@ -167,7 +167,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "97a382b6d877b7e1bb58469fbc7392140ce53d91ae884ac9784fc5799a9e8c65"
+content-hash = "5ae28ea7b7fd39ae74568ee3ee5c8bdfc02ad27cc5be08af9e688fe544f0ba89"
 
 [metadata.files]
 amos = [
@@ -190,8 +190,8 @@ colorama = [
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 holden = [
-    {file = "holden-0.1.3-py3-none-any.whl", hash = "sha256:956e570f2dd3aa1ae79af41d9dfc590816899323e51d61ed265cf9fedd3fb823"},
-    {file = "holden-0.1.3.tar.gz", hash = "sha256:1c83773396c5b4cf9043f243bbcaa171c864c7715d3b98d06786a84bb2be85ac"},
+    {file = "holden-0.1.4-py3-none-any.whl", hash = "sha256:4ecb3682127391ce569a971d416d35f0f8c83e1fe27be04acf6b04e95b03861a"},
+    {file = "holden-0.1.4.tar.gz", hash = "sha256:3c215f24df5c151877eb8c85f773b8e950d63807ac6ad2d9ee3690b8d074cdc1"},
 ]
 miller = [
     {file = "miller-0.1.2-py3-none-any.whl", hash = "sha256:487b5756e3048d2834e768dda7987ac4a343e1647092d5fc4ef37c68069d9d27"},

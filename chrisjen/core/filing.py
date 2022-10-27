@@ -37,7 +37,7 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 import amos
 import nagata
 
-from . import base
+from . import keystones
       
       
 @dataclasses.dataclass
@@ -190,7 +190,7 @@ class Filer(nagata.FileManager):
     chrisjen, pandas, and numpy objects.
 
     Args:
-        project (base.Project): a Project instance with a 'settings' 
+        project (framework.Project): a Project instance with a 'settings' 
             attribute that may contain configuration options for Filer.
         root_folder (Union[str, pathlib.Path]): the complete path from which the 
             other paths and folders used by Filer are ordinarily derived 
@@ -212,7 +212,7 @@ class Filer(nagata.FileManager):
             global 'default_parameters' variable.
 
     """
-    project: Optional[base.Project] = None
+    project: Optional[framework.Project] = None
     root_folder: Union[str, pathlib.Path] = pathlib.Path('..')
     input_folder: Union[str, pathlib.Path] = 'input'
     output_folder: Union[str, pathlib.Path] = 'output'
@@ -237,14 +237,14 @@ class Filer(nagata.FileManager):
     """ Class Methods """
     
     @classmethod
-    def validate(cls, project: base.Project) -> base.Project:
+    def validate(cls, project: framework.Project) -> framework.Project:
         """Creates or validates 'project.clerk'.
 
         Args:
-            project (base.Project): an instance with a 'clerk' attribute.
+            project (framework.Project): an instance with a 'clerk' attribute.
 
         Returns:
-            base.Project: an instance with a validated 'clerk' attribute.
+            framework.Project: an instance with a validated 'clerk' attribute.
             
         """  
         if inspect.isclass(project.clerk):

@@ -29,12 +29,12 @@ import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
 
-from . import base
+from ..core import keystones
 
 
 def arrrange_parallel(
     name: str, 
-    project: base.Project) -> list[list[tuple[str, str]]]:
+    project: framework.Project) -> list[list[tuple[str, str]]]:
     steps = project.connections[name]
     connections = project.connections[name]
     possible = [connections[s] for s in steps]
@@ -47,7 +47,7 @@ def arrrange_parallel(
         step_tasks.append(recipe) 
     return step_tasks
         
-def arrange_serial(name: str, project: base.Project) -> list[tuple[str, str]]:
+def arrange_serial(name: str, project: framework.Project) -> list[tuple[str, str]]:
     steps = project.connections[name]
     connections = project.connections[name]
     possible = [connections[s] for s in steps]

@@ -33,7 +33,7 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import amos
 
 if TYPE_CHECKING:
-    from ..core import base
+    from ..core import keystones
 
      
 # @dataclasses.dataclass  # type: ignore
@@ -49,9 +49,9 @@ if TYPE_CHECKING:
 #             to an empty Catalog.
                  
 #     """
-#     classes: amos.Catalog[str, Type[base.ProjectKeystone]] = dataclasses.field(
+#     classes: amos.Catalog[str, Type[framework.ProjectKeystone]] = dataclasses.field(
 #         default_factory = amos.Catalog)
-#     instances: amos.Catalog[str, base.ProjectKeystone] = dataclasses.field(
+#     instances: amos.Catalog[str, framework.ProjectKeystone] = dataclasses.field(
 #         default_factory = amos.Catalog)
 
 #     """ Properties """
@@ -77,12 +77,12 @@ if TYPE_CHECKING:
 #     """Stores classes and instances for a chrisjen project.
     
 #     The registry facilitates flexibility and extensibility of the basic
-#     framework used in chrisjen. Users can design different project structures
+#     defaults used in chrisjen. Users can design different project structures
 #     while still taking advantage of chrisjen's accessibility and base classes.
 
 #     Args:
 #         keystones
-#         directors
+#         managers
 #         managers
 #         nodes
 #         subtypes
@@ -90,7 +90,7 @@ if TYPE_CHECKING:
         
 #     """
 #     keystones: ClassVar[amos.Catalog] = amos.Catalog()
-#     directors: ClassVar[amos.Catalog] = amos.Catalog()
+#     managers: ClassVar[amos.Catalog] = amos.Catalog()
 #     managers: ClassVar[amos.Catalog] = amos.Catalog()
 #     nodes: ClassVar[ProjectLibrary] = ProjectLibrary()
 #     subtypes: ClassVar[amos.Catalog] = amos.Catalog()
@@ -102,7 +102,7 @@ if TYPE_CHECKING:
 #     @classmethod           
 #     def classify(
 #         cls, 
-#         item: Union[base.ProjectKeystone, Type[base.ProjectKeystone]]) -> str:
+#         item: Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]) -> str:
 #         """Returns name of kind that 'item' is an instance or subclass of.
 
 #         Args:
@@ -125,11 +125,11 @@ if TYPE_CHECKING:
 #     @classmethod
 #     def register(
 #         cls, 
-#         item: Union[base.ProjectKeystone, Type[base.ProjectKeystone]]) -> None:
+#         item: Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]) -> None:
 #         """Registers 'item' in the appropriate class attributes.
 
 #         Args:
-#             item (Union[base.ProjectKeystone, Type[base.ProjectKeystone]]): item to
+#             item (Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]): item to
 #                 test and register.
             
 #         """
@@ -137,15 +137,15 @@ if TYPE_CHECKING:
 #         # Removes 'project_' prefix if it exists.
 #         if key.startswith('project_'):
 #             key = key[8:]
-#         if issubclass(item, ProjectNode):
+#         if issubclass(item, Node):
 #             cls.nodes.deposit(item = item, name = key)
-#         if ProjectNode in item.__bases__:
+#         if Node in item.__bases__:
 #             cls.subtypes[key] = item
-#         if base.ProjectKeystone in item.__bases__:
+#         if framework.ProjectKeystone in item.__bases__:
 #             cls.keystones[key] = item
-#         if issubclass(item, ProjectDirector):
-#             cls.directors[key] = item
-#         if issubclass(item, ProjectManager):
+#         if issubclass(item, Manager):
+#             cls.managers[key] = item
+#         if issubclass(item, Manager):
 #             cls.managers[key] = item
 #         kind = cls.classify(item = item)
 #         cls.categories[key] = kind

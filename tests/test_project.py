@@ -31,7 +31,7 @@ import chrisjen
 
 
 @dataclasses.dataclass
-class Parser(chrisjen.Contest):
+class Parser(chrisjen.Compete):
 
     pass
 
@@ -115,11 +115,11 @@ def test_project():
     assert 'train_test' in project.outline.labels
     assert 'random_forest' in project.outline.labels
     assert 'critic' in project.outline.labels
-    assert project.outline.director['wisconsin_cancer_workers'] == [
+    assert project.outline.manager['wisconsin_cancer_workers'] == [
         'wrangler',
         'analyst', 
         'critic']
-    project.director.publish()
+    project.manager.publish()
     print('test workflow', [k.name for k in project.workflow.contents.keys()])
     print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])
     # Tests base libraries.
