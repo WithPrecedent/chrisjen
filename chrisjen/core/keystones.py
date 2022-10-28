@@ -1,5 +1,5 @@
 """
-base: base classes for a chrisjen project
+keystones: base classes for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -21,6 +21,8 @@ Contents:
     Librarian
     Parameters
     Node
+    Criteria
+    View
 
 To Do:
 
@@ -34,7 +36,7 @@ import contextlib
 import dataclasses
 import inspect
 import itertools
-from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING
 
 import amos
 import bobbie
@@ -65,30 +67,35 @@ class Manager(framework.ProjectKeystone, abc.ABC):
             super().__post_init__()
         # Validates core attributes.
         self.validate()
-        # Completes 'project' if 'project.automatic' is True.
-        self.draft()
         if self.project.automatic:
             self.complete()
+
+    """ Required Subclass Methods """
+
+    @abc.abstractmethod   
+    def complete(self) -> None:
+        """Applies workflow to 'project'."""
+        return
                                  
     """ Public Methods """   
-        
-    def complete(self) -> None:
-        """Applies all workflow components to 'project'."""
-        self.publish()
-        self.execute()
-        return
-        
-    def draft(self) -> None:
-        """Adds an outline to 'project'."""
-        self.project.outline = framework.ProjectKeystones['outline'](
-            project = self.project)
-        return
     
-    def publish(self) -> None:
-        """Adds a workflow to 'project'."""
-        self.project.workflow = self.project.library.build(
-            name = self.project.name)
-        return
+    @classmethod
+    def create(
+        cls, 
+        name: str, 
+        project: framework.Project, 
+        **kwargs: Any) -> Manager:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            name (str): name or key to lookup the subclass.
+            project (framework.Project): related Project instance.
+
+        Returns:
+            Manager: subclass instance based on passed arguments.
+            
+        """
+        return cls(project = project, **kwargs)
         
     def validate(self) -> None:
         """Validates or creates required portions of 'project'."""
@@ -96,7 +103,10 @@ class Manager(framework.ProjectKeystone, abc.ABC):
         self._validate_name()
         self._validate_id()
         self._validate_clerk()
-        self._validate_librarian()
+        self._set_parallelization()
+        self = framework.ProjectKeystones.validate(
+            item = self, 
+            attribute = 'librarian')
         return
     
     """ Private Methods """ 
@@ -158,6 +168,35 @@ class Manager(framework.ProjectKeystone, abc.ABC):
                 name = key.removesuffix('_project')
                 break
         return name
+    
+    def _validate_librarian(self) -> None:
+        """Creates or validates 'librarian'."""
+        if self.librarian is None:
+            self.librarian = framework.ProjectKeystones.librarian[
+                framework.ProjectDefaults.default_librarian]
+        elif isinstance(self.manager, str):
+            self.librarian = framework.ProjectKeystones.librarian[
+                self.librarian]
+        if inspect.isclass(self.librarian):
+            self.librarian = self.librarian(project = self)
+        else:
+            self.librarian.project = self
+        return
+
+    def _set_parallelization(self) -> None:
+        """Sets multiprocessing method based on 'settings'.
+        
+        Args:
+            project (Project): project containing parallelization settings.
+            
+        """
+        if ('general' in self.project.idea
+                and 'parallelize' in self.project.idea['general'] 
+                and self.project.idea['general']['parallelize']):
+            if not globals()['multiprocessing']:
+                import multiprocessing
+            multiprocessing.set_start_method('spawn') 
+        return 
 
 
 @dataclasses.dataclass
@@ -169,26 +208,27 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             control.
              
     """
-    project: framework.Project
+    project: Optional[framework.Project] = None
     
     """ Public Methods """   
         
-    def build(
+    def acquire(
         self, 
-        name: Union[str, tuple[str, str]], 
+        name: str | tuple[str, str], 
         **kwargs: Any) -> Node:
-        """Constructs a project node.
+        """Gets node from the project library and returns an instance.
 
         Args:
-            name (str): _description_
+            name (str | tuple[str, str]): name of the node that should match
+                a key in the project library.
 
         Returns:
-            Node: _description_
+            Node: a Node subclass instance based on passed arguments.
             
         """
         if isinstance(name, tuple):
-            step = self.build(name = name[0])
-            technique = self.build(name = name[1])
+            step = self.acquire(name = name[0])
+            technique = self.acquire(name = name[1])
             return step.create(
                 name = name[0], 
                 technique = technique,
@@ -199,7 +239,25 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
             return node.create(name = name, project = self.project, **kwargs)
+    
+    @classmethod
+    def create(
+        cls, 
+        name: str, 
+        project: framework.Project, 
+        **kwargs: Any) -> Librarian:
+        """Returns a subclass instance based on passed arguments.
 
+        Args:
+            name (str): name or key to lookup the subclass.
+            project (framework.Project): related Project instance.
+
+        Returns:
+            Librarian: subclass instance based on passed arguments.
+            
+        """
+        return cls(project = project, **kwargs)
+    
     """ Private Methods """
     
     # def _get_implementation(self, lookups: list[str]) -> dict[str, Any]:
@@ -282,130 +340,6 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
                 pass
         raise KeyError(f'No matching node found for these: {lookups}')  
     
-
-@dataclasses.dataclass    
-class Parameters(amos.Dictionary, framework.ProjectKeystone):
-    """Creates and librarys parameters for part of a chrisjen project.
-    
-    The use of Parameters is entirely optional, but it provides a handy 
-    tool for aggregating data from an array of sources, including those which 
-    only become apparent during execution of a chrisjen project, to create a 
-    unified set of implementation parameters.
-    
-    Parameters can be unpacked with '**', which will turn the contents of the
-    'contents' attribute into an ordinary set of kwargs. In this way, it can 
-    serve as a drop-in replacement for a dict that would ordinarily be used for 
-    accumulating keyword arguments.
-    
-    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
-    be called before that instance's 'implement' method in order for each of the 
-    parameter types to be incorporated.
-    
-    Args:
-        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
-            classes' 'implement' method. The 'finalize' method should be called
-            for 'contents' to be fully populated from all sources. Defaults to
-            an empty dict.
-        name (str): designates the name of a class instance that is used for 
-            internal referencing throughout chrisjen. To properly match 
-            parameters in a Settings instance, 'name' should be the prefix to 
-            "_parameters" as a section name in a Settings instance. Defaults to 
-            None. 
-        default (Mapping[str, Any]): default parameters that will be used if 
-            they are not overridden. Defaults to an empty dict.
-        implementation (Mapping[str, str]): parameters with values that can only 
-            be determined at runtime due to dynamic nature of chrisjen and its 
-            workflows. The keys should be the names of the parameters and the 
-            values should be attributes or items in 'contents' of 'project' 
-            passed to the 'finalize' method. Defaults to an emtpy dict.
-        selected (MutableSequence[str]): an exclusive list of parameters that 
-            are allowed. If 'selected' is empty, all possible parameters are 
-            allowed. However, if any are listed, all other parameters that are
-            included are removed. This is can be useful when including 
-            parameters in an Outline instance for an entire step, only some of
-            which might apply to certain techniques. Defaults to an empty list.
-
-    """
-    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    name: Optional[str] = None
-    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
-    implementation: Mapping[str, str] = dataclasses.field(
-        default_factory = dict)
-    selected: MutableSequence[str] = dataclasses.field(default_factory = list)
-      
-    """ Public Methods """
-
-    def finalize(self, item: Any, **kwargs) -> None:
-        """Combines and selects final parameters into 'contents'.
-
-        Args:
-            item (Project): instance from which implementation and 
-                settings parameters can be derived.
-            
-        """
-        # Uses kwargs and 'default' parameters as a starting amos.
-        parameters = self.default
-        # Adds any parameters from 'outline'.
-        parameters.update(self._from_outline(item = item))
-        # Adds any implementation parameters.
-        parameters.update(self._at_runtime(item = item))
-        # Adds any parameters already stored in 'contents'.
-        parameters.update(self.contents)
-        # Adds any passed kwargs, which will override any other parameters.
-        parameters.update(kwargs)
-        # Limits parameters to those in 'selected'.
-        if self.selected:
-            parameters = {k: parameters[k] for k in self.selected}
-        self.contents = parameters
-        return self
-
-    """ Private Methods """
-     
-    def _from_outline(self, project: framework.Project) -> dict[str, Any]: 
-        """Returns any applicable parameters from 'outline'.
-
-        Args:
-            project (framework.Project): project has parameters from 'outline.'
-
-        Returns:
-            dict[str, Any]: any applicable outline parameters or an empty dict.
-            
-        """
-        keys = [self.name]
-        keys.append(project.outline.kinds[self.name])
-        try:
-            keys.append(project.outline.designs[self.name])
-        except KeyError:
-            pass
-        for key in keys:
-            try:
-                return project.outline.implementation[key]
-            except KeyError:
-                pass
-        return {}
-   
-    def _at_runtime(self, item: Any) -> dict[str, Any]:
-        """Adds implementation parameters to 'contents'.
-
-        Args:
-            item (Project): instance from which implementation 
-                parameters can be derived.
-
-        Returns:
-            dict[str, Any]: any applicable idea parameters or an empty dict.
-                   
-        """    
-        for parameter, attribute in self.implementation.items():
-            try:
-                self.contents[parameter] = getattr(item, attribute)
-            except AttributeError:
-                try:
-                    self.contents[parameter] = (
-                        item.idea['general'][attribute])
-                except (KeyError, AttributeError):
-                    pass
-        return self
-    
     
 @dataclasses.dataclass
 class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
@@ -419,13 +353,13 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
             to the 'complete' method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
+            empty dict.
               
     """
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = Parameters)
+        default_factory = dict)
 
     """ Initialization Methods """
     
@@ -604,6 +538,26 @@ class Criteria(framework.ProjectKeystone):
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = dict)
 
+    """ Public Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        name: str, 
+        project: framework.Project, 
+        **kwargs: Any) -> Librarian:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            name (str): name or key to lookup the subclass.
+            project (framework.Project): related Project instance.
+
+        Returns:
+            Criteria: subclass instance based on passed arguments.
+            
+        """
+        return cls(name = name, **kwargs)
+    
 
 @dataclasses.dataclass   
 class View(framework.ProjectKeystone, abc.ABC):
@@ -613,9 +567,28 @@ class View(framework.ProjectKeystone, abc.ABC):
     to the related project are automatically reflected in the View subclass.
     
     Args:
-        project (framework.Project): a related project instance which has data from 
-            which the properties of a View can be derived.
+        project (framework.Project): a related project instance which has data 
+            from which the properties of a View can be derived.
             
     """
     project: framework.Project
-    
+
+    """ Public Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        name: str, 
+        project: framework.Project, 
+        **kwargs: Any) -> Librarian:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            name (str): name or key to lookup the subclass.
+            project (framework.Project): related Project instance.
+
+        Returns:
+            Criteria: subclass instance based on passed arguments.
+            
+        """
+        return cls(project = project, **kwargs) 

@@ -56,9 +56,10 @@ __author__ = 'Corey Rayburn Yung'
 from .core.keystones import *
 from .core.filing import *
 from .core.framework import *
+from .core.nodes import *
 
 from .options.librarians import *
-from .options.nodes import *
+from .options.managers import *
 from .options.research import *
 from .options.supervisers import *
 from .options.tasks import *

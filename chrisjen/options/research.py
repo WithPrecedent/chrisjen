@@ -41,7 +41,7 @@ from collections.abc import Hashable, MutableMapping, MutableSequence, Set
 import contextlib
 import dataclasses
 import itertools
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 import amos
 import holden
@@ -49,6 +49,7 @@ import more_itertools
 
 from ..core import framework
 from ..core import keystones
+from ..core import nodes
 from . import tasks
 from . import workers
 
@@ -74,7 +75,7 @@ class Compare(workers.Research):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
     
@@ -100,7 +101,7 @@ class Observe(workers.Research):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
     
@@ -146,7 +147,7 @@ class Compete(Compare):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None
@@ -193,7 +194,7 @@ class Lean(Compare):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None
@@ -220,7 +221,7 @@ class Survey(Compare):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None

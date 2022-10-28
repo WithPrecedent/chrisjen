@@ -1,5 +1,5 @@
 """
-librarians: classes for different timing of project node construction
+librarians: classes facilitating different timing of project node construction
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -34,7 +34,7 @@ from __future__ import annotations
 from collections.abc import Hashable, MutableMapping, MutableSequence
 import contextlib
 import dataclasses
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 from ..core import framework
 from ..core import keystones
@@ -45,10 +45,11 @@ class UpFront(keystones.Librarian):
     """Constructs an entire workflow at once.
         
     Args:
-        project (framework.Project): linked Project instance.
+        project (framework.Project): linked Project instance to modify and 
+            control.
              
     """
-    project: framework.Project
+    project: Optional[framework.Project] = None
                                  
     """ Public Methods """
 
@@ -58,29 +59,31 @@ class AsNeeded(keystones.Librarian):
     """Constructs all workers in workflows but not tasks.
         
     Args:
-        project (framework.Project): linked Project instance.
+        project (framework.Project): linked Project instance to modify and 
+            control.
              
     """
-    project: framework.Project
+    project: Optional[framework.Project] = None
                                  
     """ Public Methods """
  
     def acquire(
         self, 
-        name: Union[str, tuple[str, str]], 
+        name: str | tuple[str, str], 
         **kwargs: Any) -> keystones.Node:
-        """Constructs a project node.
+        """Gets node from the project library and returns an instance.
 
         Args:
-            name (str): _description_
+            name (str | tuple[str, str]): name of the node that should match
+                a key in the project library.
 
         Returns:
-            Node: _description_
+            keystones.Node: a Node subclass instance based on passed arguments.
             
         """
         if isinstance(name, tuple):
-            step = self.build(name = name[0])
-            technique = self.build(name = name[1])
+            step = self.acquire(name = name[0])
+            technique = self.acquire(name = name[1])
             return step.create(
                 name = name[0], 
                 technique = technique,
@@ -101,10 +104,11 @@ class OnlyAsNeeded(keystones.Librarian):
     """Constructs a workflow as it is iterated.
         
     Args:
-        project (framework.Project): linked Project instance.
+        project (framework.Project): linked Project instance to modify and 
+            control.
              
     """
-    project: framework.Project
+    project: Optional[framework.Project] = None
                                  
     """ Public Methods """
 

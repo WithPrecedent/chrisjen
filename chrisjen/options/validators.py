@@ -33,6 +33,7 @@ import miller
 from . import workshop
 
 if TYPE_CHECKING:
+    from ..core import framework
     from ..core import keystones
 
     

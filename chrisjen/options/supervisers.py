@@ -24,11 +24,11 @@ Contents:
 from __future__ import annotations
 from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Optional, TYPE_CHECKING
 
 from ..core import framework
 from ..core import keystones
-from . import nodes
+from ..core import nodes
 from . import workers
 
 
@@ -50,7 +50,7 @@ class Judge(workers.Superviser):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)    
+        default_factory = nodes.Parameters)    
     
     """ Public Methods """
      
@@ -89,7 +89,7 @@ class Scorer(workers.Superviser):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     score_attribute: Optional[str] = None
     
     """ Public Methods """

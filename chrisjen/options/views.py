@@ -33,7 +33,7 @@ from collections.abc import (
 import dataclasses
 import itertools
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type
 
 import amos
 import bobbie
@@ -59,7 +59,7 @@ class Outline(keystones.View):
     """
     project: framework.Project
     rules: ClassVar[dict[str, tuple[str]]] = (
-        framework.ProjectDefaults.default_rules)
+        framework.ProjectDefaults.default_parsers)
     
     """ Properties """       
                      
@@ -292,7 +292,7 @@ class Outline(keystones.View):
             Outline: an instance based on passed arguments.
             
         """
-        cls.suffixes = project.defaults.default_rules
+        cls.suffixes = project.defaults.default_parsers
         return cls(project = project, **kwargs)
     
     

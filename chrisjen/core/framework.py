@@ -35,7 +35,7 @@ import contextlib
 import dataclasses
 import inspect
 import pathlib
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
 import warnings
 
 import amos
@@ -54,7 +54,7 @@ class ProjectDefaults(abc.ABC):
         default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
             default settings for a chrisjen project's idea. Defaults to the
             values in the dataclass field.
-        default_rules (ClassVar[dict[str, tuple[str]]]): keys are the names of
+        default_parsers (ClassVar[dict[str, tuple[str]]]): keys are the names of
             special categories of settings and values are tuples of suffixes or
             whole words that are associated with those special categories in
             user settings. Defaults to the dict in the dataclass field.
@@ -80,7 +80,7 @@ class ProjectDefaults(abc.ABC):
         'files': {
             'file_encoding': 'windows-1252',
             'threads': -1}}
-    default_rules: ClassVar[dict[str, tuple[str]]] = {
+    default_parsers: ClassVar[dict[str, tuple[str]]] = {
         'design': ('design',),
         'manager': ('manager', 'project'),
         'files': ('filer', 'files', 'clerk'),
@@ -88,7 +88,7 @@ class ProjectDefaults(abc.ABC):
         'parameters': ('parameters',), 
         'workers': ('workers',)}
     default_manager: ClassVar[str] = 'publisher'
-    default_librarian: ClassVar[str] = 'as_needed'
+    default_librarian: ClassVar[str] = 'up_front'
     default_task: ClassVar[str] = 'technique'
     default_worker: ClassVar[str] = 'waterfall'
     none_names: ClassVar[list[Any]] = ['none', 'None', None]
@@ -133,25 +133,32 @@ class ProjectKeystones(abc.ABC):
         return
     
     @classmethod
-    def classify(cls, item: Type[ProjectKeystone]) ->str:
+    def classify(cls, item: str | Type[ProjectKeystone]) ->str:
         """Returns the str name of the ProjectKeystone of which 'item' is.
 
         Args:
-            item (Type[ProjectKeystone]): ProjectKeystone subclass to return the
-                str name of its type.
+            item (str | Type[ProjectKeystone]): ProjectKeystone subclass or its
+                str name to return the str name of its base type.
 
         Raises:
-            ValueError: if 'item' is not a subclass of any ProjectKeystone type.
+            ValueError: if 'item' does not match a subclass of any 
+                ProjectKeystone type.
             
         Returns:
-            str: snakecase str name of the ProjectKeystone of which 'item' is
-                a subclass.
+            str: snakecase str name of the ProjectKeystone base type of which 
+                'item' is a subclass.
                 
         """
-        print('test registry', cls.bases)
-        for key, value in cls.bases.items():
-            if issubclass(item, value):
-                return key
+        if isinstance(item, str):
+            for key in cls.bases.keys():
+                subtype_dict = getattr(cls, key)
+                for name in subtype_dict.keys():
+                    if item == name:
+                        return key
+        else:
+            for key, value in cls.bases.items():
+                if issubclass(item, value):
+                    return key
         raise ValueError(f'{item} is not a subclass of any ProjectKeystone')
               
     @classmethod
@@ -174,8 +181,65 @@ class ProjectKeystones(abc.ABC):
         keystone = cls.classify(item = item)
         getattr(cls, keystone)[name] = item
         return
+
+    @classmethod
+    def validate(cls, item: object, attribute: str) -> object:
+        """Creates or validates 'attribute' in 'item'.
+
+        Args:
+            item (object): object (often a Project or Manager instance) of which
+                a ProjectKeystone in 'attribute' needs to be validated or 
+                created.
+            attribute (str): name of the attribute' in item containing a value
+                to be validated or which provides information to create an
+                appropriate instance.
+
+        Raises:
+            ValueError: if the value of 'attribute' in 'item' does match any
+                known subclass or subclass instance of that ProjectKeystone
+                subtype.
+
+        Returns:
+            object: completed, linked instance.
             
-            
+        """       
+        # Finds Project instance to pass or add to instance.
+        if isinstance(item, Project):
+            project = item
+        else:
+            project = getattr(item, 'project')
+        # Get current value of the relevant attribute and corresponding base 
+        # class.
+        value = getattr(item, attribute)
+        base = cls.bases[attribute]
+        # Adds link to 'project' if 'value' is already an instance of the 
+        # appropriate base type.
+        if isinstance(value, base):
+            setattr(value, 'project', project)
+        else:
+            # Gets the relevant registry for 'attribute'.
+            registry = getattr(cls, attribute)
+            # Selects default name of class if none exists.
+            if getattr(item, attribute) is None:
+                name = getattr(ProjectDefaults, f'default_{attribute}')
+                setattr(item, attribute, registry[name])
+            # Uses str value to select appropriate subclass.
+            elif isinstance(getattr(item, attribute), str):
+                name = getattr(item, attribute)
+                setattr(item, attribute, registry[name])
+            # Gets name of class if it is already an appropriate subclass.
+            elif inspect.issubclass(value, base):
+                name = amos.namify(item = getattr(item, attribute))
+            else:
+                raise ValueError(f'{value} is not an appropriate keystone')
+            # Creates a subclass instance.
+            instance = getattr(item, attribute).create(
+                name = name, 
+                project = project)
+            setattr(item, attribute, instance)
+        return            
+
+         
 @dataclasses.dataclass
 class ProjectKeystone(abc.ABC):
     """Mixin for core project base classes."""
@@ -193,6 +257,32 @@ class ProjectKeystone(abc.ABC):
             ProjectKeystones.add(item = cls)
         else:
             ProjectKeystones.register(item = cls)
+            
+    """ Required Subclass Methods """
+    
+    @abc.abstractclassmethod
+    def create(
+        cls, 
+        name: str, 
+        project: Project, 
+        **kwargs: Any) -> ProjectKeystone:
+        """Returns a subclass instance based on passed arguments.
+
+        The reason for requiring a 'create' classmethod is that it allows for
+        classes to gather information from 'project' needed for the instance,
+        but not to necessarily maintain a permanent link to a Project instance.
+        This facilitates loose coupling and easier serialization of project
+        workflows without complex interdependence.
+        
+        Args:
+            name (str): name or key to lookup the subclass.
+            project (Project): related Project instance.
+
+        Returns:
+            ProjectKeystone: subclass instance based on passed arguments.
+            
+        """
+        pass
 
         
 @dataclasses.dataclass  # type: ignore
@@ -276,20 +366,19 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
-        set_parallelization(project = self)
-        self._validate_manager()
+        self = ProjectKeystones.validate(item = self, attribute = 'manager')
        
     """ Public Class Methods """
 
     @classmethod
     def create(
         cls, 
-        idea: Union[pathlib.Path, str, bobbie.Settings],
+        idea: pathlib.Path | str | bobbie.Settings,
         **kwargs) -> Project:
         """Returns a Project instance based on 'idea' and kwargs.
 
         Args:
-            idea (Union[pathlib.Path, str, bobbie.Settings]): a path to a file 
+            idea (pathlib.Path | str | bobbie.Settings): a path to a file 
                 containing configuration settings, a python dict, or a Settings 
                 instance.
 
@@ -298,21 +387,6 @@ class Project(object):
             
         """        
         return cls(idea = idea, **kwargs)   
-    
-    """ Private Methods """
-    
-    def _validate_manager(self) -> None:
-        """Creates or validates 'manager'."""
-        if self.manager is None:
-            self.manager = ProjectKeystones.manager[
-                ProjectDefaults.default_manager]
-        elif isinstance(self.manager, str):
-            self.manager = ProjectKeystones.manager[self.manager]
-        if inspect.isclass(self.manager):
-            self.manager = self.manager(project = self)
-        else:
-            self.manager.project = self
-        return
         
     """ Dunder Methods """
     
@@ -331,19 +405,3 @@ class Project(object):
         except AttributeError:
             return AttributeError(
                 f'{item} is not in the project or its manager')
-
-
-def set_parallelization(project: Project) -> None:
-    """Sets multiprocessing method based on 'settings'.
-    
-    Args:
-        project (Project): project containing parallelization settings.
-        
-    """
-    if ('general' in project.idea
-            and 'parallelize' in project.idea['general'] 
-            and project.idea['general']['parallelize']):
-        if not globals()['multiprocessing']:
-            import multiprocessing
-        multiprocessing.set_start_method('spawn') 
-    return 

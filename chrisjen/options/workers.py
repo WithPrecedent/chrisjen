@@ -38,7 +38,7 @@ from collections.abc import Hashable, MutableMapping, MutableSequence, Set
 import contextlib
 import dataclasses
 import itertools
-from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
+from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 import amos
 import holden
@@ -46,7 +46,7 @@ import more_itertools
 
 from ..core import framework
 from ..core import keystones
-from . import nodes
+from ..core import nodes
 from . import tasks
 
 
@@ -71,7 +71,7 @@ class Waterfall(nodes.Worker):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
 
     
@@ -119,9 +119,9 @@ class Research(holden.Parallel, abc.ABC):
         possible = [connections[s] for s in steps]
         combos = list(itertools.product(*possible))   
         for combo in combos:
-            recipe = project.library.build(name = 'worker')
+            recipe = project.library.acquire(name = 'worker')
             for i, task in enumerate(combo):
-                step = project.library.build(
+                step = project.library.acquire(
                     name = steps[i], 
                     project = project,
                     technique = task)
@@ -170,7 +170,7 @@ class Superviser(nodes.Worker):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = nodes.Parameters)
     
     """ Public Methods """
      

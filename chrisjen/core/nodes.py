@@ -30,8 +30,7 @@ from collections.abc import (
     Collection, Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import contextlib
 import dataclasses
-from typing import (
-    Any, Callable, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union)
+from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
 
 import amos
 import holden
@@ -41,6 +40,130 @@ from ..core import framework
 from ..core import keystones
 
 
+@dataclasses.dataclass    
+class Parameters(amos.Dictionary):
+    """Creates and librarys parameters for part of a chrisjen project.
+    
+    The use of Parameters is entirely optional, but it provides a handy 
+    tool for aggregating data from an array of sources, including those which 
+    only become apparent during execution of a chrisjen project, to create a 
+    unified set of implementation parameters.
+    
+    Parameters can be unpacked with '**', which will turn the contents of the
+    'contents' attribute into an ordinary set of kwargs. In this way, it can 
+    serve as a drop-in replacement for a dict that would ordinarily be used for 
+    accumulating keyword arguments.
+    
+    If a chrisjen class uses a Parameters instance, the 'finalize' method should 
+    be called before that instance's 'implement' method in order for each of the 
+    parameter types to be incorporated.
+    
+    Args:
+        contents (Mapping[str, Any]): keyword parameters for use by a chrisjen
+            classes' 'implement' method. The 'finalize' method should be called
+            for 'contents' to be fully populated from all sources. Defaults to
+            an empty dict.
+        name (str): designates the name of a class instance that is used for 
+            internal referencing throughout chrisjen. To properly match 
+            parameters in a Settings instance, 'name' should be the prefix to 
+            "_parameters" as a section name in a Settings instance. Defaults to 
+            None. 
+        default (Mapping[str, Any]): default parameters that will be used if 
+            they are not overridden. Defaults to an empty dict.
+        implementation (Mapping[str, str]): parameters with values that can only 
+            be determined at runtime due to dynamic nature of chrisjen and its 
+            workflows. The keys should be the names of the parameters and the 
+            values should be attributes or items in 'contents' of 'project' 
+            passed to the 'finalize' method. Defaults to an emtpy dict.
+        selected (MutableSequence[str]): an exclusive list of parameters that 
+            are allowed. If 'selected' is empty, all possible parameters are 
+            allowed. However, if any are listed, all other parameters that are
+            included are removed. This is can be useful when including 
+            parameters in an Outline instance for an entire step, only some of
+            which might apply to certain techniques. Defaults to an empty list.
+
+    """
+    contents: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    name: Optional[str] = None
+    default: Mapping[str, Any] = dataclasses.field(default_factory = dict)
+    implementation: Mapping[str, str] = dataclasses.field(
+        default_factory = dict)
+    selected: MutableSequence[str] = dataclasses.field(default_factory = list)
+      
+    """ Public Methods """
+
+    def finalize(self, item: Any, **kwargs) -> None:
+        """Combines and selects final parameters into 'contents'.
+
+        Args:
+            item (Project): instance from which implementation and 
+                settings parameters can be derived.
+            
+        """
+        # Uses kwargs and 'default' parameters as a starting amos.
+        parameters = self.default
+        # Adds any parameters from 'outline'.
+        parameters.update(self._from_outline(item = item))
+        # Adds any implementation parameters.
+        parameters.update(self._at_runtime(item = item))
+        # Adds any parameters already stored in 'contents'.
+        parameters.update(self.contents)
+        # Adds any passed kwargs, which will override any other parameters.
+        parameters.update(kwargs)
+        # Limits parameters to those in 'selected'.
+        if self.selected:
+            parameters = {k: parameters[k] for k in self.selected}
+        self.contents = parameters
+        return self
+
+    """ Private Methods """
+     
+    def _from_outline(self, project: framework.Project) -> dict[str, Any]: 
+        """Returns any applicable parameters from 'outline'.
+
+        Args:
+            project (framework.Project): project has parameters from 'outline.'
+
+        Returns:
+            dict[str, Any]: any applicable outline parameters or an empty dict.
+            
+        """
+        keys = [self.name]
+        keys.append(project.outline.kinds[self.name])
+        try:
+            keys.append(project.outline.designs[self.name])
+        except KeyError:
+            pass
+        for key in keys:
+            try:
+                return project.outline.implementation[key]
+            except KeyError:
+                pass
+        return {}
+   
+    def _at_runtime(self, item: Any) -> dict[str, Any]:
+        """Adds implementation parameters to 'contents'.
+
+        Args:
+            item (Project): instance from which implementation 
+                parameters can be derived.
+
+        Returns:
+            dict[str, Any]: any applicable idea parameters or an empty dict.
+                   
+        """    
+        for parameter, attribute in self.implementation.items():
+            try:
+                self.contents[parameter] = getattr(item, attribute)
+            except AttributeError:
+                try:
+                    self.contents[parameter] = (
+                        item.idea['general'][attribute])
+                except (KeyError, AttributeError):
+                    pass
+        return self
+    
+    
 @dataclasses.dataclass
 class Worker(keystones.Node, holden.System, holden.Labeled):
     """Base class for an iterative node.
@@ -63,7 +186,7 @@ class Worker(keystones.Node, holden.System, holden.Labeled):
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = Parameters)
     project: Optional[framework.Project] = None
     
     """ Properties """
@@ -105,7 +228,7 @@ class Worker(keystones.Node, holden.System, holden.Labeled):
         """
         worker = cls(name = name, project = project)
         for key in amos.iterify(project.outline.connections[name]):
-            node = project.library.build(name = key) 
+            node = project.library.acquire(name = key) 
             worker.append(item = node)
         return worker
                          
@@ -263,7 +386,7 @@ class Task(keystones.Node):
     name: Optional[str] = None
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = keystones.Parameters)
+        default_factory = Parameters)
     
     """ Public Methods """
        
@@ -446,7 +569,7 @@ class NullNode(keystones.Node):
 #         if kind in project.outline.suffixes['workers']:
 #             design = find_design(name = name, project = project)
 #             parameters = {'name': name, 'project': project}
-#             worker = project.library.build(
+#             worker = project.library.acquire(
 #                 item = (name, design),
 #                 parameters = parameters)
 #             node = complete_worker(
