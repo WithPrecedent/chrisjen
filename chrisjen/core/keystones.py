@@ -17,11 +17,11 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Manager
-    Librarian
-    Parameters
-    Node
     Criteria
+    Librarian
+    Manager
+    Node
+    Parameters
     View
 
 To Do:
@@ -44,7 +44,190 @@ import holden
 import miller
 
 from . import framework
-           
+ 
+
+@dataclasses.dataclass   
+class Criteria(framework.ProjectKeystone):
+    """Used to evaluate workflows.
+    
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+            method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when the 'implement' method is called. Defaults to an 
+            empty dict.
+            
+    """
+    name: Optional[str] = None
+    contents: Optional[Callable] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+
+    """ Public Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> Criteria:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
+
+        Returns:
+            Criteria: subclass instance based on passed arguments.
+            
+        """
+        return cls(name = name, **kwargs)
+                
+
+@dataclasses.dataclass
+class Librarian(framework.ProjectKeystone, abc.ABC):
+    """Constructor for chrisjen workflows.
+        
+    Args:
+        project (framework.Project): linked Project instance to modify and 
+            control.
+             
+    """
+    project: Optional[framework.Project] = None
+    
+    """ Public Methods """   
+        
+    def acquire(
+        self, 
+        name: str | tuple[str, str], 
+        **kwargs: Any) -> Node:
+        """Gets node from the project library and returns an instance.
+
+        Args:
+            name (str | tuple[str, str]): name of the node that should match
+                a key in the project library.
+
+        Returns:
+            Node: a Node subclass instance based on passed arguments.
+            
+        """
+        if isinstance(name, tuple):
+            step = self.acquire(name = name[0])
+            technique = self.acquire(name = name[1])
+            return step.create(
+                name = name[0], 
+                technique = technique,
+                project = self.project)
+        else:
+            lookups = self._get_lookups(name = name)
+            # initialization = self._get_initialization(lookups = lookups)
+            # initialization.update(**kwargs)
+            node = self._get_node(lookups = lookups)
+            return node.create(name = name, project = self.project, **kwargs)
+    
+    @classmethod
+    def create(
+        cls, 
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> Librarian:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
+
+        Returns:
+            Librarian: subclass instance based on passed arguments.
+            
+        """
+        return cls(project = project, **kwargs)
+    
+    """ Private Methods """
+    
+    # def _get_implementation(self, lookups: list[str]) -> dict[str, Any]:
+    #     """_summary_
+
+    #     Args:
+    #         lookups (list[str]): _description_
+
+    #     Raises:
+    #         TypeError: _description_
+
+    #     Returns:
+    #         dict[str, Any]: _description_
+            
+    #     """
+    #     for key in lookups:
+    #         try:
+    #             return self.project.outline.implementation[key]
+    #         except KeyError:
+    #             pass
+    #     return {}
+        
+    # def _get_initialization(self, lookups: list[str]) -> dict[str, Any]:
+    #     """_summary_
+
+    #     Args:
+    #         lookups (list[str]): _description_
+
+    #     Raises:
+    #         TypeError: _description_
+
+    #     Returns:
+    #         dict[str, Any]: _description_
+    #     """
+    #     for key in lookups:
+    #         try:
+    #             return self.project.outline.initialization[key]
+    #         except KeyError:
+    #             pass
+    #     return {}
+        
+    def _get_lookups(self, name: str) -> list[str]:
+        """_summary_
+
+        Args:
+            name (str): _description_
+
+        Returns:
+            list[str]: _description_
+            
+        """
+        if name in framework.ProjectDefaults.null_names:
+            return ['null_node']
+        else:
+            keys = [name]
+            if name in self.project.outline.designs:
+                keys.append(self.project.outline.designs[name])
+            elif name is self.project.name:
+                keys.append(framework.ProjectDefaults.default_worker)
+            if name in self.project.outline.kinds:
+                keys.append(self.project.outline.kinds[name])
+            return keys
+    
+    def _get_node(self, lookups: list[str]) -> Node:
+        """_summary_
+
+        Args:
+            lookups (list[str]): _description_
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            Node: _description_
+        """
+        for key in lookups:
+            try:
+                return self.project.library.node.node.classes[key]
+            except KeyError:
+                pass
+        raise KeyError(f'No matching node found for these: {lookups}')  
+              
 
 @dataclasses.dataclass
 class Manager(framework.ProjectKeystone, abc.ABC):
@@ -82,14 +265,14 @@ class Manager(framework.ProjectKeystone, abc.ABC):
     @classmethod
     def create(
         cls, 
-        name: str, 
-        project: framework.Project, 
+        project: framework.Project,
+        name: Optional[str] = None,
         **kwargs: Any) -> Manager:
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            name (str): name or key to lookup the subclass.
             project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
             Manager: subclass instance based on passed arguments.
@@ -197,150 +380,26 @@ class Manager(framework.ProjectKeystone, abc.ABC):
                 import multiprocessing
             multiprocessing.set_start_method('spawn') 
         return 
-
-
-@dataclasses.dataclass
-class Librarian(framework.ProjectKeystone, abc.ABC):
-    """Constructor for chrisjen workflows.
         
-    Args:
-        project (framework.Project): linked Project instance to modify and 
-            control.
-             
-    """
-    project: Optional[framework.Project] = None
+    """ Dunder Methods """
     
-    """ Public Methods """   
-        
-    def acquire(
-        self, 
-        name: str | tuple[str, str], 
-        **kwargs: Any) -> Node:
-        """Gets node from the project library and returns an instance.
+    def __getattr__(self, item: str) -> Any:
+        """Checks 'librarian' for attribute named 'item'.
 
         Args:
-            name (str | tuple[str, str]): name of the node that should match
-                a key in the project library.
+            item (str): name of attribute to check.
 
         Returns:
-            Node: a Node subclass instance based on passed arguments.
+            Any: contents of librarian attribute named 'item'.
             
         """
-        if isinstance(name, tuple):
-            step = self.acquire(name = name[0])
-            technique = self.acquire(name = name[1])
-            return step.create(
-                name = name[0], 
-                technique = technique,
-                project = self.project)
-        else:
-            lookups = self._get_lookups(name = name)
-            # initialization = self._get_initialization(lookups = lookups)
-            # initialization.update(**kwargs)
-            node = self._get_node(lookups = lookups)
-            return node.create(name = name, project = self.project, **kwargs)
-    
-    @classmethod
-    def create(
-        cls, 
-        name: str, 
-        project: framework.Project, 
-        **kwargs: Any) -> Librarian:
-        """Returns a subclass instance based on passed arguments.
+        try:
+            return getattr(self.librarian, item)
+        except AttributeError:
+            return AttributeError(
+                f'{item} is not in the project manager or its librarian')
 
-        Args:
-            name (str): name or key to lookup the subclass.
-            project (framework.Project): related Project instance.
 
-        Returns:
-            Librarian: subclass instance based on passed arguments.
-            
-        """
-        return cls(project = project, **kwargs)
-    
-    """ Private Methods """
-    
-    # def _get_implementation(self, lookups: list[str]) -> dict[str, Any]:
-    #     """_summary_
-
-    #     Args:
-    #         lookups (list[str]): _description_
-
-    #     Raises:
-    #         TypeError: _description_
-
-    #     Returns:
-    #         dict[str, Any]: _description_
-            
-    #     """
-    #     for key in lookups:
-    #         try:
-    #             return self.project.outline.implementation[key]
-    #         except KeyError:
-    #             pass
-    #     return {}
-        
-    # def _get_initialization(self, lookups: list[str]) -> dict[str, Any]:
-    #     """_summary_
-
-    #     Args:
-    #         lookups (list[str]): _description_
-
-    #     Raises:
-    #         TypeError: _description_
-
-    #     Returns:
-    #         dict[str, Any]: _description_
-    #     """
-    #     for key in lookups:
-    #         try:
-    #             return self.project.outline.initialization[key]
-    #         except KeyError:
-    #             pass
-    #     return {}
-        
-    def _get_lookups(self, name: str) -> list[str]:
-        """_summary_
-
-        Args:
-            name (str): _description_
-
-        Returns:
-            list[str]: _description_
-            
-        """
-        if name in framework.ProjectDefaults.none_names:
-            return ['null_node']
-        else:
-            keys = [name]
-            if name in self.project.outline.designs:
-                keys.append(self.project.outline.designs[name])
-            elif name is self.project.name:
-                keys.append(framework.ProjectDefaults.default_worker)
-            if name in self.project.outline.kinds:
-                keys.append(self.project.outline.kinds[name])
-            return keys
-    
-    def _get_node(self, lookups: list[str]) -> Node:
-        """_summary_
-
-        Args:
-            lookups (list[str]): _description_
-
-        Raises:
-            KeyError: _description_
-
-        Returns:
-            Node: _description_
-        """
-        for key in lookups:
-            try:
-                return self.project.library.classes[key]
-            except KeyError:
-                pass
-        raise KeyError(f'No matching node found for these: {lookups}')  
-    
-    
 @dataclasses.dataclass
 class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
@@ -365,7 +424,7 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
     
     @classmethod
     def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclasses and adds hash dunder methods.
+        """Makes subclass instances hashable.
 
         This method forces subclasses to use the same hash methods as 
         Node. This is necessary because dataclasses, by design, do not 
@@ -377,46 +436,43 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
         # call other base class '__init_subclass__' methods, if they exist.
         with contextlib.suppress(AttributeError):
             super().__init_subclass__(*args, **kwargs) # type: ignore
-        key = amos.namify(item = cls)
-        # Removes 'project_' prefix if it exists.
-        if key.startswith('project_'):
-            key = key[8:]
-        framework.Project.library.deposit(item = cls, name = key)
-        # if Node in cls.__bases__:
-        #     Project.library.add_kind(item = cls)
         # Copies hashing related methods to a subclass.
         cls.__hash__ = Node.__hash__ # type: ignore
         cls.__eq__ = Node.__eq__ # type: ignore
         cls.__ne__ = Node.__ne__ # type: ignore  
-                  
-    def __post_init__(self) -> None:
-        """Initializes and validates an instance."""
-        # Calls parent and/or mixin initialization method(s).
-        with contextlib.suppress(AttributeError):
-            super().__post_init__()
-        key = amos.namify(item = self)
-        # Removes 'project_' prefix if it exists.
-        if key.startswith('project_'):
-            key = key[8:]
-        framework.Project.library.deposit(item = self, name = key)
                                       
-    """ Class Methods """
+    """ Public Methods """
+    
+    def complete(self, item: Any, **kwargs: Any) -> Any:
+        """Calls the 'implement' method after finalizing parameters.
 
+        Args:
+            item (Any): any item or data to which 'contents' should be applied, 
+                but most often it is an instance of 'Project'.
+
+        Returns:
+            Any: any result for applying 'contents', but most often it is an
+                instance of 'Project'.
+            
+        """
+        with contextlib.suppress(AttributeError):
+            self.parameters.finalize(item = item)
+        return self.implement(item = item, **self.parameters, **kwargs)
+    
     @classmethod
     def create(
         cls, 
-        name: str, 
-        project: framework.Project, 
-        **kwargs) -> Node:
-        """Creates a Node instance based on passed arguments.
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> Node:
+        """Returns a subclass instance based on passed arguments.
 
         Args:
-            name (str): name of node instance to be created.
-            project (Project): project with information to create a node
-                instance.
-                
+            project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
+
         Returns:
-            Node: an instance based on passed arguments.
+            Node: subclass instance based on passed arguments.
             
         """
         return cls(name = name, **kwargs)
@@ -437,24 +493,6 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
             
         """
         pass
-
-    """ Public Methods """
-    
-    def complete(self, item: Any, **kwargs: Any) -> Any:
-        """Calls the 'implement' method after finalizing parameters.
-
-        Args:
-            item (Any): any item or data to which 'contents' should be applied, 
-                but most often it is an instance of 'Project'.
-
-        Returns:
-            Any: any result for applying 'contents', but most often it is an
-                instance of 'Project'.
-            
-        """
-        with contextlib.suppress(AttributeError):
-            self.parameters.finalize(item = item)
-        return self.implement(item = item, **self.parameters, **kwargs)
            
     """ Dunder Methods """
 
@@ -519,47 +557,6 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class Criteria(framework.ProjectKeystone):
-    """Used to evaluate workflows.
-    
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-            
-    """
-    name: Optional[str] = None
-    contents: Optional[Callable] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-
-    """ Public Methods """
-
-    @classmethod
-    def create(
-        cls, 
-        name: str, 
-        project: framework.Project, 
-        **kwargs: Any) -> Librarian:
-        """Returns a subclass instance based on passed arguments.
-
-        Args:
-            name (str): name or key to lookup the subclass.
-            project (framework.Project): related Project instance.
-
-        Returns:
-            Criteria: subclass instance based on passed arguments.
-            
-        """
-        return cls(name = name, **kwargs)
-    
-
-@dataclasses.dataclass   
 class View(framework.ProjectKeystone, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
@@ -578,17 +575,17 @@ class View(framework.ProjectKeystone, abc.ABC):
     @classmethod
     def create(
         cls, 
-        name: str, 
-        project: framework.Project, 
-        **kwargs: Any) -> Librarian:
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> View:
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            name (str): name or key to lookup the subclass.
             project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
-            Criteria: subclass instance based on passed arguments.
+            View: subclass instance based on passed arguments.
             
         """
         return cls(project = project, **kwargs) 

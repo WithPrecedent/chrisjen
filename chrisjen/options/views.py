@@ -41,6 +41,7 @@ import holden
 
 from ..core import framework
 from ..core import keystones
+from ..core import nodes
 
 
 @dataclasses.dataclass
@@ -58,8 +59,8 @@ class Outline(keystones.View):
 
     """
     project: framework.Project
-    rules: ClassVar[dict[str, tuple[str]]] = (
-        framework.ProjectDefaults.default_parsers)
+    rules: Optional[dict[str, tuple[str]]] = dataclasses.field(
+        default_factory = lambda: framework.ProjectDefaults.default_parsers)
     
     """ Properties """       
                      
@@ -102,7 +103,7 @@ class Outline(keystones.View):
                 node connections for that worker.
             
         """
-        suffixes = self.project.library.plurals
+        suffixes = self.plurals
         connections = {}
         for name, section in self.workers.items():
             if name.startswith(self.project.name):
@@ -212,7 +213,7 @@ class Outline(keystones.View):
         """
         initialization = {}
         all_plurals = (
-            self.project.library.plurals
+            self.plurals
             + self.rules['design']
             + self.rules['manager'])
         for key, section in self.workers.items():   
@@ -230,7 +231,7 @@ class Outline(keystones.View):
             
         """
         kinds = {}
-        suffixes = self.project.library.plurals
+        suffixes = self.plurals
         for key, section in self.workers.items():
             new_kinds = {}
             keys = [k for k in section.keys() if k.endswith(suffixes)]
@@ -259,7 +260,19 @@ class Outline(keystones.View):
             labels.append(key)
             labels.extend(values)
         return amos.deduplicate_list(item = labels)    
-                                  
+
+    @property
+    def plurals(self) -> tuple[str]:
+        """Returns all node names as naive plurals of those names.
+        
+        Returns:
+            tuple[str]: all node names with an 's' added in order to create 
+                simple plurals combined with the stored keys.
+                
+        """
+        plurals = [k + 's' for k in self.project.library.node.keys()]
+        return tuple(plurals ) 
+    
     @property
     def workers(self) -> dict[str, dict[str, Any]]:
         """Returns worker-related sections of chrisjen project settings.
@@ -272,108 +285,86 @@ class Outline(keystones.View):
             
         """
         sections = {}
-        suffixes = self.project.library.plurals
+        suffixes = self.plurals
         for name, section in self.project.idea.items():
             if any(k.endswith(suffixes) for k in section.keys()):
                 sections[name] = section
         return sections
+    
 
-    """ Class Methods """
+@dataclasses.dataclass
+class Workflow(holden.System, keystones.View):
+    """Provides a different view of data stored in 'project.idea'.
 
+    Args:
+        contents (MutableMapping[Hashable, Set[Hashable]]): keys are nodes and 
+            values are sets of nodes (or hashable representations of nodes). 
+            Defaults to a defaultdict that has a set for its value format.
+        project (framework.Project): a related project instance which has data
+            from which the properties of an Outline can be derived.
+
+    """
+    project: Optional[framework.Project] = None
+    contents: MutableMapping[Hashable, Set[Hashable]] = (
+        dataclasses.field(
+            default_factory = lambda: collections.defaultdict(set)))
+
+    """ Properties """
+
+    
+    """ Public Methods """
+    
     @classmethod
-    def create(cls, project: framework.Project, **kwargs) -> Outline:
-        """Creates an Outline instance based on passed arguments.
+    def create(cls, project: framework.Project) -> Workflow:
+        """[summary]
 
         Args:
-            project (Project): project with information to create an Outline
-                instance.
-                
+            project (framework.Project): [description]
+
         Returns:
-            Outline: an instance based on passed arguments.
+            Workflow: [description]
             
-        """
-        cls.suffixes = project.defaults.default_parsers
-        return cls(project = project, **kwargs)
-    
-    
-# def extendify(
-#     dictionary: dict[str, list[str]]) -> dict[str, list[str]]:    
-     
-# @dataclasses.dataclass
-# class Workflow(holden.System, framework.ProjectKeystone):
-#     """Graph view of a chrisjen project workflow.
-    
-#     Args:
-#         project (framework.Project): a related project instance which has data
-#             from which the properties of an Outline can be derived.
-#         contents (MutableMapping[str, Set[str]]): keys are names of nodes and
-#             values are sets of names of nodes. Defaults to a defaultdict that 
-#             has a set for its value format.
-        
-#     """
-#     project: Optional[Project] = None
-#     contents: MutableMapping[Hashable, Set[Hashable]] = (
-#         dataclasses.field(
-#             default_factory = lambda: collections.defaultdict(set)))
-#     nodes: framework.ProjectLibrary = dataclasses.field(
-#         default_factory = framework.ProjectLibrary)
+        """        
+        return foundry.create_workflow(project = project, base = cls)    
 
-#     """ Properties """
+    def append_depth(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
 
-    
-#     """ Public Methods """
-    
-#     @classmethod
-#     def create(cls, project: Project) -> Workflow:
-#         """[summary]
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
 
-#         Args:
-#             project (framework.Project): [description]
-
-#         Returns:
-#             Workflow: [description]
+        Returns:
+            [type]: [description]
             
-#         """        
-#         return foundry.create_workflow(project = project, base = cls)    
-
-#     def append_depth(
-#         self, 
-#         item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-#         """[summary]
-
-#         Args:
-#             item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-#                 [description]
-
-#         Returns:
-#             [type]: [description]
-            
-#         """        
-#         first_key = list(item.keys())[0]
-#         self.append(first_key)
-#         for node in item[first_key]:
-#             self.append(item[node])
-#         return self   
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        for node in item[first_key]:
+            self.append(item[node])
+        return self   
     
-#     def append_product(
-#         self, 
-#         item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-#         """[summary]
+    def append_product(
+        self, 
+        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+        """[summary]
 
-#         Args:
-#             item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-#                 [description]
+        Args:
+            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+                [description]
 
-#         Returns:
-#             [type]: [description]
+        Returns:
+            [type]: [description]
             
-#         """        
-#         first_key = list(item.keys())[0]
-#         self.append(first_key)
-#         possible = [v for k, v in item.items() if k in item[first_key]]
-#         combos = list(itertools.product(*possible))
-#         self.append(combos)
-#         return self
+        """        
+        first_key = list(item.keys())[0]
+        self.append(first_key)
+        possible = [v for k, v in item.items() if k in item[first_key]]
+        combos = list(itertools.product(*possible))
+        self.append(combos)
+        return self
 
  
 # @dataclasses.dataclass

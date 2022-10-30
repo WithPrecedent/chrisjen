@@ -53,22 +53,28 @@ class Publisher(keystones.Manager):
     """ Public Methods """
         
     def complete(self) -> None:
-        """Applies workflow to 'project'."""
+        """Completes all stages in 'project'."""
+        self.draft()
         self.publish()
         self.execute()
         return
         
     def draft(self) -> None:
         """Adds an outline to 'project'."""
-        self.project.outline = framework.ProjectKeystones['outline'](
-            project = self.project)
+        outline = framework.ProjectKeystones.view['outline']
+        self.project.outline = outline.create(project = self.project)
         return
     
     def publish(self) -> None:
         """Adds a workflow to 'project'."""
-        self.project.workflow = self.project.library.acquire(
-            name = self.project.name)
+        workflow = framework.ProjectKeystones.view['workflow']
+        self.project.workflow = workflow.create(project = self.project)
         return
-        
+     
+    def execute(self) -> None:
+        """Adds a summary to 'project'."""
+        summary = framework.ProjectKeystones.view['summary']
+        self.project.summary = summary.create(project = self.project)
+        return       
  
     

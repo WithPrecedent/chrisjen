@@ -165,7 +165,7 @@ class Parameters(amos.Dictionary):
     
     
 @dataclasses.dataclass
-class Worker(keystones.Node, holden.System, holden.Labeled):
+class Worker(keystones.Node, holden.System):
     """Base class for an iterative node.
         
     Args:
@@ -228,7 +228,7 @@ class Worker(keystones.Node, holden.System, holden.Labeled):
         """
         worker = cls(name = name, project = project)
         for key in amos.iterify(project.outline.connections[name]):
-            node = project.library.acquire(name = key) 
+            node = project.manager.librarian.acquire(name = key) 
             worker.append(item = node)
         return worker
                          
@@ -569,7 +569,7 @@ class NullNode(keystones.Node):
 #         if kind in project.outline.suffixes['workers']:
 #             design = find_design(name = name, project = project)
 #             parameters = {'name': name, 'project': project}
-#             worker = project.library.acquire(
+#             worker = project.manager.librarian.acquire(
 #                 item = (name, design),
 #                 parameters = parameters)
 #             node = complete_worker(

@@ -119,9 +119,9 @@ class Research(holden.Parallel, abc.ABC):
         possible = [connections[s] for s in steps]
         combos = list(itertools.product(*possible))   
         for combo in combos:
-            recipe = project.library.acquire(name = 'worker')
+            recipe = project.manager.librarian.acquire(name = 'worker')
             for i, task in enumerate(combo):
-                step = project.library.acquire(
+                step = project.manager.librarian.acquire(
                     name = steps[i], 
                     project = project,
                     technique = task)

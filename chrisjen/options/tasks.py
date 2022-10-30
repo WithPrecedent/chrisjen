@@ -102,7 +102,7 @@ class Step(nodes.Task):
     #         Task: an instance based on passed arguments.
             
     #     """
-    #     contents = project.library.acquire(name = technique)
+    #     contents = project.manager.librarian.acquire(name = technique)
     #     return cls(name = name, contents = contents, **kwargs)
         
     def implement(self, item: Any, **kwargs: Any) -> Any:

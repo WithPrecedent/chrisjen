@@ -25,6 +25,7 @@ To Do:
 """
 from __future__ import annotations
 import dataclasses
+import inspect
 import pathlib
 
 import chrisjen
@@ -95,6 +96,8 @@ def test_project():
     project = chrisjen.Project(
         idea = settings,
         automatic = False)
+    project.manager.draft()
+    print('test plurals', project.outline.connections)
     assert project.outline.connections['wrangler'] == ['none']
     assert project.outline.connections['scale'] == [
         'minmax', 
@@ -102,7 +105,7 @@ def test_project():
         'normalize']
     assert project.outline.designs == {
         'wisconsin_cancer': 'waterfall',
-        'analyst': 'contest', 
+        'analyst': 'compete', 
         'critic': 'waterfall'}
     assert project.outline.implementation['cleaver'] == {'include_all': True}
     assert project.outline.initialization['analyst'] == {

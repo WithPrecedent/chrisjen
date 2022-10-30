@@ -30,7 +30,7 @@ To Do:
 """
 from __future__ import annotations
 import abc
-from collections.abc import Hashable
+from collections.abc import Hashable, MutableMapping
 import contextlib
 import dataclasses
 import inspect
@@ -40,7 +40,7 @@ import warnings
 
 import amos
 import bobbie
-import miller
+import holden
 
 
 @dataclasses.dataclass
@@ -66,7 +66,7 @@ class ProjectDefaults(abc.ABC):
             Defaults to 'waterfall'.
         default_task (ClassVar[str]): key name of the default task design.
             Defaults to 'technique'
-        none_names (ClassVar[list[Any]]): lists of key names that indicate a
+        null_names (ClassVar[list[Any]]): lists of key names that indicate a
             null node should be used. Defaults to ['none', 'None', None].
         keystones (ClassVar[amos.Catalog[str, ProjectKeystone]]): catalog of 
             ProjectKeystone instances. Defaults to an empty Catalog.        
@@ -91,7 +91,7 @@ class ProjectDefaults(abc.ABC):
     default_librarian: ClassVar[str] = 'up_front'
     default_task: ClassVar[str] = 'technique'
     default_worker: ClassVar[str] = 'waterfall'
-    none_names: ClassVar[list[Any]] = ['none', 'None', None]
+    null_names: ClassVar[list[Any]] = ['none', 'None', None]
     keystones: ClassVar[amos.Catalog] = amos.Catalog()
 
 
@@ -113,7 +113,7 @@ class ProjectKeystones(abc.ABC):
         
     """
     bases: ClassVar[amos.Dictionary] = amos.Dictionary()
-    
+        
     """ Public Methods """
     
     @classmethod
@@ -125,9 +125,7 @@ class ProjectKeystones(abc.ABC):
                 which the name of a new attribute should be derived.
             
         """
-        name = amos.namify(item = item)
-        if name.startswith('project_'):
-            name = name[8:]
+        name = cls._get_name(item = item)
         cls.bases[name] = item
         setattr(cls, name, amos.Dictionary())
         return
@@ -164,20 +162,19 @@ class ProjectKeystones(abc.ABC):
     @classmethod
     def register(
         cls, 
-        item: Type[ProjectKeystone],
+        item: Type[ProjectKeystone] | ProjectKeystone,
         name: Optional[str] = None) -> None:
         """Registers 'item' in the appropriate class attribute registry.
         
 
         Args:
-            item (Type[ProjectKeystone]): ProjectKeystone subclass to store.
+            item (Type[ProjectKeystone] | ProjectKeystone): ProjectKeystone 
+                subclass or subclass instance to store.
             name (Optional[str], optional): key name to use in storing 'item'. 
                 Defaults to None.
             
         """
-        name = name or amos.namify(item = item)
-        if name.startswith('project_'):
-            name = name[8:]
+        name = cls._get_name(item = item, name = name)
         keystone = cls.classify(item = item)
         getattr(cls, keystone)[name] = item
         return
@@ -239,6 +236,35 @@ class ProjectKeystones(abc.ABC):
             setattr(item, attribute, instance)
         return            
 
+    """ Private Methods """
+    
+    @classmethod
+    def _get_name(
+        cls, 
+        item: Type[ProjectKeystone],
+        name: Optional[str] = None) -> None:
+        """Returns 'name' or str name of item.
+        
+        By default, the method uses amos.namify to create a snakecase name. If
+        the resultant name begins with 'project_', that substring is removed. 
+
+        If you want to use another naming convention, just subclass and override
+        this method. All other methods will call this method for naming.
+        
+        Args:
+            item (Type[ProjectKeystone]): item to name.
+            name (Optional[str], optional): optional name to use. A 'project_'
+                prefix will be removed, if it exists. Defaults to None.
+
+        Returns:
+            str: name of 'item' or 'name' (with the 'project' prefix removed).
+            
+        """
+        name = name or amos.namify(item = item)
+        if name.startswith('project_'):
+            name = name[8:]
+        return name        
+            
          
 @dataclasses.dataclass
 class ProjectKeystone(abc.ABC):
@@ -263,8 +289,8 @@ class ProjectKeystone(abc.ABC):
     @abc.abstractclassmethod
     def create(
         cls, 
-        name: str, 
-        project: Project, 
+        project: Project,
+        name: Optional[str] = None,
         **kwargs: Any) -> ProjectKeystone:
         """Returns a subclass instance based on passed arguments.
 
@@ -275,50 +301,14 @@ class ProjectKeystone(abc.ABC):
         workflows without complex interdependence.
         
         Args:
-            name (str): name or key to lookup the subclass.
             project (Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
             ProjectKeystone: subclass instance based on passed arguments.
             
         """
-        pass
-
-        
-@dataclasses.dataclass  # type: ignore
-class ProjectLibrary(amos.Library):
-    """Stores and creates node classes instances and classes.
-    
-    Args:
-        project (Optional[Project]): related project instance. Defaults to None.
-        classes (amos.Catalog): a catalog of stored classes. Defaults to any 
-            empty amos.Catalog.
-        instances (amos.Catalog): a catalog of stored class instances. Defaults 
-            to an empty amos.Catalog.
-                 
-    """
-    project: Optional[Project] = None
-    classes: amos.Catalog[str, Type[Any]] = dataclasses.field(
-        default_factory = amos.Catalog)
-    instances: amos.Catalog[str, object] = dataclasses.field(
-        default_factory = amos.Catalog)
-
-    """ Properties """
-    
-    @property
-    def plurals(self) -> tuple[str]:
-        """Returns all stored subclass names as naive plurals of those names.
-        
-        Returns:
-            tuple[str]: all names with an 's' added in order to create simple 
-                plurals combined with the stored keys.
-                
-        """
-        suffixes = []
-        for catalog in ['classes', 'instances']:
-            plurals = [k + 's' for k in getattr(self, catalog).keys()]
-            suffixes.extend(plurals)
-        return tuple(suffixes)   
+        pass 
 
          
 @dataclasses.dataclass
@@ -339,12 +329,12 @@ class Project(object):
             folders related to the project. If it is None, a str will be created 
             from 'name' and the date and time. This prevents files from one 
             project from overwriting another. Defaults to None. 
-        defaults (Optional[Type[ProjectDefaults]]): a class storing the default
-            project options. Defaults to ProjectDefaults.
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        library (ClassVar[ProjectLibrary]): library of nodes for executing a
+        defaults (Optional[Type[ProjectDefaults]]): a class storing the default
+            project options. Defaults to ProjectDefaults.
+        library (ClassVar[ProjectKeystones]): library of nodes for executing a
             chrisjen project. Defaults to an instance of ProjectLibrary.
  
     """
@@ -353,9 +343,9 @@ class Project(object):
     clerk: Optional[ProjectKeystone] = None
     manager: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
-    defaults: Optional[Type[ProjectDefaults]] = ProjectDefaults
     automatic: Optional[bool] = True
-    library: ClassVar[ProjectLibrary] = ProjectLibrary()
+    defaults: Optional[Type[ProjectDefaults]] = ProjectDefaults
+    library: ClassVar[ProjectKeystones] = ProjectKeystones
         
     """ Initialization Methods """
 
