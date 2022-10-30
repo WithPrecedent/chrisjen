@@ -71,7 +71,7 @@ class AsNeeded(keystones.Librarian):
         self, 
         name: str | tuple[str, str], 
         **kwargs: Any) -> keystones.Node:
-        """Gets node from the project library and returns an instance.
+        """Gets node from the project library.
 
         Args:
             name (str | tuple[str, str]): name of the node that should match
@@ -94,10 +94,34 @@ class AsNeeded(keystones.Librarian):
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
             return node.create(name = name, project = self.project, **kwargs)
-        
-    # def complete(self) -> keystones.Node:
-    #     workers = 
-  
+
+    def collect(
+        self, 
+        name: str, 
+        **kwargs: Any) -> keystones.Node:
+        """Gets node and all subnodes from project library.
+
+        Args:
+            name (str): name of the node that should match a key in the project
+                library.
+
+        Returns:
+            keystones.Node: a Node subclass instance based on passed arguments.
+            
+        """
+        if isinstance(name, tuple):
+            step = self.acquire(name = name[0])
+            technique = self.acquire(name = name[1])
+            return step.create(
+                name = name[0], 
+                technique = technique,
+                project = self.project)
+        else:
+            lookups = self._get_lookups(name = name)
+            # initialization = self._get_initialization(lookups = lookups)
+            # initialization.update(**kwargs)
+            node = self._get_node(lookups = lookups)
+            return node.create(name = name, project = self.project, **kwargs)
    
 @dataclasses.dataclass
 class OnlyAsNeeded(keystones.Librarian):

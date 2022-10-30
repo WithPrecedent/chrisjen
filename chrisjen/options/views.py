@@ -17,27 +17,23 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
+    Outline
     Workflow
+    Summary
     Results
-    create_workflow
-    create_results
 
 To Do:
 
         
 """
 from __future__ import annotations
-import collections
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import dataclasses
 import itertools
-import pathlib
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type
 
 import amos
-import bobbie
-import holden
 
 from ..core import framework
 from ..core import keystones
@@ -293,25 +289,51 @@ class Outline(keystones.View):
     
 
 @dataclasses.dataclass
-class Workflow(holden.System, keystones.View):
+class Workflow(keystones.View):
     """Provides a different view of data stored in 'project.idea'.
 
     Args:
-        contents (MutableMapping[Hashable, Set[Hashable]]): keys are nodes and 
-            values are sets of nodes (or hashable representations of nodes). 
-            Defaults to a defaultdict that has a set for its value format.
         project (framework.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
+        worker: 
 
     """
     project: Optional[framework.Project] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
+    worker: Optional[nodes.Worker] = None
 
     """ Properties """
+          
+    @property
+    def connections(self) -> list[str]:
+        """Returns raw connections between nodes from 'project'.
+        
+        Returns:
+            list[str]: names of top-level nodes in the project workflow.
+            
+        """
+        suffixes = self.project.outline.plurals
+        section = self.project.outline.manager
+        keys = [k for k in section.keys() if k.endswith(suffixes)]
+        connects = []
+        for key in keys:
+            new_connects = amos.iterify(section[key])
+            connects.extend(new_connects)
+        return connects
+        
+    @property
+    def design(self) -> str:
+        """Returns a str name of the workflow design.
 
-    
+        Returns:
+            str: name of workflow design.
+            
+        """
+        
+        try:
+            return self.project.outline.designs[self.project.name]
+        except KeyError:
+            return self.project.defaults.default_worker
+        
     """ Public Methods """
     
     @classmethod
@@ -324,47 +346,67 @@ class Workflow(holden.System, keystones.View):
         Returns:
             Workflow: [description]
             
-        """        
-        return foundry.create_workflow(project = project, base = cls)    
+        """ 
+        worker = project.manager.librarian.acquire(name = project.name)       
+        worker = worker.create(project = project, name = project.name)
+        return cls(project = project, worker = worker)   
 
-    def append_depth(
-        self, 
-        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-        """[summary]
+    # def append_depth(
+    #     self, 
+    #     item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+    #     """[summary]
 
-        Args:
-            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-                [description]
+    #     Args:
+    #         item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+    #             [description]
 
-        Returns:
-            [type]: [description]
+    #     Returns:
+    #         [type]: [description]
             
-        """        
-        first_key = list(item.keys())[0]
-        self.append(first_key)
-        for node in item[first_key]:
-            self.append(item[node])
-        return self   
+    #     """        
+    #     first_key = list(item.keys())[0]
+    #     self.append(first_key)
+    #     for node in item[first_key]:
+    #         self.append(item[node])
+    #     return self   
     
-    def append_product(
-        self, 
-        item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
-        """[summary]
+    # def append_product(
+    #     self, 
+    #     item: MutableMapping[Hashable, MutableSequence[Hashable]]) -> None:
+    #     """[summary]
+
+    #     Args:
+    #         item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
+    #             [description]
+
+    #     Returns:
+    #         [type]: [description]
+            
+    #     """        
+    #     first_key = list(item.keys())[0]
+    #     self.append(first_key)
+    #     possible = [v for k, v in item.items() if k in item[first_key]]
+    #     combos = list(itertools.product(*possible))
+    #     self.append(combos)
+    #     return self
+        
+    """ Dunder Methods """
+    
+    def __getattr__(self, item: str) -> Any:
+        """Checks 'worker' for attribute named 'item'.
 
         Args:
-            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-                [description]
+            item (str): name of attribute to check.
 
         Returns:
-            [type]: [description]
+            Any: contents of worker attribute named 'item'.
             
-        """        
-        first_key = list(item.keys())[0]
-        self.append(first_key)
-        possible = [v for k, v in item.items() if k in item[first_key]]
-        combos = list(itertools.product(*possible))
-        self.append(combos)
-        return self
+        """
+        try:
+            return getattr(self.worker, item)
+        except AttributeError:
+            return AttributeError(
+                f'{item} is not in the workflow or its primary worker')
 
  
 # @dataclasses.dataclass
