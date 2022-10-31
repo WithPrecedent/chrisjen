@@ -45,7 +45,6 @@ from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 import amos
 import holden
-import more_itertools
 
 from ..core import framework
 from ..core import keystones
@@ -152,6 +151,24 @@ class Compete(Compare):
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None
 
+    """ Properties """
+
+    @property
+    def graph(self) -> holden.System:
+        """Returns direct graph of the project workflow.
+
+        Returns:
+            holden.System: direct graph of the project workflow.
+            
+        """
+        graph = super().graph
+        endpoints = amos.iterify(graph.endpoint)
+        scorer = 'scorer'
+        graph.add(scorer)
+        for endpoint in endpoints:
+            graph.connect(tuple([endpoint, scorer])) 
+        return graph
+    
     """ Public Methods """
     
     def implement(self, item: Any, **kwargs: Any) -> Any:
@@ -171,24 +188,6 @@ class Compete(Compare):
         results = super().implement(item = item, **kwargs)
         project = self.judge.complete(projects = results)  
         return project
-
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, name: str, project: framework.Project) -> Compare:
-        """Returns a directed acyclic graph with str names of nodes.
-
-        Args:
-            name (str): name of starting node.
-            project (Project): project with information to create the graph.
-                
-        Returns:
-            keystones.View: a graph based on passed arguments.
-            
-        """
-        graph = super().create(name = name, project = project)
-        graph.append('scorer')
-        return graph                
 
 
 @dataclasses.dataclass
@@ -244,21 +243,22 @@ class Survey(Compare):
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None
 
-  
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, name: str, project: framework.Project) -> Compare:
-        """Returns a directed acyclic graph with str names of nodes.
+ 
+    """ Properties """
 
-        Args:
-            name (str): name of starting node.
-            project (Project): project with information to create the graph.
-                
+    @property
+    def graph(self) -> holden.System:
+        """Returns direct graph of the project workflow.
+
         Returns:
-            keystones.View: a graph based on passed arguments.
+            holden.System: direct graph of the project workflow.
             
         """
-        graph = super().create(name = name, project = project)
-        graph.append('averager')
-        return graph      
+        graph = super().graph
+        endpoints = amos.iterify(graph.endpoint)
+        averager = 'averager'
+        graph.add(averager)
+        for endpoint in endpoints:
+            graph.connect(tuple([endpoint, averager])) 
+        return graph
+          

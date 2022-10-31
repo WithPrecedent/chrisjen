@@ -89,6 +89,7 @@ class ProjectRules(abc.ABC):
             'threads': -1}}
     default_manager: ClassVar[str] = 'publisher'
     default_librarian: ClassVar[str] = 'up_front'
+    default_superviser: ClassVar[str] = 'copier'
     default_task: ClassVar[str] = 'technique'
     default_worker: ClassVar[str] = 'waterfall'
     null_names: ClassVar[list[Any]] = ['none', 'None', None]

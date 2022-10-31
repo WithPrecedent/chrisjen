@@ -61,9 +61,6 @@ class Waterfall(views.Workflow):
             Defaults to None.
         contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
             to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
         project (Optional[framework.Project]): related Project instance.
                      
     """
@@ -78,7 +75,7 @@ class Waterfall(views.Workflow):
     
     @property
     def graph(self) -> holden.System:
-        """Returns direct graph of the project workflow.
+        """Returns directed graph of the project workflow.
 
         Returns:
             holden.System: direct graph of the project workflow.
@@ -141,39 +138,7 @@ class Waterfall(views.Workflow):
     #         except KeyError:
     #             arguments.update({})
     #     return arguments
-    
-    """ Public Methods """
-    
-    # @classmethod
-    # def create(cls, name: str, project: framework.Project) -> Waterfall:
-    #     """Returns a directed acyclic graph with str names of nodes.
-
-    #     Args:
-    #         name (str): name of starting node.
-    #         project (Project): project with information to create the graph.
-                
-    #     Returns:
-    #         keystones.View: a graph based on passed arguments.
-            
-    #     """
-    #     graph = cls(name = name, project = project)
-    #     graph.add(item = name)
-    #     section = project.outline.workers[name]
-    #     top_level = section[name]
-    #     for connection in top_level:
-    #         if connection in project.outline.designs:
-    #             design = project.outline.designs[connection]
-    #             node = project.library.view[design]
-    #             node = node.create(name = connection, project = project)
-    #             graph.append(node)
-    #         elif connection in section:
-    #             for subconnection in section[connection]:
-    #                 node = tuple([connection, subconnection])
-    #                 graph.append(node)
-    #         else:
-    #             graph.append(connection)   
-    #     return graph
-                            
+       
     
 @dataclasses.dataclass
 class Research(views.Workflow, abc.ABC):
@@ -185,16 +150,11 @@ class Research(views.Workflow, abc.ABC):
             Defaults to None.
         contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
             to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
         project (Optional[framework.Project]): related Project instance.
             
     """
     name: Optional[str] = None
     contents: Optional[MutableSequence[nodes.Worker]] = dataclasses.field(
-        default_factory = list)
-    steps: Optional[MutableSequence[Hashable]] = dataclasses.field(
         default_factory = list)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
@@ -215,52 +175,14 @@ class Research(views.Workflow, abc.ABC):
         recipes = represent.represent_parallel(
             name = self.name, 
             project = self.project) 
-               
-        for combo in combos:
-            recipe = [tuple([steps[i], t]) for i, t in enumerate(combo)]
-            for i, step in enumerate(recipe):
-                if step not in graph:
-                    graph.add(step)
-                if i == 0: 
-                    edge = tuple([name, step])
-                else:
-                    edge = tuple([recipe[i - 1], step])
-                graph.connect(edge)    
+        endpoints = amos.iterify(graph.endpoint)
+        for endpoint in endpoints:
+            for recipe in recipes:
+                serial = holden.Serial(contents = recipe)
+                graph.merge(item = serial)     
+                graph.connect(tuple([endpoint, serial[0]])) 
         return graph
 
-    """ Public Methods """
-    
-    @classmethod
-    def create(cls, name: str, project: framework.Project) -> Waterfall:
-        """Returns a directed acyclic graph with str names of nodes.
-
-        Args:
-            name (str): name of starting node.
-            project (Project): project with information to create the graph.
-                
-        Returns:
-            keystones.View: a graph based on passed arguments.
-            
-        """
-        graph = cls(name = name, project = project)
-        graph.add(item = name)
-        section = project.outline.workers[name]
-        connections = section[name]
-        steps = connections[name]
-        possible = [connections[s] for s in steps]
-        combos = list(itertools.product(*possible))   
-        for combo in combos:
-            recipe = [tuple([steps[i], t]) for i, t in enumerate(combo)]
-            for i, step in enumerate(recipe):
-                if step not in graph:
-                    graph.add(step)
-                if i == 0: 
-                    edge = tuple([name, step])
-                else:
-                    edge = tuple([recipe[i - 1], step])
-                graph.connect(edge)    
-        return graph
-    
     # """ Public Methods """
     
     # def implement(self, item: Any, **kwargs: Any) -> Any:

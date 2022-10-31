@@ -1,5 +1,5 @@
 """
-supervisers: workers that oversee branching or combining workflows
+supervisers: workers that iterate over branching workflows
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -26,15 +26,13 @@ from collections.abc import Callable, Hashable, MutableMapping
 import dataclasses
 from typing import Any, Optional, TYPE_CHECKING
 
-from ..core import framework
-from ..core import keystones
 from ..core import nodes
-from . import workers
+from . import tasks
 
 
 @dataclasses.dataclass
-class Judge(workers.Superviser):
-    """Base class for selecting a node or path.
+class Copier(tasks.Superviser):
+    """Makes a set number of copies of
     
     Args:
         name (Optional[str]): designates the name of a class instance that is 
@@ -72,7 +70,7 @@ class Judge(workers.Superviser):
          
                
 @dataclasses.dataclass
-class Scorer(workers.Superviser):
+class Splitter(tasks.Superviser):
     """Base class for nodes in a project workflow.
 
     Args:
@@ -90,7 +88,6 @@ class Scorer(workers.Superviser):
     contents: Optional[Any] = None
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = nodes.Parameters)
-    score_attribute: Optional[str] = None
     
     """ Public Methods """
      
@@ -108,8 +105,4 @@ class Scorer(workers.Superviser):
                 instance of 'Project'.
             
         """
-        try:
-            item = self.contents.complete(item = item, **kwargs)
-        except AttributeError:
-            item = self.contents(item, **kwargs)
-        return item        
+        pass
