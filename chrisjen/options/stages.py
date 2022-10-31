@@ -19,11 +19,11 @@ License: Apache-2.0
 Contents:
     Workflow
     Results
-    create_workflow
-    create_results
+    represent_workflow
+    represent_results
 
 To Do:
-    Add support for parallel construction of Results in the 'create_results'
+    Add support for parallel construction of Results in the 'represent_results'
         function.
         
 """
@@ -45,7 +45,7 @@ from . import workshop
  
 # """ Public Functions """
 
-# def create_workflow(
+# def represent_workflow(
 #     project: framework.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
@@ -71,7 +71,7 @@ from . import workshop
 #         options = project.options,
 #         workflow = workflow)
     
-# def create_workflow(
+# def represent_workflow(
 #     project: framework.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
@@ -93,7 +93,7 @@ from . import workshop
 #         options = project.options,
 #         workflow = workflow)
 
-# def create_results(
+# def represent_results(
 #     project: framework.Project,
 #     base: Optional[Type[Results]] = None, 
 #     **kwargs) -> Results:

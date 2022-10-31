@@ -17,7 +17,7 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    ProjectDefaults
+    ProjectRules
     ProjectKeystones
     ProjectKeystone
     ProjectLibrary
@@ -44,7 +44,7 @@ import holden
 
 
 @dataclasses.dataclass
-class ProjectDefaults(abc.ABC):
+class ProjectRules(abc.ABC):
     """Default values and classes for a chrisjen project.
     
     Every attribute in ProjectDefault should be a class attribute so that it
@@ -54,7 +54,7 @@ class ProjectDefaults(abc.ABC):
         default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
             default settings for a chrisjen project's idea. Defaults to the
             values in the dataclass field.
-        default_parsers (ClassVar[dict[str, tuple[str]]]): keys are the names of
+        parsers (ClassVar[dict[str, tuple[str]]]): keys are the names of
             special categories of settings and values are tuples of suffixes or
             whole words that are associated with those special categories in
             user settings. Defaults to the dict in the dataclass field.
@@ -72,6 +72,13 @@ class ProjectDefaults(abc.ABC):
             ProjectKeystone instances. Defaults to an empty Catalog.        
         
     """
+    parsers: ClassVar[dict[str, tuple[str]]] = {
+        'design': ('design',),
+        'manager': ('manager', 'project'),
+        'files': ('filer', 'files', 'clerk'),
+        'general': ('general',),
+        'parameters': ('parameters',), 
+        'workers': ('workers',)}
     default_settings: ClassVar[dict[Hashable, dict[Hashable, Any]]] = {
         'general': {
             'verbose': False,
@@ -80,13 +87,6 @@ class ProjectDefaults(abc.ABC):
         'files': {
             'file_encoding': 'windows-1252',
             'threads': -1}}
-    default_parsers: ClassVar[dict[str, tuple[str]]] = {
-        'design': ('design',),
-        'manager': ('manager', 'project'),
-        'files': ('filer', 'files', 'clerk'),
-        'general': ('general',),
-        'parameters': ('parameters',), 
-        'workers': ('workers',)}
     default_manager: ClassVar[str] = 'publisher'
     default_librarian: ClassVar[str] = 'up_front'
     default_task: ClassVar[str] = 'technique'
@@ -218,7 +218,7 @@ class ProjectKeystones(abc.ABC):
             registry = getattr(cls, attribute)
             # Selects default name of class if none exists.
             if getattr(item, attribute) is None:
-                name = getattr(ProjectDefaults, f'default_{attribute}')
+                name = getattr(ProjectRules, f'default_{attribute}')
                 setattr(item, attribute, registry[name])
             # Uses str value to select appropriate subclass.
             elif isinstance(getattr(item, attribute), str):
@@ -332,8 +332,8 @@ class Project(object):
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        defaults (Optional[Type[ProjectDefaults]]): a class storing the default
-            project options. Defaults to ProjectDefaults.
+        defaults (Optional[Type[ProjectRules]]): a class storing the default
+            project options. Defaults to ProjectRules.
         library (ClassVar[ProjectKeystones]): library of nodes for executing a
             chrisjen project. Defaults to an instance of ProjectLibrary.
  
@@ -344,7 +344,7 @@ class Project(object):
     manager: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True
-    defaults: Optional[Type[ProjectDefaults]] = ProjectDefaults
+    rules: Optional[Type[ProjectRules]] = ProjectRules
     library: ClassVar[ProjectKeystones] = ProjectKeystones
         
     """ Initialization Methods """

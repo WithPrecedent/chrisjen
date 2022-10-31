@@ -27,6 +27,7 @@ To Do:
         
 """
 from __future__ import annotations
+import abc
 from collections.abc import (
     Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import dataclasses
@@ -34,6 +35,7 @@ import itertools
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type
 
 import amos
+import holden
 
 from ..core import framework
 from ..core import keystones
@@ -50,13 +52,16 @@ class Outline(keystones.View):
     functions for creating a Workflow). 
 
     Args:
+        name
         project (framework.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
 
     """
-    project: framework.Project
+    name: Optional[str] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
     rules: Optional[dict[str, tuple[str]]] = dataclasses.field(
-        default_factory = lambda: framework.ProjectDefaults.default_parsers)
+        default_factory = lambda: framework.ProjectRules.parsers)
     
     """ Properties """       
                      
@@ -295,12 +300,23 @@ class Workflow(keystones.View):
     Args:
         project (framework.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
-        worker: 
 
     """
-    project: Optional[framework.Project] = None
-    worker: Optional[nodes.Worker] = None
+    name: Optional[str] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
 
+    """ Required Subclass Property """
+    
+    @abc.abstractproperty
+    def graph(self) -> holden.System:
+        """Returns direct graph of the project workflow.
+
+        Returns:
+            holden.System: direct graph of the project workflow.
+        """        
+        pass
+    
     """ Properties """
           
     @property
@@ -332,12 +348,16 @@ class Workflow(keystones.View):
         try:
             return self.project.outline.designs[self.project.name]
         except KeyError:
-            return self.project.defaults.default_worker
+            return self.project.rules.default_worker
         
     """ Public Methods """
     
     @classmethod
-    def create(cls, project: framework.Project) -> Workflow:
+    def create(
+        cls, 
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> Workflow:
         """[summary]
 
         Args:
@@ -347,9 +367,13 @@ class Workflow(keystones.View):
             Workflow: [description]
             
         """ 
-        worker = project.manager.librarian.acquire(name = project.name)       
-        worker = worker.create(project = project, name = project.name)
-        return cls(project = project, worker = worker)   
+        name = name or project.name
+        try:
+            subclass = project.library.view[name]
+        except KeyError:
+            design = project.outline.designs[name]
+            subclass = project.library.view[design]
+        return subclass(name, project)  
 
     # def append_depth(
     #     self, 
@@ -436,7 +460,7 @@ class Workflow(keystones.View):
 #             Results: [description]
             
 #         """        
-#         return workshop.create_results(project = project, base = cls)
+#         return workshop.represent_results(project = project, base = cls)
 
 #     # def complete(
 #     #     self, 

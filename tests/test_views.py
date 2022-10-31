@@ -19,8 +19,8 @@ License: Apache-2.0
 Contents:
     Workflow
     Results
-    create_workflow
-    create_results
+    represent_workflow
+    represent_results
 
 To Do:
 

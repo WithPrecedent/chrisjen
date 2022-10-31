@@ -51,11 +51,11 @@ from ..core import framework
 from ..core import keystones
 from ..core import nodes
 from . import tasks
-from . import workers
+from . import workflows
 
 
 @dataclasses.dataclass
-class Compare(workers.Research):
+class Compare(workflows.Research):
     """Workflow that branches and appplies criteria to eliminate branches.
         
     Args:
@@ -78,10 +78,10 @@ class Compare(workers.Research):
         default_factory = nodes.Parameters)
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
-    
+
     
 @dataclasses.dataclass
-class Observe(workers.Research):
+class Observe(workflows.Research):
     """Workflow that branches but does not reduce.
         
     Args:
@@ -171,7 +171,25 @@ class Compete(Compare):
         results = super().implement(item = item, **kwargs)
         project = self.judge.complete(projects = results)  
         return project
+
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, name: str, project: framework.Project) -> Compare:
+        """Returns a directed acyclic graph with str names of nodes.
+
+        Args:
+            name (str): name of starting node.
+            project (Project): project with information to create the graph.
+                
+        Returns:
+            keystones.View: a graph based on passed arguments.
             
+        """
+        graph = super().create(name = name, project = project)
+        graph.append('scorer')
+        return graph                
+
 
 @dataclasses.dataclass
 class Lean(Compare):
@@ -226,4 +244,21 @@ class Survey(Compare):
     superviser: Optional[tasks.Superviser] = None
     judge: Optional[tasks.Judge] = None
 
-       
+  
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, name: str, project: framework.Project) -> Compare:
+        """Returns a directed acyclic graph with str names of nodes.
+
+        Args:
+            name (str): name of starting node.
+            project (Project): project with information to create the graph.
+                
+        Returns:
+            keystones.View: a graph based on passed arguments.
+            
+        """
+        graph = super().create(name = name, project = project)
+        graph.append('averager')
+        return graph      

@@ -96,7 +96,6 @@ def test_project():
         idea = settings,
         automatic = False)
     project.manager.draft()
-    print('test plurals', project.outline.connections)
     assert project.outline.connections['wrangler'] == ['none']
     assert project.outline.connections['scale'] == [
         'minmax', 
@@ -122,7 +121,8 @@ def test_project():
         'analyst', 
         'critic']
     project.manager.publish()
-    print('test workflow', [k.name for k in project.workflow.contents.keys()])
+    print('test workers', project.outline.workers.keys())
+    print('test workflow', project.workflow.graph)
     print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])
     # Tests base libraries.
     # Tests workflow construction.

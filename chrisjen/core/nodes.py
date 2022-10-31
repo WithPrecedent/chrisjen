@@ -187,7 +187,8 @@ class Worker(keystones.Node, holden.System):
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
         default_factory = Parameters)
-    project: Optional[framework.Project] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
     
     """ Properties """
 
@@ -231,7 +232,26 @@ class Worker(keystones.Node, holden.System):
             node = project.manager.librarian.acquire(name = key) 
             worker.append(item = node)
         return worker
-                         
+
+    @classmethod
+    def graph(cls, name: str, project: framework.Project) -> keystones.View:
+        """Returns a directed acyclic graph with str names of nodes.
+
+        Args:
+            name (str): name of starting node.
+            project (Project): project with information to create the graph.
+                
+        Returns:
+            keystones.View: a graph based on passed arguments.
+            
+        """
+        graph = project.library.view['workflow']
+        graph.add(item = name)
+        for key in amos.iterify(project.outline.connections[name]):
+            node = project.manager.librarian.acquire(name = key) 
+            worker.append(item = node)
+        return worker
+                                          
     """ Public Methods """
     
     def append(self, item: keystones.Graph) -> None:

@@ -65,3 +65,4 @@ from .options.supervisers import *
 from .options.tasks import *
 from .options.views import *
 from .options.workers import *
+from .options.workflows import *

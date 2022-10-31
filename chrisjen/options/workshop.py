@@ -17,16 +17,16 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    create_workflow
-    create_worker
-    create_worker
-    create_judge
-    create_step
-    create_technique
-    create_results
+    represent_workflow
+    represent_worker
+    represent_worker
+    represent_judge
+    represent_step
+    represent_technique
+    represent_results
 
 To Do:
-    Add support for parallel construction of Results in the 'create_results'
+    Add support for parallel construction of Results in the 'represent_results'
         function.
         
 """
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 """ Public Functions """
          
 
-def create_node(
+def represent_node(
     name: str,
     project: framework.Project,
     **kwargs) -> defaults.Component:
@@ -60,10 +60,10 @@ def create_node(
         
     """
     design = project.outline.designs.get(name, 'component')
-    builder = globals()[f'create_{design}']
+    builder = globals()[f'represent_{design}']
     return builder(name = name, project = project, **kwargs)
 
-def create_workflow(
+def represent_workflow(
     project: framework.Project,
     base: Optional[Type[defaults.Workflow]] = None, 
     **kwargs) -> defaults.Workflow:
@@ -81,11 +81,11 @@ def create_workflow(
     workflow = base(project = project, **kwargs)
     worker_names = _get_worker_names(project = project)
     for name in worker_names:
-        worker = create_worker(name = name, project = project)
+        worker = represent_worker(name = name, project = project)
         workflow.append(worker)  
     return workflow    
 
-def create_component(
+def represent_component(
     name: str,
     project: framework.Project,
     base: Optional[str] = None,  
@@ -133,7 +133,7 @@ def create_component(
         setattr(instance, key, value)
     return instance
 
-def create_worker(
+def represent_worker(
     name: str,
     project: framework.Project,
     base: Optional[str] = None,  
@@ -150,7 +150,7 @@ def create_worker(
         components.Worker: [description]
         
     """  
-    worker = create_component(
+    worker = represent_component(
         name = name, 
         project = project, 
         base = base,
@@ -159,10 +159,10 @@ def create_worker(
     starting = connections[list[connections.keys()[0]]]
     worker = _finalize_worker(worker = worker, project = project)
     for node in starting:
-        component = create_component(name = name)
+        component = represent_component(name = name)
     return
 
-def create_worker(
+def represent_worker(
     name: str,
     project: framework.Project,
     base: Optional[Type[framework.ProjectWorker]] = None,  
@@ -182,7 +182,7 @@ def create_worker(
     base = base or project.base.node.library['worker']
     return
 
-def create_researcher(
+def represent_researcher(
     name: str,
     project: framework.Project,
     base: Optional[Type[components.Researcher]] = None,  
@@ -208,7 +208,7 @@ def create_researcher(
     self.append(combos)
     return components.Experiment
 
-def create_judge(
+def represent_judge(
     name: str,
     project: framework.Project,
     base: Optional[Type[components.Judge]] = None,  
@@ -228,7 +228,7 @@ def create_judge(
     base = base or project.base.node.library['judge']
     return
 
-def create_step(
+def represent_step(
     name: str,
     project: framework.Project,
     base: Optional[Type[components.Step]] = None,  
@@ -248,7 +248,7 @@ def create_step(
     base = base or project.base.node.library['step']
     return   
 
-def create_technique(
+def represent_technique(
     name: str,
     project: framework.Project,
     base: Optional[Type[components.Technique]] = None,  
@@ -755,7 +755,7 @@ def _finalize_worker(
     connections = project.outline.connections[worker.name]
     starting = connections[list[connections.keys()[0]]]
     for node in starting:
-        component = create_node(name = node, project = project)
+        component = represent_node(name = node, project = project)
         worker.append(component)
     return worker
 

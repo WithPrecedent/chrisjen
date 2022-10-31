@@ -96,7 +96,8 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             control.
              
     """
-    project: Optional[framework.Project] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
     
     """ Public Methods """   
         
@@ -127,7 +128,30 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
             return node.create(name = name, project = self.project, **kwargs)
-    
+
+    # def collect(
+    #     self, 
+    #     name: str, 
+    #     **kwargs: Any) -> Node:
+    #     """Gets node and all subnodes from project library.
+
+    #     Args:
+    #         name (str): name of the node that should match a key in the project
+    #             library.
+
+    #     Returns:
+    #         keystones.Node: a Node subclass instance based on passed arguments.
+            
+    #     """
+    #     lookups = self._get_lookups(name = name)
+    #     initialization = self._get_initialization(lookups = lookups)
+    #     initialization.update(**kwargs)
+    #     node = self._get_node(lookups = lookups)
+    #     return node.create(
+    #         name = name, 
+    #         project = self.project, 
+    #         **initialization)
+            
     @classmethod
     def create(
         cls, 
@@ -168,24 +192,24 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
     #             pass
     #     return {}
         
-    # def _get_initialization(self, lookups: list[str]) -> dict[str, Any]:
-    #     """_summary_
+    def _get_initialization(self, lookups: list[str]) -> dict[str, Any]:
+        """_summary_
 
-    #     Args:
-    #         lookups (list[str]): _description_
+        Args:
+            lookups (list[str]): _description_
 
-    #     Raises:
-    #         TypeError: _description_
+        Raises:
+            TypeError: _description_
 
-    #     Returns:
-    #         dict[str, Any]: _description_
-    #     """
-    #     for key in lookups:
-    #         try:
-    #             return self.project.outline.initialization[key]
-    #         except KeyError:
-    #             pass
-    #     return {}
+        Returns:
+            dict[str, Any]: _description_
+        """
+        for key in lookups:
+            try:
+                return self.project.outline.initialization[key]
+            except KeyError:
+                pass
+        return {}
         
     def _get_lookups(self, name: str) -> list[str]:
         """_summary_
@@ -197,14 +221,14 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             list[str]: _description_
             
         """
-        if name in framework.ProjectDefaults.null_names:
+        if name in framework.ProjectRules.null_names:
             return ['null_node']
         else:
             keys = [name]
             if name in self.project.outline.designs:
                 keys.append(self.project.outline.designs[name])
             elif name is self.project.name:
-                keys.append(framework.ProjectDefaults.default_worker)
+                keys.append(framework.ProjectRules.default_worker)
             if name in self.project.outline.kinds:
                 keys.append(self.project.outline.kinds[name])
             return keys
@@ -223,7 +247,7 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
         """
         for key in lookups:
             try:
-                return self.project.library.node.node.classes[key]
+                return self.project.library.node[key]
             except KeyError:
                 pass
         raise KeyError(f'No matching node found for these: {lookups}')  
@@ -238,7 +262,8 @@ class Manager(framework.ProjectKeystone, abc.ABC):
             control.
              
     """
-    project: framework.Project
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
     librarian: Optional[Librarian] = None
     
     """ Initialization Methods """
@@ -340,7 +365,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
             base = bobbie.Settings
             self.project.idea = base.create(
                 source = self.project.idea,
-                default = framework.ProjectDefaults.default_settings)        
+                default = framework.ProjectRules.default_settings)        
         return
 
     def _infer_project_name(self) -> str:
@@ -356,7 +381,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
         """Creates or validates 'librarian'."""
         if self.librarian is None:
             self.librarian = framework.ProjectKeystones.librarian[
-                framework.ProjectDefaults.default_librarian]
+                framework.ProjectRules.default_librarian]
         elif isinstance(self.manager, str):
             self.librarian = framework.ProjectKeystones.librarian[
                 self.librarian]
@@ -564,12 +589,15 @@ class View(framework.ProjectKeystone, abc.ABC):
     to the related project are automatically reflected in the View subclass.
     
     Args:
+        name
         project (framework.Project): a related project instance which has data 
             from which the properties of a View can be derived.
             
     """
-    project: framework.Project
-
+    name: Optional[str] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
+    
     """ Public Methods """
 
     @classmethod
@@ -588,4 +616,5 @@ class View(framework.ProjectKeystone, abc.ABC):
             View: subclass instance based on passed arguments.
             
         """
-        return cls(project = project, **kwargs) 
+        return cls(name = name,project = project, **kwargs) 
+    

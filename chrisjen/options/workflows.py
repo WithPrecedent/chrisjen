@@ -46,11 +46,13 @@ import more_itertools
 from ..core import framework
 from ..core import keystones
 from ..core import nodes
+from . import represent
+from . import views
 from . import tasks
 
 
 @dataclasses.dataclass
-class Waterfall(nodes.Worker):
+class Waterfall(views.Workflow):
     """A pre-planned, rigid workflow node.
         
     Args:
@@ -69,13 +71,112 @@ class Waterfall(nodes.Worker):
     contents: MutableMapping[Hashable, Set[Hashable]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
-    project: Optional[framework.Project] = None
+    project: Optional[framework.Project] = dataclasses.field(
+        default = None, repr = False, compare = False)
+    
+    """ Properties """
+    
+    @property
+    def graph(self) -> holden.System:
+        """Returns direct graph of the project workflow.
+
+        Returns:
+            holden.System: direct graph of the project workflow.
+            
+        """        
+        graph = holden.System()
+        if self.name != self.project.name:
+            graph.add(item = self.name)
+        section = self.project.outline.workers[self.name]
+        top_level = section[self.project.name]
+        for connection in top_level:
+            if connection in self.project.outline.designs:
+                design = self.project.outline.designs[connection]
+                node = self.project.library.view[design]
+                node = node.create(name = connection, project = self.project)
+                graph.append(node)
+            elif connection in section:
+                for subconnection in section[connection]:
+                    node = tuple([connection, subconnection])
+                    graph.append(node)
+            else:
+                graph.append(connection)   
+        return graph 
+      
+    # @property
+    # def idea(self) -> MutableMapping[str, Any]:
+    #     """Returns connections from an Idea that are part of this workflow. 
+
+    #     Returns:
+    #         MutableMapping[str, Any]: _description_
+            
+    #     """
+    #     return self.project.outline.workers[self.name]
+    
+    # @property
+    # def labels(self) -> MutableSequence[str]:
+    #     """_summary_
+
+    #     Returns:
+    #         MutableSequence[str]: _description_
+    #     """        
+    #     names = list(self.idea.keys())
+    #     names.extend(list(itertools.chain.from_iterable(self.idea.values())))
+    #     return names
+    
+    # @property
+    # def parameters(self) -> MutableMapping[Hashable, nodes.Parameters]:
+    #     """_summary_
+
+    #     Returns:
+    #         MutableMapping[Hashable, nodes.Parameters]: _description_
+            
+    #     """        
+    #     arguments = {}
+    #     for name in self.labels:
+    #         try:
+    #             new_parameters = nodes.Parameters(
+    #                 contents = self.project.outline.implementation[name])
+    #             arguments.update({name: new_parameters})
+    #         except KeyError:
+    #             arguments.update({})
+    #     return arguments
+    
+    """ Public Methods """
+    
+    # @classmethod
+    # def create(cls, name: str, project: framework.Project) -> Waterfall:
+    #     """Returns a directed acyclic graph with str names of nodes.
+
+    #     Args:
+    #         name (str): name of starting node.
+    #         project (Project): project with information to create the graph.
+                
+    #     Returns:
+    #         keystones.View: a graph based on passed arguments.
+            
+    #     """
+    #     graph = cls(name = name, project = project)
+    #     graph.add(item = name)
+    #     section = project.outline.workers[name]
+    #     top_level = section[name]
+    #     for connection in top_level:
+    #         if connection in project.outline.designs:
+    #             design = project.outline.designs[connection]
+    #             node = project.library.view[design]
+    #             node = node.create(name = connection, project = project)
+    #             graph.append(node)
+    #         elif connection in section:
+    #             for subconnection in section[connection]:
+    #                 node = tuple([connection, subconnection])
+    #                 graph.append(node)
+    #         else:
+    #             graph.append(connection)   
+    #     return graph
                             
     
 @dataclasses.dataclass
-class Research(holden.Parallel, abc.ABC):
+class Research(views.Workflow, abc.ABC):
     """Base class for nodes that integrate criteria.
         
     Args:
@@ -98,96 +199,128 @@ class Research(holden.Parallel, abc.ABC):
     project: Optional[framework.Project] = None
     superviser: Optional[tasks.Superviser] = None
 
-    """ Class Methods """
-    
-    @classmethod
-    def create(cls, name: str, project: nodes.Project) -> Study:
-        """[summary]
+    """ Properties """
 
-        Args:
-            item (MutableMapping[Hashable, MutableSequence[Hashable]]): 
-                [description]
+    @property
+    def graph(self) -> holden.System:
+        """Returns direct graph of the project workflow.
 
         Returns:
-            [type]: [description]
+            holden.System: direct graph of the project workflow.
             
         """
-        worker = cls(name = name, project = project)
-        connections = project.connections[name]
+        graph = holden.System()
+        if self.name != self.project.name:
+            graph.add(item = self.name)
+        recipes = represent.represent_parallel(
+            name = self.name, 
+            project = self.project) 
+               
+        for combo in combos:
+            recipe = [tuple([steps[i], t]) for i, t in enumerate(combo)]
+            for i, step in enumerate(recipe):
+                if step not in graph:
+                    graph.add(step)
+                if i == 0: 
+                    edge = tuple([name, step])
+                else:
+                    edge = tuple([recipe[i - 1], step])
+                graph.connect(edge)    
+        return graph
+
+    """ Public Methods """
+    
+    @classmethod
+    def create(cls, name: str, project: framework.Project) -> Waterfall:
+        """Returns a directed acyclic graph with str names of nodes.
+
+        Args:
+            name (str): name of starting node.
+            project (Project): project with information to create the graph.
+                
+        Returns:
+            keystones.View: a graph based on passed arguments.
+            
+        """
+        graph = cls(name = name, project = project)
+        graph.add(item = name)
+        section = project.outline.workers[name]
+        connections = section[name]
         steps = connections[name]
         possible = [connections[s] for s in steps]
         combos = list(itertools.product(*possible))   
         for combo in combos:
-            recipe = project.manager.librarian.acquire(name = 'worker')
-            for i, task in enumerate(combo):
-                step = project.manager.librarian.acquire(
-                    name = steps[i], 
-                    project = project,
-                    technique = task)
-                recipe.append(step)       
-            worker.add(recipe) 
-        return cls(name = name, project = project)
-
-    """ Public Methods """
+            recipe = [tuple([steps[i], t]) for i, t in enumerate(combo)]
+            for i, step in enumerate(recipe):
+                if step not in graph:
+                    graph.add(step)
+                if i == 0: 
+                    edge = tuple([name, step])
+                else:
+                    edge = tuple([recipe[i - 1], step])
+                graph.connect(edge)    
+        return graph
     
-    def implement(self, item: Any, **kwargs: Any) -> Any:
-        """Applies 'contents' to 'item'.
+    # """ Public Methods """
+    
+    # def implement(self, item: Any, **kwargs: Any) -> Any:
+    #     """Applies 'contents' to 'item'.
 
-        Subclasses must provide their own methods.
+    #     Subclasses must provide their own methods.
 
-        Args:
-            item (Any): any item or data to which 'contents' should be applied, 
-                but most often it is an instance of 'Project'.
+    #     Args:
+    #         item (Any): any item or data to which 'contents' should be applied, 
+    #             but most often it is an instance of 'Project'.
 
-        Returns:
-            Any: any result for applying 'contents', but most often it is an
-                instance of 'Project'.
+    #     Returns:
+    #         Any: any result for applying 'contents', but most often it is an
+    #             instance of 'Project'.
             
-        """
-        projects = self.superviser.complete(item = item)
-        results = {}
-        for i, (key, worker) in enumerate(self.contents.items()):
-            results[key] = worker.complete(item = projects[i], **kwargs)
-        return results
+    #     """
+    #     projects = self.superviser.complete(item = item)
+    #     results = {}
+    #     for i, (key, worker) in enumerate(self.contents.items()):
+    #         results[key] = worker.complete(item = projects[i], **kwargs)
+    #     return results
               
 
-@dataclasses.dataclass
-class Superviser(nodes.Worker):
-    """Base class for making multiple instances of a project.
+# @dataclasses.dataclass
+# class Superviser(views.Workflow):
+#     """Base class for making multiple instances of a project.
     
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
-            to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
+#     Args:
+#         name (Optional[str]): designates the name of a class instance that is 
+#             used for internal and external referencing in a project workflow.
+#             Defaults to None.
+#         contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+#             to the 'complete' method. Defaults to None.
+#         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+#             'contents' when the 'implement' method is called. Defaults to an
+#             empty Parameters instance.
               
-    """
-    name: Optional[str] = None
-    contents: Optional[Any] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
+#     """
+#     name: Optional[str] = None
+#     contents: Optional[Any] = None
+#     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+#         default_factory = nodes.Parameters)
     
-    """ Public Methods """
+#     """ Public Methods """
      
-    def implement(self, item: Any, **kwargs: Any) -> Any:
-        """Applies 'contents' to 'item'.
+#     def implement(self, item: Any, **kwargs: Any) -> Any:
+#         """Applies 'contents' to 'item'.
 
-        Subclasses must provide their own methods.
+#         Subclasses must provide their own methods.
 
-        Args:
-            item (Any): any item or data to which 'contents' should be applied, 
-                but most often it is an instance of 'Project'.
+#         Args:
+#             item (Any): any item or data to which 'contents' should be applied, 
+#                 but most often it is an instance of 'Project'.
 
-        Returns:
-            Any: any result for applying 'contents', but most often it is an
-                instance of 'Project'.
+#         Returns:
+#             Any: any result for applying 'contents', but most often it is an
+#                 instance of 'Project'.
             
-        """
-        pass
+#         """
+#         pass
      
 
 
