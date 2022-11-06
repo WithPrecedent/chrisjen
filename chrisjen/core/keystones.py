@@ -36,19 +36,21 @@ import contextlib
 import dataclasses
 import inspect
 import itertools
+import pathlib
 from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING
 
 import amos
 import bobbie
 import holden
 import miller
+import nagata
 
 from . import framework
  
 
 @dataclasses.dataclass   
 class Criteria(framework.ProjectKeystone):
-    """Used to evaluate workflows.
+    """Used for conditional nodes.
     
     Args:
         name (Optional[str]): designates the name of a class instance that is 
@@ -89,11 +91,11 @@ class Criteria(framework.ProjectKeystone):
 
 @dataclasses.dataclass
 class Librarian(framework.ProjectKeystone, abc.ABC):
-    """Constructor for chrisjen workflows.
+    """Stores, organizes, and builds nodes.
         
     Args:
-        project (framework.Project): linked Project instance to modify and 
-            control.
+        project (framework.Project): linked Project instance with a 'library'
+            attribute containing ProjectKeystones.
              
     """
     project: Optional[framework.Project] = dataclasses.field(
@@ -264,6 +266,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
     """
     project: Optional[framework.Project] = dataclasses.field(
         default = None, repr = False, compare = False)
+    clerk: Optional[nagata.FileManager] = None
     librarian: Optional[Librarian] = None
     
     """ Initialization Methods """
@@ -327,7 +330,26 @@ class Manager(framework.ProjectKeystone, abc.ABC):
         required.
         
         """
-        return  
+        try:
+            defaults = self.project.rules.default_settings['files']
+            nagata.FileFramework.settings.update(defaults)
+        except KeyError:
+            pass
+        for key in self.project.rules.parsers['files']:
+            try:
+                project_settings = self.project.idea[key]
+                nagata.FileFramework.settings.update(project_settings)
+            except KeyError:
+                pass
+        root_folder = pathlib.Path('..').joinpath('data')
+        root_folder = pathlib.Path(root_folder).joinpath(
+            self.project.identification)
+        self.clerk = nagata.FileManager(
+            root_folder = root_folder,
+            input_folder = 'input',
+            interim_folder = 'interim',
+            output_folder = 'output')
+        return
         
     def _validate_id(self) -> None:
         """Creates unique 'project.identification' if one doesn't exist.
@@ -355,6 +377,8 @@ class Manager(framework.ProjectKeystone, abc.ABC):
                 self.project.name = amos.namify(item = self.project)
             else:
                 self.project.name = idea_name
+        if self.project.name.endswith('_project'):
+            self.project.name = self.project.name[:-8]
         return  
         
     def _validate_idea(self) -> None:

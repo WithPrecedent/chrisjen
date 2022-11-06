@@ -49,29 +49,29 @@ from ..core import nodes
 from . import tasks
 
 
-@dataclasses.dataclass
-class Waterfall(nodes.Worker):
-    """A pre-planned, rigid workflow node.
+# @dataclasses.dataclass
+# class Waterfall(nodes.Worker):
+#     """A pre-planned, rigid workflow node.
         
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
-            to the 'complete' method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an
-            empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+#     Args:
+#         name (Optional[str]): designates the name of a class instance that is 
+#             used for internal and external referencing in a project workflow.
+#             Defaults to None.
+#         contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
+#             to the 'complete' method. Defaults to None.
+#         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+#             'contents' when the 'implement' method is called. Defaults to an
+#             empty Parameters instance.
+#         project (Optional[framework.Project]): related Project instance.
                      
-    """
-    name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
-        dataclasses.field(
-            default_factory = lambda: collections.defaultdict(set)))
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = nodes.Parameters)
-    project: Optional[framework.Project] = None
+#     """
+#     name: Optional[str] = None
+#     contents: MutableMapping[Hashable, Set[Hashable]] = (
+#         dataclasses.field(
+#             default_factory = lambda: collections.defaultdict(set)))
+#     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+#         default_factory = nodes.Parameters)
+#     project: Optional[framework.Project] = None
                             
     
 @dataclasses.dataclass

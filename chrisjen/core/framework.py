@@ -47,7 +47,7 @@ import holden
 class ProjectRules(abc.ABC):
     """Default values and classes for a chrisjen project.
     
-    Every attribute in ProjectDefault should be a class attribute so that it
+    Every attribute in ProjectRules should be a class attribute so that it
     is accessible without instancing it (which it cannot be).
 
     Args:
@@ -73,7 +73,8 @@ class ProjectRules(abc.ABC):
         
     """
     parsers: ClassVar[dict[str, tuple[str]]] = {
-        'design': ('design',),
+        'criteria': ('criteria',),
+        'design': ('design', 'structure'),
         'manager': ('manager', 'project'),
         'files': ('filer', 'files', 'clerk'),
         'general': ('general',),
@@ -103,7 +104,7 @@ class ProjectKeystones(abc.ABC):
     For each ProjectKeystone, a class attribute is added with the snakecase
     name of that ProjectKeystone. In that class attribute, an amos.Dictionary
     is the value and it stores all ProjectKeystone subclasses of that type
-    (again using snakecase names as keys.
+    (again using snakecase names as keys).
     
     Attributes:
         bases (ClassVar[amos.Dictionary]): dictionary of all direct 
@@ -167,7 +168,6 @@ class ProjectKeystones(abc.ABC):
         name: Optional[str] = None) -> None:
         """Registers 'item' in the appropriate class attribute registry.
         
-
         Args:
             item (Type[ProjectKeystone] | ProjectKeystone): ProjectKeystone 
                 subclass or subclass instance to store.
@@ -187,7 +187,8 @@ class ProjectKeystones(abc.ABC):
         Args:
             item (object): object (often a Project or Manager instance) of which
                 a ProjectKeystone in 'attribute' needs to be validated or 
-                created.
+                created. If 'item' is not a Project instance, it must have a
+                'project' attribute containing a Project instance.
             attribute (str): name of the attribute' in item containing a value
                 to be validated or which provides information to create an
                 appropriate instance.
@@ -303,7 +304,7 @@ class ProjectKeystone(abc.ABC):
         
         Args:
             project (Project): related Project instance.
-            name (Optional[str]): name or key to lookup the subclass.
+            name (Optional[str]): name or key to lookup a subclass.
 
         Returns:
             ProjectKeystone: subclass instance based on passed arguments.
@@ -333,15 +334,14 @@ class Project(object):
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        defaults (Optional[Type[ProjectRules]]): a class storing the default
+        rules (Optional[Type[ProjectRules]]): a class storing the default
             project options. Defaults to ProjectRules.
         library (ClassVar[ProjectKeystones]): library of nodes for executing a
             chrisjen project. Defaults to an instance of ProjectLibrary.
  
     """
     name: Optional[str] = None
-    idea: Optional[bobbie.Settings] = None
-    clerk: Optional[ProjectKeystone] = None
+    idea: Optional[bobbie.Settings] = None 
     manager: Optional[ProjectKeystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True

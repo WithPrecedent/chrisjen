@@ -26,7 +26,6 @@ To Do:
 from __future__ import annotations
 from collections.abc import Hashable, MutableMapping, Sequence
 import itertools
-from statistics import linear_regression
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
 
@@ -57,8 +56,7 @@ def represent_parallel(
         list[list[tuple[str, str]]]: _description_
     
     """   
-    section = project.outline.workers[name]
-    connections = section[name]
+    connections = project.outline.connections
     steps = connections[name]
     techniques = [connections[s] for s in steps]
     combos = list(itertools.product(*techniques)) 
@@ -80,7 +78,7 @@ def represent_serial(
         list[str]: _description_
         
     """    
-    section = project.outline.workers[name]
+    section = project.outline.connections[name]
     connections = section[name]   
     if any(c in section for c in connections):
         return represent_serial_steps(name = name, project = project)

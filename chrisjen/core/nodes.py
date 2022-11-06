@@ -172,7 +172,7 @@ class Worker(keystones.Node, holden.System):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a project workflow.
             Defaults to None.
-        contents (MutableMapping[Hashable, Set[Hashable]]): keys are names of
+        contents (MutableMapping[Hashable, set[Hashable]]): keys are names of
             nodes and values are sets of names of nodes. Defaults to a 
             defaultdict that has a set for its value format.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
@@ -182,7 +182,7 @@ class Worker(keystones.Node, holden.System):
                      
     """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
+    contents: MutableMapping[Hashable, set[Hashable]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     parameters: MutableMapping[Hashable, Any] = dataclasses.field(

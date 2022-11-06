@@ -289,6 +289,8 @@ class Outline(keystones.View):
         suffixes = self.plurals
         for name, section in self.project.idea.items():
             if any(k.endswith(suffixes) for k in section.keys()):
+                if name.endswith('_project'):
+                    name = name[:-8]
                 sections[name] = section
         return sections
     
@@ -414,23 +416,23 @@ class Workflow(keystones.View):
     #     self.append(combos)
     #     return self
         
-    """ Dunder Methods """
+    # """ Dunder Methods """
     
-    def __getattr__(self, item: str) -> Any:
-        """Checks 'worker' for attribute named 'item'.
+    # def __getattr__(self, item: str) -> Any:
+    #     """Checks 'worker' for attribute named 'item'.
 
-        Args:
-            item (str): name of attribute to check.
+    #     Args:
+    #         item (str): name of attribute to check.
 
-        Returns:
-            Any: contents of worker attribute named 'item'.
+    #     Returns:
+    #         Any: contents of worker attribute named 'item'.
             
-        """
-        try:
-            return getattr(self.worker, item)
-        except AttributeError:
-            return AttributeError(
-                f'{item} is not in the workflow or its primary worker')
+    #     """
+    #     try:
+    #         return object.__getattribute__(self.worker, item)
+    #     except AttributeError:
+    #         return AttributeError(
+    #             f'{item} is not in the workflow or its primary worker')
 
  
 # @dataclasses.dataclass

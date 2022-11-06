@@ -15,7 +15,7 @@ amos = "^0.1.10"
 bobbie = "0.1.1"
 holden = "^0.1.4"
 miller = "^0.1.3"
-nagata = "^0.1.1"
+nagata = "^0.1.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

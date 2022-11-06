@@ -123,7 +123,7 @@ def test_project():
     project.manager.publish()
     print('test workers', project.outline.workers.keys())
     print('test workflow', project.workflow.graph)
-    print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])
+    # print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])
     # Tests base libraries.
     # Tests workflow construction.
     # print('test project workflow', project.workflow)

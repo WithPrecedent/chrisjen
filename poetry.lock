@@ -29,7 +29,7 @@ python-versions = ">=3.5"
 dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy (>=0.900,!=0.940)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "sphinx", "sphinx-notfound-page", "zope.interface"]
 docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
 tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "zope.interface"]
-tests-no-zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
+tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
 
 [[package]]
 name = "bobbie"
@@ -64,7 +64,7 @@ miller = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "miller"
-version = "0.1.3"
+version = "0.1.4"
 description = "introspection tools using consistent, accessible syntax"
 category = "main"
 optional = false
@@ -83,15 +83,15 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "nagata"
-version = "0.1.1"
+version = "0.1.3"
 description = "python file management using a common, intuitive syntax"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-amos = ">=0.1.5,<0.2.0"
-miller = ">=0.1.2,<0.2.0"
+amos = ">=0.1.10,<0.2.0"
+miller = ">=0.1.4,<0.2.0"
 
 [[package]]
 name = "packaging"
@@ -167,7 +167,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "25e5965f1c9b63c7155860432b4ec373167e0b05f0daa96cab98f93b733e91c4"
+content-hash = "ada84ec3d23acafeac7a3bb34c92f5778bd82c64dde0720425ca510751a37892"
 
 [metadata.files]
 amos = [
@@ -194,16 +194,16 @@ holden = [
     {file = "holden-0.1.4.tar.gz", hash = "sha256:3c215f24df5c151877eb8c85f773b8e950d63807ac6ad2d9ee3690b8d074cdc1"},
 ]
 miller = [
-    {file = "miller-0.1.3-py3-none-any.whl", hash = "sha256:622f2ed47a66e5f0780edc96e875a581f6b204d72c45290b8228e903b271f6d0"},
-    {file = "miller-0.1.3.tar.gz", hash = "sha256:13aaf1475f8fe1a53095546de140a4da2f2abc62a59b7a6eeb620fcf554a5e8d"},
+    {file = "miller-0.1.4-py3-none-any.whl", hash = "sha256:ee1a7dac27fbc57bb26aa960a74d83b75977aa99c43bad4e5fbd9456a880bf86"},
+    {file = "miller-0.1.4.tar.gz", hash = "sha256:fcb7cf6e11bdb03a6e2979055d54942a45d4ad497060c4bfc7fe9b6f8dea702f"},
 ]
 more-itertools = [
     {file = "more-itertools-9.0.0.tar.gz", hash = "sha256:5a6257e40878ef0520b1803990e3e22303a41b5714006c32a3fd8304b26ea1ab"},
     {file = "more_itertools-9.0.0-py3-none-any.whl", hash = "sha256:250e83d7e81d0c87ca6bd942e6aeab8cc9daa6096d12c5308f3f92fa5e5c1f41"},
 ]
 nagata = [
-    {file = "nagata-0.1.1-py3-none-any.whl", hash = "sha256:b5f75715133d7ce6d99a251f6ec924b0b608414c34169e0c86c1160c065efbdb"},
-    {file = "nagata-0.1.1.tar.gz", hash = "sha256:650f0a70e950c843180d22266a460ee475637cc36927cd56a097e2dd67481ea1"},
+    {file = "nagata-0.1.3-py3-none-any.whl", hash = "sha256:afaaecf61672d2403e4f58039cf9ca2f2d34aea22d2773f3f65963dc677834f6"},
+    {file = "nagata-0.1.3.tar.gz", hash = "sha256:8bac47638dd8036ad244cdef656cd1047fb4ca7e4a296298c6217e8e4035074a"},
 ]
 packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},

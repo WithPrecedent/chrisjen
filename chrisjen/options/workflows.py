@@ -53,26 +53,28 @@ from . import tasks
 
 @dataclasses.dataclass
 class Waterfall(views.Workflow):
-    """A pre-planned, rigid workflow node.
+    """A pre-planned, rigid workflow.
         
     Args:
         name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a project workflow.
+            used for internal and external referencing in a chrisjen project.
             Defaults to None.
-        contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
-            to the 'complete' method. Defaults to None.
-        project (Optional[framework.Project]): related Project instance.
+        contents (MutableMapping[Hashable, set[Hashable]]): keys are names of
+            nodes and values are sets of names of nodes. Defaults to a 
+            defaultdict that has a set for its value format.
+        project (Optional[framework.Project]): related Project instance. 
+            Defaults to None.
                      
     """
     name: Optional[str] = None
-    contents: MutableMapping[Hashable, Set[Hashable]] = (
+    contents: MutableMapping[Hashable, set[Hashable]] = (
         dataclasses.field(
             default_factory = lambda: collections.defaultdict(set)))
     project: Optional[framework.Project] = dataclasses.field(
         default = None, repr = False, compare = False)
     
     """ Properties """
-    
+
     @property
     def graph(self) -> holden.System:
         """Returns directed graph of the project workflow.
@@ -84,20 +86,30 @@ class Waterfall(views.Workflow):
         graph = holden.System()
         if self.name != self.project.name:
             graph.add(item = self.name)
-        section = self.project.outline.workers[self.name]
-        top_level = section[self.project.name]
+        # section = self.project.outline.connections[self.name]
+        # print('test section', section)
+        # print('test connections', self.project.outline.connections.keys())
+        connections = self.project.outline.connections
+        top_level = connections[self.name]
         for connection in top_level:
             if connection in self.project.outline.designs:
                 design = self.project.outline.designs[connection]
                 node = self.project.library.view[design]
                 node = node.create(name = connection, project = self.project)
-                graph.append(node)
-            elif connection in section:
-                for subconnection in section[connection]:
+                print('test node', node)
+                graph.append(node.graph)
+            elif connection in connections:
+                for subconnection in connections[connection]:
                     node = tuple([connection, subconnection])
                     graph.append(node)
             else:
-                graph.append(connection)   
+                print('test else connection', connection)
+                if connection in graph.keys():
+                    endpoints = graph.endpoint
+                    for end in endpoints:
+                        graph.connect((end, connection))
+                else:
+                    graph.append(connection)   
         return graph 
       
     # @property
@@ -246,137 +258,137 @@ class Research(views.Workflow, abc.ABC):
      
 
 
-def represent_research(
-    name: str, 
-    project: nodes.Project,
-    **kwargs) -> Studyer:
-    """[summary]
+# def represent_research(
+#     name: str, 
+#     project: nodes.Project,
+#     **kwargs) -> Studyer:
+#     """[summary]
 
-    Args:
-        name (str): [description]
-        project (nodes.Project): [description]
+#     Args:
+#         name (str): [description]
+#         project (nodes.Project): [description]
 
-    Returns:
-        Experiment: [description]
+#     Returns:
+#         Experiment: [description]
         
-    """    
-    design = project.idea.designs.get(name, None) 
-    kind = project.idea.kinds.get(name, None) 
-    lookups = _get_lookups(name = name, design = design, kind = kind)
-    base = project.components.withdraw(item = lookups)
-    parameters = amos.get_annotations(item = base)
-    attributes, initialization = _parse_initialization(
-        name = name,
-        settings = project.idea,
-        parameters = parameters)
-    initialization['parameters'] = _get_runtime(
-        lookups = lookups,
-        settings = project.idea)
-    component = base(name = name, **initialization)
-    for key, value in attributes.items():
-        setattr(component, key, value)
-    return component
+#     """    
+#     design = project.idea.designs.get(name, None) 
+#     kind = project.idea.kinds.get(name, None) 
+#     lookups = _get_lookups(name = name, design = design, kind = kind)
+#     base = project.components.withdraw(item = lookups)
+#     parameters = amos.get_annotations(item = base)
+#     attributes, initialization = _parse_initialization(
+#         name = name,
+#         settings = project.idea,
+#         parameters = parameters)
+#     initialization['parameters'] = _get_runtime(
+#         lookups = lookups,
+#         settings = project.idea)
+#     component = base(name = name, **initialization)
+#     for key, value in attributes.items():
+#         setattr(component, key, value)
+#     return component
 
 
-def implement(
-    node: nodes.Component,
-    project: nodes.Project, 
-    **kwargs) -> nodes.Project:
-    """Applies 'node' to 'project'.
+# def implement(
+#     node: nodes.Component,
+#     project: nodes.Project, 
+#     **kwargs) -> nodes.Project:
+#     """Applies 'node' to 'project'.
 
-    Args:
-        node (nodes.Component): node in a workflow to apply to 'project'.
-        project (nodes.Project): instance from which data needed for 
-            implementation should be derived and all results be added.
+#     Args:
+#         node (nodes.Component): node in a workflow to apply to 'project'.
+#         project (nodes.Project): instance from which data needed for 
+#             implementation should be derived and all results be added.
 
-    Returns:
-        nodes.Project: with possible changes made by 'node'.
+#     Returns:
+#         nodes.Project: with possible changes made by 'node'.
         
-    """
-    ancestors = count_ancestors(node = node, workflow = project.workflow)
-    descendants = len(project.workflow[node])
-    if ancestors > descendants:
-        method = closer_implement
-    elif ancestors < descendants:
-        method = test_implement
-    elif ancestors == descendants:
-        method = task_implement
-    return method(node = node, project = project, **kwargs)
+#     """
+#     ancestors = count_ancestors(node = node, workflow = project.workflow)
+#     descendants = len(project.workflow[node])
+#     if ancestors > descendants:
+#         method = closer_implement
+#     elif ancestors < descendants:
+#         method = test_implement
+#     elif ancestors == descendants:
+#         method = task_implement
+#     return method(node = node, project = project, **kwargs)
     
-def closer_implement(
-    node: nodes.Component,
-    project: nodes.Project, 
-    **kwargs) -> nodes.Project:
-    """Applies 'node' to 'project'.
+# def closer_implement(
+#     node: nodes.Component,
+#     project: nodes.Project, 
+#     **kwargs) -> nodes.Project:
+#     """Applies 'node' to 'project'.
 
-    Args:
-        node (nodes.Component): node in a workflow to apply to 'project'.
-        project (nodes.Project): instance from which data needed for 
-            implementation should be derived and all results be added.
+#     Args:
+#         node (nodes.Component): node in a workflow to apply to 'project'.
+#         project (nodes.Project): instance from which data needed for 
+#             implementation should be derived and all results be added.
 
-    Returns:
-        nodes.Project: with possible changes made by 'node'.
+#     Returns:
+#         nodes.Project: with possible changes made by 'node'.
         
-    """
-    try:
-        project = node.complete(project = project, **kwargs)
-    except AttributeError:
-        project = node(project, **kwargs)
-    return project    
+#     """
+#     try:
+#         project = node.complete(project = project, **kwargs)
+#     except AttributeError:
+#         project = node(project, **kwargs)
+#     return project    
 
-def test_implement(
-    node: nodes.Component,
-    project: nodes.Project, 
-    **kwargs) -> nodes.Project:
-    """Applies 'node' to 'project'.
+# def test_implement(
+#     node: nodes.Component,
+#     project: nodes.Project, 
+#     **kwargs) -> nodes.Project:
+#     """Applies 'node' to 'project'.
 
-    Args:
-        node (nodes.Component): node in a workflow to apply to 'project'.
-        project (nodes.Project): instance from which data needed for 
-            implementation should be derived and all results be added.
+#     Args:
+#         node (nodes.Component): node in a workflow to apply to 'project'.
+#         project (nodes.Project): instance from which data needed for 
+#             implementation should be derived and all results be added.
 
-    Returns:
-        nodes.Project: with possible changes made by 'node'.
+#     Returns:
+#         nodes.Project: with possible changes made by 'node'.
         
-    """
-    connections = project.workflow[node]
-    # Makes copies of project for each pipeline in a test.
-    copies = [copy.deepcopy(project) for _ in connections]
-    # if project.idea['general']['parallelize']:
-    #     method = _test_implement_parallel
-    # else:
-    #     method = _test_implement_serial
-    results = []
-    for i, connection in enumerate(connections):
-        results.append(implement(
-            node = project.workflow[connection],
-            project = copies[i], 
-            **kwargs))
+#     """
+#     connections = project.workflow[node]
+#     # Makes copies of project for each pipeline in a test.
+#     copies = [copy.deepcopy(project) for _ in connections]
+#     # if project.idea['general']['parallelize']:
+#     #     method = _test_implement_parallel
+#     # else:
+#     #     method = _test_implement_serial
+#     results = []
+#     for i, connection in enumerate(connections):
+#         results.append(implement(
+#             node = project.workflow[connection],
+#             project = copies[i], 
+#             **kwargs))
          
-def task_implement(
-    node: nodes.Component,
-    project: nodes.Project, 
-    **kwargs) -> nodes.Project:
-    """Applies 'node' to 'project'.
+# def task_implement(
+#     node: nodes.Component,
+#     project: nodes.Project, 
+#     **kwargs) -> nodes.Project:
+#     """Applies 'node' to 'project'.
 
-    Args:
-        node (nodes.Component): node in a workflow to apply to 'project'.
-        project (nodes.Project): instance from which data needed for 
-            implementation should be derived and all results be added.
+#     Args:
+#         node (nodes.Component): node in a workflow to apply to 'project'.
+#         project (nodes.Project): instance from which data needed for 
+#             implementation should be derived and all results be added.
 
-    Returns:
-        nodes.Project: with possible changes made by 'node'.
+#     Returns:
+#         nodes.Project: with possible changes made by 'node'.
         
-    """
-    try:
-        project = node.complete(project = project, **kwargs)
-    except AttributeError:
-        project = node(project, **kwargs)
-    return project    
+#     """
+#     try:
+#         project = node.complete(project = project, **kwargs)
+#     except AttributeError:
+#         project = node(project, **kwargs)
+#     return project    
 
-def count_ancestors(node: nodes.Component, workflow: defaults.Stage) -> int:
-    connections = list(more_itertools.collapse(workflow.values()))
-    return connections.count(node)
+# def count_ancestors(node: nodes.Component, workflow: defaults.Stage) -> int:
+#     connections = list(more_itertools.collapse(workflow.values()))
+#     return connections.count(node)
     
     
     
