@@ -17,12 +17,10 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    ProjectRules
-    ProjectKeystones
-    ProjectKeystone
-    ProjectLibrary
+    Rules
+    Keystones
+    Keystone
     Project
-    set_parallelization
 
 To Do:
 
@@ -44,32 +42,29 @@ import holden
 
 
 @dataclasses.dataclass
-class ProjectRules(abc.ABC):
+class Rules(abc.ABC):
     """Default values and classes for a chrisjen project.
     
-    Every attribute in ProjectRules should be a class attribute so that it
-    is accessible without instancing it (which it cannot be).
+    Every attribute in Rules should be a class attribute so that it is 
+    accessible without instancing it (which it cannot be).
 
     Args:
-        default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
-            default settings for a chrisjen project's idea. Defaults to the
-            values in the dataclass field.
         parsers (ClassVar[dict[str, tuple[str]]]): keys are the names of
             special categories of settings and values are tuples of suffixes or
             whole words that are associated with those special categories in
-            user settings. Defaults to the dict in the dataclass field.
+            user settings.
+        default_settings (ClassVar[dict[Hashable, dict[Hashable, Any]]]):
+            default settings for a chrisjen project's idea. 
         default_manager (ClassVar[str]): key name of the default manager.
             Defaults to 'publisher'.
         default_librarian (ClassVar[str]): key name of the default librarian.
             Defaults to 'as_needed'.
+        default_task (ClassVar[str]): key name of the default task design.
+            Defaults to 'technique'.
         default_worker (ClassVar[str]): key name of the default worker design.
             Defaults to 'waterfall'.
-        default_task (ClassVar[str]): key name of the default task design.
-            Defaults to 'technique'
         null_names (ClassVar[list[Any]]): lists of key names that indicate a
-            null node should be used. Defaults to ['none', 'None', None].
-        keystones (ClassVar[amos.Catalog[str, ProjectKeystone]]): catalog of 
-            ProjectKeystone instances. Defaults to an empty Catalog.        
+            null node should be used. Defaults to ['none', 'None', None].   
         
     """
     parsers: ClassVar[dict[str, tuple[str]]] = {
@@ -94,23 +89,22 @@ class ProjectRules(abc.ABC):
     default_task: ClassVar[str] = 'technique'
     default_worker: ClassVar[str] = 'waterfall'
     null_names: ClassVar[list[Any]] = ['none', 'None', None]
-    keystones: ClassVar[amos.Catalog] = amos.Catalog()
 
 
 @dataclasses.dataclass
-class ProjectKeystones(abc.ABC):
-    """Stores ProjectKeystone subclasses.
+class Keystones(abc.ABC):
+    """Stores Keystone subclasses.
     
-    For each ProjectKeystone, a class attribute is added with the snakecase
-    name of that ProjectKeystone. In that class attribute, an amos.Dictionary
-    is the value and it stores all ProjectKeystone subclasses of that type
+    For each Keystone, a class attribute is added with the snakecase
+    name of that Keystone. In that class attribute, an amos.Dictionary
+    is the value and it stores all Keystone subclasses of that type
     (again using snakecase names as keys).
     
     Attributes:
         bases (ClassVar[amos.Dictionary]): dictionary of all direct 
-            ProjectKeystone subclasses. Keys are snakecase names of the
-            ProjectKeystone subclass.
-        All direct ProjectKeystone subclasses will have an attribute name added
+            Keystone subclasses. Keys are snakecase names of the
+            Keystone subclass.
+        All direct Keystone subclasses will have an attribute name added
         dynamically.
         
     """
@@ -119,12 +113,12 @@ class ProjectKeystones(abc.ABC):
     """ Public Methods """
     
     @classmethod
-    def add(cls, item: Type[ProjectKeystone]) -> None:
+    def add(cls, item: Type[Keystone]) -> None:
         """Adds a new keystone attribute with an empty dictionary.
 
         Args:
-            item (Type[ProjectKeystone]): direct ProjectKeystone subclass from
-                which the name of a new attribute should be derived.
+            item (Type[Keystone]): direct Keystone subclass from which the name 
+                of a new attribute should be derived.
             
         """
         name = cls._get_name(item = item)
@@ -133,19 +127,19 @@ class ProjectKeystones(abc.ABC):
         return
     
     @classmethod
-    def classify(cls, item: str | Type[ProjectKeystone]) ->str:
-        """Returns the str name of the ProjectKeystone of which 'item' is.
+    def classify(cls, item: str | Type[Keystone]) ->str:
+        """Returns the str name of the Keystone of which 'item' is.
 
         Args:
-            item (str | Type[ProjectKeystone]): ProjectKeystone subclass or its
-                str name to return the str name of its base type.
+            item (str | Type[Keystone]): Keystone subclass or its str name to 
+                return the str name of its base type.
 
         Raises:
             ValueError: if 'item' does not match a subclass of any 
-                ProjectKeystone type.
+                Keystone type.
             
         Returns:
-            str: snakecase str name of the ProjectKeystone base type of which 
+            str: snakecase str name of the Keystone base type of which 
                 'item' is a subclass.
                 
         """
@@ -159,17 +153,17 @@ class ProjectKeystones(abc.ABC):
             for key, value in cls.bases.items():
                 if issubclass(item, value):
                     return key
-        raise ValueError(f'{item} is not a subclass of any ProjectKeystone')
+        raise ValueError(f'{item} is not a subclass of any Keystone')
               
     @classmethod
     def register(
         cls, 
-        item: Type[ProjectKeystone] | ProjectKeystone,
+        item: Type[Keystone] | Keystone,
         name: Optional[str] = None) -> None:
         """Registers 'item' in the appropriate class attribute registry.
         
         Args:
-            item (Type[ProjectKeystone] | ProjectKeystone): ProjectKeystone 
+            item (Type[Keystone] | Keystone): Keystone 
                 subclass or subclass instance to store.
             name (Optional[str], optional): key name to use in storing 'item'. 
                 Defaults to None.
@@ -186,7 +180,7 @@ class ProjectKeystones(abc.ABC):
 
         Args:
             item (object): object (often a Project or Manager instance) of which
-                a ProjectKeystone in 'attribute' needs to be validated or 
+                a Keystone in 'attribute' needs to be validated or 
                 created. If 'item' is not a Project instance, it must have a
                 'project' attribute containing a Project instance.
             attribute (str): name of the attribute' in item containing a value
@@ -195,7 +189,7 @@ class ProjectKeystones(abc.ABC):
 
         Raises:
             ValueError: if the value of 'attribute' in 'item' does match any
-                known subclass or subclass instance of that ProjectKeystone
+                known subclass or subclass instance of that Keystone
                 subtype.
 
         Returns:
@@ -220,7 +214,7 @@ class ProjectKeystones(abc.ABC):
             registry = getattr(cls, attribute)
             # Selects default name of class if none exists.
             if getattr(item, attribute) is None:
-                name = getattr(ProjectRules, f'default_{attribute}')
+                name = getattr(Rules, f'default_{attribute}')
                 setattr(item, attribute, registry[name])
             # Uses str value to select appropriate subclass.
             elif isinstance(getattr(item, attribute), str):
@@ -243,7 +237,7 @@ class ProjectKeystones(abc.ABC):
     @classmethod
     def _get_name(
         cls, 
-        item: Type[ProjectKeystone],
+        item: Type[Keystone],
         name: Optional[str] = None) -> None:
         """Returns 'name' or str name of item.
         
@@ -254,7 +248,7 @@ class ProjectKeystones(abc.ABC):
         this method. All other methods will call this method for naming.
         
         Args:
-            item (Type[ProjectKeystone]): item to name.
+            item (Type[Keystone]): item to name.
             name (Optional[str], optional): optional name to use. A 'project_'
                 prefix will be removed, if it exists. Defaults to None.
 
@@ -269,22 +263,22 @@ class ProjectKeystones(abc.ABC):
             
          
 @dataclasses.dataclass
-class ProjectKeystone(abc.ABC):
+class Keystone(abc.ABC):
     """Mixin for core project base classes."""
 
     """ Initialization Methods """
     
     @classmethod
     def __init_subclass__(cls, *args: Any, **kwargs: Any):
-        """Automatically registers subclass in ProjectKeystones."""
-        # Because ProjectKeystone will be used as a mixin, it is important to 
+        """Automatically registers subclass in Keystones."""
+        # Because Keystone will be used as a mixin, it is important to 
         # call other base class '__init_subclass__' methods, if they exist.
         with contextlib.suppress(AttributeError):
             super().__init_subclass__(*args, **kwargs) # type: ignore
-        if ProjectKeystone in cls.__bases__:
-            ProjectKeystones.add(item = cls)
+        if Keystone in cls.__bases__:
+            Keystones.add(item = cls)
         else:
-            ProjectKeystones.register(item = cls)
+            Keystones.register(item = cls)
             
     """ Required Subclass Methods """
     
@@ -293,7 +287,7 @@ class ProjectKeystone(abc.ABC):
         cls, 
         project: Project,
         name: Optional[str] = None,
-        **kwargs: Any) -> ProjectKeystone:
+        **kwargs: Any) -> Keystone:
         """Returns a subclass instance based on passed arguments.
 
         The reason for requiring a 'create' classmethod is that it allows for
@@ -307,7 +301,7 @@ class ProjectKeystone(abc.ABC):
             name (Optional[str]): name or key to lookup a subclass.
 
         Returns:
-            ProjectKeystone: subclass instance based on passed arguments.
+            Keystone: subclass instance based on passed arguments.
             
         """
         pass 
@@ -320,11 +314,11 @@ class Project(object):
     Args:
         name (Optional[str]): designates the name of a class instance that is 
             used for internal referencing throughout chrisjen. Defaults to None. 
-        idea (Optional[ProjectKeystone]): configuration settings for the 
+        idea (Optional[Keystone]): configuration settings for the 
             project. Defaults to None.
-        clerk (Optional[ProjectKeystone]): a filing clerk for loading and saving 
+        clerk (Optional[Keystone]): a filing clerk for loading and saving 
             files throughout a chrisjen project. Defaults to None.
-        manager (Optional[ProjectKeystone]): constructor for a chrisjen 
+        manager (Optional[Keystone]): constructor for a chrisjen 
             project. Defaults to None.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
@@ -334,19 +328,19 @@ class Project(object):
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        rules (Optional[Type[ProjectRules]]): a class storing the default
-            project options. Defaults to ProjectRules.
-        library (ClassVar[ProjectKeystones]): library of nodes for executing a
+        rules (Optional[Type[Rules]]): a class storing the default
+            project options. Defaults to Rules.
+        library (ClassVar[Keystones]): library of nodes for executing a
             chrisjen project. Defaults to an instance of ProjectLibrary.
  
     """
     name: Optional[str] = None
     idea: Optional[bobbie.Settings] = None 
-    manager: Optional[ProjectKeystone] = None
+    manager: Optional[Keystone] = None
     identification: Optional[str] = None
     automatic: Optional[bool] = True
-    rules: Optional[Type[ProjectRules]] = ProjectRules
-    library: ClassVar[ProjectKeystones] = ProjectKeystones
+    rules: Optional[Type[Rules]] = Rules
+    library: ClassVar[Keystones] = Keystones
         
     """ Initialization Methods """
 
@@ -357,7 +351,7 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
-        self = ProjectKeystones.validate(item = self, attribute = 'manager')
+        self = Keystones.validate(item = self, attribute = 'manager')
        
     """ Public Class Methods """
 

@@ -96,14 +96,12 @@ class Waterfall(views.Workflow):
                 design = self.project.outline.designs[connection]
                 node = self.project.library.view[design]
                 node = node.create(name = connection, project = self.project)
-                print('test node', node)
                 graph.append(node.graph)
             elif connection in connections:
                 for subconnection in connections[connection]:
                     node = tuple([connection, subconnection])
                     graph.append(node)
             else:
-                print('test else connection', connection)
                 if connection in graph.keys():
                     endpoints = graph.endpoint
                     for end in endpoints:

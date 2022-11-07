@@ -49,9 +49,9 @@ if TYPE_CHECKING:
 #             to an empty Catalog.
                  
 #     """
-#     classes: amos.Catalog[str, Type[framework.ProjectKeystone]] = dataclasses.field(
+#     classes: amos.Catalog[str, Type[framework.Keystone]] = dataclasses.field(
 #         default_factory = amos.Catalog)
-#     instances: amos.Catalog[str, framework.ProjectKeystone] = dataclasses.field(
+#     instances: amos.Catalog[str, framework.Keystone] = dataclasses.field(
 #         default_factory = amos.Catalog)
 
 #     """ Properties """
@@ -102,7 +102,7 @@ if TYPE_CHECKING:
 #     @classmethod           
 #     def classify(
 #         cls, 
-#         item: Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]) -> str:
+#         item: Union[framework.Keystone, Type[framework.Keystone]]) -> str:
 #         """Returns name of kind that 'item' is an instance or subclass of.
 
 #         Args:
@@ -125,11 +125,11 @@ if TYPE_CHECKING:
 #     @classmethod
 #     def register(
 #         cls, 
-#         item: Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]) -> None:
+#         item: Union[framework.Keystone, Type[framework.Keystone]]) -> None:
 #         """Registers 'item' in the appropriate class attributes.
 
 #         Args:
-#             item (Union[framework.ProjectKeystone, Type[framework.ProjectKeystone]]): item to
+#             item (Union[framework.Keystone, Type[framework.Keystone]]): item to
 #                 test and register.
             
 #         """
@@ -141,7 +141,7 @@ if TYPE_CHECKING:
 #             cls.nodes.deposit(item = item, name = key)
 #         if Node in item.__bases__:
 #             cls.subtypes[key] = item
-#         if framework.ProjectKeystone in item.__bases__:
+#         if framework.Keystone in item.__bases__:
 #             cls.keystones[key] = item
 #         if issubclass(item, Manager):
 #             cls.managers[key] = item

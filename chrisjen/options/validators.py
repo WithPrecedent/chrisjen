@@ -82,13 +82,13 @@ def validate_outline(project: framework.Project) -> framework.Project:
     #     """Creates or validates 'keystones'."""
     #     if inspect.isclass(self.keystones):
     #         self.keystones = self.keystones()
-    #     if (not isinstance(self.keystones, framework.ProjectKeystones)
+    #     if (not isinstance(self.keystones, framework.Keystones)
     #         or not amos.has_attributes(
     #             item = self,
     #             attributes = [
     #                 'clerk', 'component', 'manager', 'settings', 'stage', 
     #                 'workflow'])):
-    #         self.keystones = framework.ProjectKeystones()
+    #         self.keystones = framework.Keystones()
     #     return self
 
     

@@ -61,7 +61,7 @@ class Outline(keystones.View):
     project: Optional[framework.Project] = dataclasses.field(
         default = None, repr = False, compare = False)
     rules: Optional[dict[str, tuple[str]]] = dataclasses.field(
-        default_factory = lambda: framework.ProjectRules.parsers)
+        default_factory = lambda: framework.Rules.parsers)
     
     """ Properties """       
                      

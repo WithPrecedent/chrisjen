@@ -30,8 +30,7 @@ To Do:
 """
 from __future__ import annotations
 import abc
-from collections.abc import (
-    Hashable, Mapping, MutableMapping, MutableSequence, Set)
+from collections.abc import Hashable, Mapping, MutableMapping
 import contextlib
 import dataclasses
 import inspect
@@ -49,7 +48,7 @@ from . import framework
  
 
 @dataclasses.dataclass   
-class Criteria(framework.ProjectKeystone):
+class Criteria(framework.Keystone):
     """Used for conditional nodes.
     
     Args:
@@ -90,12 +89,12 @@ class Criteria(framework.ProjectKeystone):
                 
 
 @dataclasses.dataclass
-class Librarian(framework.ProjectKeystone, abc.ABC):
+class Librarian(framework.Keystone, abc.ABC):
     """Stores, organizes, and builds nodes.
         
     Args:
         project (framework.Project): linked Project instance with a 'library'
-            attribute containing ProjectKeystones.
+            attribute containing Keystones.
              
     """
     project: Optional[framework.Project] = dataclasses.field(
@@ -223,14 +222,14 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
             list[str]: _description_
             
         """
-        if name in framework.ProjectRules.null_names:
+        if name in framework.Rules.null_names:
             return ['null_node']
         else:
             keys = [name]
             if name in self.project.outline.designs:
                 keys.append(self.project.outline.designs[name])
             elif name is self.project.name:
-                keys.append(framework.ProjectRules.default_worker)
+                keys.append(framework.Rules.default_worker)
             if name in self.project.outline.kinds:
                 keys.append(self.project.outline.kinds[name])
             return keys
@@ -256,7 +255,7 @@ class Librarian(framework.ProjectKeystone, abc.ABC):
               
 
 @dataclasses.dataclass
-class Manager(framework.ProjectKeystone, abc.ABC):
+class Manager(framework.Keystone, abc.ABC):
     """Controller for chrisjen projects.
         
     Args:
@@ -315,7 +314,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
         self._validate_id()
         self._validate_clerk()
         self._set_parallelization()
-        self = framework.ProjectKeystones.validate(
+        self = framework.Keystones.validate(
             item = self, 
             attribute = 'librarian')
         return
@@ -389,7 +388,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
             base = bobbie.Settings
             self.project.idea = base.create(
                 source = self.project.idea,
-                default = framework.ProjectRules.default_settings)        
+                default = framework.Rules.default_settings)        
         return
 
     def _infer_project_name(self) -> str:
@@ -404,10 +403,10 @@ class Manager(framework.ProjectKeystone, abc.ABC):
     def _validate_librarian(self) -> None:
         """Creates or validates 'librarian'."""
         if self.librarian is None:
-            self.librarian = framework.ProjectKeystones.librarian[
-                framework.ProjectRules.default_librarian]
+            self.librarian = framework.Keystones.librarian[
+                framework.Rules.default_librarian]
         elif isinstance(self.manager, str):
-            self.librarian = framework.ProjectKeystones.librarian[
+            self.librarian = framework.Keystones.librarian[
                 self.librarian]
         if inspect.isclass(self.librarian):
             self.librarian = self.librarian(project = self)
@@ -450,7 +449,7 @@ class Manager(framework.ProjectKeystone, abc.ABC):
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
+class Node(holden.Labeled, framework.Keystone, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -606,7 +605,7 @@ class Node(holden.Labeled, framework.ProjectKeystone, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class View(framework.ProjectKeystone, abc.ABC):
+class View(framework.Keystone, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
     View subclasses should emphasize the used of properties so that any changes
