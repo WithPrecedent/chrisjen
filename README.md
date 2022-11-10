@@ -1,4 +1,4 @@
-[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Documentation Status](https://readthedocs.org/projects/chrisjen/badge/?version=latest)](http://chrisjen.readthedocs.io/?badge=latest)
+[![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/)  [![PyPI Latest Release](https://img.shields.io/pypi/v/chrisjen.svg)](https://pypi.org/project/chrisjen/) [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Documentation Status](https://readthedocs.org/projects/chrisjen/badge/?version=latest)](http://chrisjen.readthedocs.io/?badge=latest)
 
 <p align="center">
 <img src="https://media.giphy.com/media/EUdtBgPPKP3F7U6yBh/giphy.gif" />
@@ -7,7 +7,7 @@ Named after the biggest badass in The Expanse, who knew how to get things done, 
 
 ## Intuitive 
 
-chrisjen locates all of the essential parts of a python workflow under one roof, using consistent naming conventions and structures. You start with an "idea" (typically in the form of a(n) ini, toml, json, or python file, but you can use a python dict as well). Then, the rest of the project is automatically created for you. If you want to manually change, iterate, or otherwise advance through the stages of your project, that can easily be done entirely through the Project class using intuitive attributes like "outline", "workflow", and "summary". All of the nitty-gritty details like file management are performed through the consistent interface of the project "manager".
+chrisjen locates all of the essential parts of a python workflow under one roof, using consistent naming conventions and structures. You start with an `Idea` (typically in the form of a(n) ini, toml, json, or python file, but you can use a python dict as well). Then, the rest of the project is automatically created for you. If you want to manually change, iterate, or otherwise advance through the stages of your project, that can easily be done entirely through the `Project` class using intuitive attributes like "outline", "workflow", and "summary". All of the nitty-gritty details like file management are performed through the consistent interface of the project `Manager`.
 
 chrisjen strives to get out of your way and has an easy, short learning curve. Unlike most other workflow packages, chrisjen does not require learning a new scripting language. Even the initial project idea is created with a file or dictionary that is easy to read. For example, this is part of an .ini configuration file for a data science project derived from one used in chrisjen's unit tests:
 
@@ -58,14 +58,14 @@ You do not even half to select all of the options and specifications because chr
 </p>
 
 To faciliate workflow construction, chrisjen comes with several common workflow designs. While straightforward, some of these workflows are otherwise tedious and sometimes difficult to implement. chrisjen does all of that work for you. chrisjen is particularly well-suited for comparative and conditional projects where you want to identify the best strategy or average results among multiple options. Among the structures provided out-of-the-box are:
-* Contest: evaluates and selects the best workflow among several based on one or more criteria
-* Waterfall: the most basic workflow in project management which follows a pre-planned rigid workflow structure
-* Kanban: a sequential workflow with isolated stages that produces deliverables for the following stage to use
-* Scrum: flexible workflow structure that requires greater user control and intervention
-* Pert: workflow that focuses on efficient use of parallel resources, including identifying the critical path
-* Agile: a dynamic workflow structure that changes direction based on one or more criteria
-* Lean: an iterative workflow that maximizes efficiency based on one or more criteria
-* Survey: averages multiple workflows based on one or more criteria
+* `Contest`: evaluates and selects the best workflow among several based on one or more criteria
+* `Waterfall`: the most basic workflow in project management which follows a pre-planned rigid workflow structure
+* `Kanban`: a sequential workflow with isolated stages that produces deliverables for the following stage to use
+* `Scrum`: flexible workflow structure that requires greater user control and intervention
+* `Pert`: workflow that focuses on efficient use of parallel resources, including identifying the critical path
+* `Agile`: a dynamic workflow structure that changes direction based on one or more criteria
+* `Lean`: an iterative workflow that maximizes efficiency based on one or more criteria
+* `Survey`: averages multiple workflows based on one or more criteria
   
 ## Flexible
 <p align="center">

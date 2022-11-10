@@ -14,7 +14,7 @@ more_itertools = "^9.0.0"
 amos = "^0.1.10"
 bobbie = "0.1.1"
 holden = "^0.1.4"
-miller = "^0.1.3"
+miller = "^0.1.4"
 nagata = "^0.1.3"
 
 [tool.poetry.dev-dependencies]
