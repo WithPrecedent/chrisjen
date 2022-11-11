@@ -28,7 +28,7 @@ import dataclasses
 import pathlib
 
 import chrisjen
-
+import holden
 
 @dataclasses.dataclass
 class Parser(chrisjen.Compete):
@@ -121,6 +121,8 @@ def test_project():
         'analyst', 
         'critic']
     project.manager.publish()
+    export = pathlib.Path('tests').joinpath('dag.dot')
+    holden.to_dot(item = project.workflow.graph, path = export, name = 'dag')
     # print('test workers', project.outline.workers.keys())
     # print('test workflow', project.workflow.graph)
     # print('test paths', [(e[0].name, e[1].name) for e in project.workflow.edges])

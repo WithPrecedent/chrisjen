@@ -1,0 +1,35 @@
+digraph dag {
+('wrangler', 'none') -> analyst
+('wrangler', 'none') -> scorer
+analyst -> ('scale', 'normalize')
+analyst -> ('scale', 'minmax')
+analyst -> ('scale', 'robust')
+('scale', 'minmax') -> ('split', 'stratified_kfold')
+('scale', 'minmax') -> ('split', 'train_test')
+('split', 'stratified_kfold') -> ('encode', 'james_stein')
+('split', 'stratified_kfold') -> ('encode', 'one_hot')
+('split', 'stratified_kfold') -> ('encode', 'target')
+('split', 'stratified_kfold') -> ('encode', 'weight_of_evidence')
+('encode', 'target') -> ('sample', 'none')
+('sample', 'none') -> ('model', 'random_forest')
+('sample', 'none') -> ('model', 'xgboost')
+('sample', 'none') -> ('model', 'logit')
+('encode', 'weight_of_evidence') -> ('sample', 'none')
+('encode', 'one_hot') -> ('sample', 'none')
+('encode', 'james_stein') -> ('sample', 'none')
+('split', 'train_test') -> ('encode', 'james_stein')
+('split', 'train_test') -> ('encode', 'one_hot')
+('split', 'train_test') -> ('encode', 'target')
+('split', 'train_test') -> ('encode', 'weight_of_evidence')
+('scale', 'robust') -> ('split', 'stratified_kfold')
+('scale', 'robust') -> ('split', 'train_test')
+('scale', 'normalize') -> ('split', 'stratified_kfold')
+('scale', 'normalize') -> ('split', 'train_test')
+scorer -> critic
+critic -> shap
+shap -> sklearn
+sklearn -> explain
+explain -> predict
+predict -> report
+report -> explain
+}
