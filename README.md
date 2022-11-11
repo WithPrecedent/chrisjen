@@ -83,3 +83,4 @@ The project is highly documented so that users and developers can make chrisjen 
 * [airflow](https://github.com/apache/airflow): Apache's workflow tool that is likely the market leader. It requires substantial overhead and has a learning curve but offers the greatest extensibility for non-python workflow components and support for continuous, always-on workflows.
 * [jetstream](https://github.com/tgen/jetstream): similar DAG workflow structures in pure python with a greater emphasis on loading workflows from disk.
 * [luigi](https://github.com/spotify/luigi): Spotify's workflow tool with much greater overhead and support for controlling workflow nodes outside of python.
+* [pathos](https://github.com/uqfoundation/pathos): supports parallel workflow construction with heterogenuous computing resources. Among other features, it includes a pickle alternative called dill and a multiprocess alternative called multiprocessing.
