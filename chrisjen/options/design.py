@@ -31,6 +31,9 @@ from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
 from ..core import keystones
 
+if TYPE_CHECKING:
+    from ..core import framework
+    
 
 def arrrange_parallel(
     name: str, 

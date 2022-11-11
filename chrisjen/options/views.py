@@ -1,5 +1,5 @@
 """
-views: classes and functions related to stages of a chrisjen project
+views: different ways to view a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
 Copyright 2020-2022, Corey Rayburn Yung
 License: Apache-2.0
@@ -67,7 +67,7 @@ class Outline(keystones.View):
                      
     @property
     def associations(self) -> dict[str, str]:
-        """Returns associated worker of nodes in a chrisjen project.
+        """Returns associated parent of nodes in a chrisjen project.
 
         Returns:
             dict[str, str]: keys are node names and values are associated worker 
@@ -79,22 +79,7 @@ class Outline(keystones.View):
             new_associations = {c: node for c in connections}
             associations.update(new_associations)
         return associations
-                            
-    @property
-    def clerk(self) -> dict[str, Any]:
-        """Returns file settings in a chrisjen project.
-
-        Returns:
-            dict[str, Any]: dict of file settings.
-            
-        """
-        for name in self.rules['files']:
-            try:
-                return self[name]
-            except KeyError:
-                pass
-        return {} 
-          
+   
     @property
     def connections(self) -> dict[str, list[str]]:
         """Returns raw connections between nodes from 'project'.
@@ -147,7 +132,22 @@ class Outline(keystones.View):
                 else:
                     designs[prefix] = section[design_key]
         return designs
-                     
+                            
+    @property
+    def files(self) -> dict[str, Any]:
+        """Returns file settings in a chrisjen project.
+
+        Returns:
+            dict[str, Any]: dict of file settings.
+            
+        """
+        for name in self.rules['files']:
+            try:
+                return self[name]
+            except KeyError:
+                pass
+        return {} 
+                            
     @property
     def manager(self) -> dict[str, Any]:
         """Returns manager settings of a chrisjen project.

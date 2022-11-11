@@ -73,6 +73,7 @@ class Rules(abc.ABC):
         'manager': ('manager', 'project'),
         'files': ('filer', 'files', 'clerk'),
         'general': ('general',),
+        'librarian': ('efficiency', 'librarian'),
         'parameters': ('parameters',), 
         'workers': ('workers',)}
     default_settings: ClassVar[dict[Hashable, dict[Hashable, Any]]] = {
