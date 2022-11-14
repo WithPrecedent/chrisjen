@@ -17,15 +17,17 @@ digraph workflow {
     // sklearn -> descriptive
     // descriptive -> analytical -> critical
 
+
+    subgraph cluster_munge { label=munge rank=same lookup labeljust=l }
+    subgraph cluster_munge { label=munge rank=same expand labeljust=l }
+    subgraph cluster_clean { label=clean rank=min drop impute labeljust=l }
+    subgraph cluster_scale { label=scale rank=same minmax normalize robust labeljust=l }
+    subgraph cluster_split { label=split rank=same kfolds train_test labeljust=l }
+    subgraph cluster_encode { label=encode rank=same target dummy james_stein labeljust=l }
+    subgraph cluster_sample { label=sample rank=same smote labeljust=l }
+    subgraph cluster_model { label=model rank=same xgboost logit random_forest lightgbm labeljust=l }
+
     node [fontsize=16, shape = oval];
-    subgraph cluster_munge { label=munge rank=same lookup }
-    subgraph cluster_munge { label=munge rank=same expand }
-    subgraph cluster_clean { label=clean rank=min drop impute  }
-    subgraph cluster_scale { label=scale rank=same minmax normalize robust }
-    subgraph cluster_split { label=split rank=same kfolds train_test }
-    subgraph cluster_encode { label=encode rank=same target dummy james_stein }
-    subgraph cluster_sample { label=sample rank=same  smote }
-    subgraph cluster_model { label=model rank=same  xgboost logit random_forest lightgbm }
 
     lookup -> expand 
     expand -> drop
@@ -40,7 +42,7 @@ digraph workflow {
     robust -> kfolds
     robust -> train_test
     kfolds -> target
-     kfolds -> dummy
+    kfolds -> dummy
     kfolds -> james_stein
     train_test -> target
     train_test -> dummy
