@@ -1,0 +1,70 @@
+digraph workflow {
+    // size="7,8";
+    // node [fontsize=24, shape = plaintext];
+    // wrangler -> analyst -> critic -> artist
+
+    // node [fontsize=20, shape = plaintext];
+    // { rank=same; wrangler munge }
+    // { rank=same; analyst scale }
+    // { rank=same; critic shap }
+    // { rank=same; artist descriptive }
+
+    // munge -> clean
+    // clean -> scale
+    // scale -> split -> encode -> sample -> model
+    // model -> shap
+    // shap -> sklearn
+    // sklearn -> descriptive
+    // descriptive -> analytical -> critical
+
+    node [fontsize=16, shape = oval];
+    subgraph cluster_munge { label=munge rank=same lookup }
+    subgraph cluster_munge { label=munge rank=same expand }
+    subgraph cluster_clean { label=clean rank=min drop impute  }
+    subgraph cluster_scale { label=scale rank=same minmax normalize robust }
+    subgraph cluster_split { label=split rank=same kfolds train_test }
+    subgraph cluster_encode { label=encode rank=same target dummy james_stein }
+    subgraph cluster_sample { label=sample rank=same  smote }
+    subgraph cluster_model { label=model rank=same  xgboost logit random_forest lightgbm }
+
+    lookup -> expand 
+    expand -> drop
+    drop -> impute
+    impute -> minmax
+    impute -> normalize
+    impute -> robust
+    minmax -> kfolds
+    minmax -> train_test
+    normalize -> kfolds
+    normalize -> train_test
+    robust -> kfolds
+    robust -> train_test
+    kfolds -> target
+     kfolds -> dummy
+    kfolds -> james_stein
+    train_test -> target
+    train_test -> dummy
+    train_test -> james_stein
+    target -> smote
+    dummy -> smote
+    james_stein -> smote
+    james_stein -> xgboost
+    james_stein -> logit
+    james_stein -> random_forest
+    james_stein -> lightgbm 
+    dummy -> xgboost
+    dummy -> logit
+    dummy -> random_forest
+    dummy -> lightgbm 
+    target -> xgboost
+    target -> logit
+    target -> random_forest
+    target -> lightgbm 
+    smote -> xgboost
+    smote -> logit
+    smote -> random_forest
+    smote -> lightgbm 
+
+ 
+
+}
