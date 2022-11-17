@@ -37,7 +37,7 @@ import functools
 import itertools
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-import amos
+import camina
 import holden
 
 from . import workshop
@@ -64,7 +64,7 @@ from . import workshop
 #     if 'contents' not in kwargs:
 #         kwargs['contents'] = _get_structure(project = project)
 #     elif isinstance(kwargs['contents'], str):
-#         kwargs['contents'] = amos.Composite.create(kwargs['contents'])
+#         kwargs['contents'] = camina.Composite.create(kwargs['contents'])
 #     workflow = base(**kwargs)
 #     return _settings_to_workflow(
 #         settings = project.idea,
@@ -115,14 +115,14 @@ from . import workshop
 
 # """ Private Functions """
 
-# def _get_structure(project: framework.Project) -> amos.Composite:
+# def _get_structure(project: framework.Project) -> camina.Composite:
 #     """[summary]
 
 #     Args:
 #         project (framework.Project): [description]
 
 #     Returns:
-#         amos.Composite: [description]
+#         camina.Composite: [description]
         
 #     """
 #     try:
@@ -131,12 +131,12 @@ from . import workshop
 #         try:
 #             structure = project.idea[project.name]['structure']
 #         except KeyError:
-#             structure = project.base.default_worker
-#     return amos.Composite.create(structure)
+#             structure = project.base.default_workflow
+#     return camina.Composite.create(structure)
     
 # def _settings_to_workflow(
 #     settings: defaults.ProjectSettings, 
-#     options: amos.Catalog, 
+#     options: camina.Catalog, 
 #     workflow: Workflow) -> Workflow:
 #     """[summary]
 
@@ -163,13 +163,13 @@ from . import workshop
 # def _settings_to_component(
 #     name: str, 
 #     settings: defaults.ProjectSettings,
-#     options: amos.Catalog) -> framework.Projectnodes.Component:
+#     options: camina.Catalog) -> framework.Projectnodes.Component:
 #     """[summary]
 
 #     Args:
 #         name (str): [description]
 #         settings (framework.ProjectSettings): [description]
-#         options (amos.Catalog): [description]
+#         options (camina.Catalog): [description]
 
 #     Returns:
 #         framework.Projectnodes.Component: [description]
@@ -179,7 +179,7 @@ from . import workshop
 #     kind = settings.kinds.get(name, None) 
 #     lookups = _get_lookups(name = name, design = design, kind = kind)
 #     base = _get_base(lookups = lookups, options = options)
-#     parameters = amos.get_annotations(item = base)
+#     parameters = camina.get_annotations(item = base)
 #     attributes, initialization = _parse_initialization(
 #         name = name,
 #         settings = settings,
@@ -216,12 +216,12 @@ from . import workshop
 
 # def _get_base(
 #     lookups: Sequence[str],
-#     options: amos.Catalog) -> defaults.Component:
+#     options: camina.Catalog) -> defaults.Component:
 #     """[summary]
 
 #     Args:
 #         lookups (Sequence[str]): [description]
-#         options (amos.Catalog): [description]
+#         options (camina.Catalog): [description]
 
 #     Raises:
 #         KeyError: [description]
@@ -290,7 +290,7 @@ from . import workshop
 # def _settings_to_adjacency(
 #     settings: defaults.ProjectSettings, 
 #     components: dict[str, framework.Projectnodes.Component],
-#     system: Workflow) -> amos.Pipeline:
+#     system: Workflow) -> camina.Pipeline:
 #     """[summary]
 
 #     Args:
@@ -308,20 +308,20 @@ from . import workshop
 #     return system
 
 # def _path_to_result(
-#     path: amos.Pipeline,
+#     path: camina.Pipeline,
 #     project: framework.Project,
-#     **kwargs) -> amos.Pipeline:
+#     **kwargs) -> camina.Pipeline:
 #     """[summary]
 
 #     Args:
-#         path (amos.Pipeline): [description]
+#         path (camina.Pipeline): [description]
 #         project (framework.Project): [description]
 
 #     Returns:
 #         object: [description]
         
 #     """
-#     result = amos.Pipeline()
+#     result = camina.Pipeline()
 #     for path in project.workflow.paths:
 #         for node in path:
 #             result.append(node.complete(project = project, *kwargs))

@@ -32,7 +32,7 @@ import contextlib
 import dataclasses
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
 
-import amos
+import camina
 import holden
 import miller
 
@@ -41,7 +41,7 @@ from ..core import keystones
 
 
 @dataclasses.dataclass    
-class Parameters(amos.Dictionary):
+class Parameters(camina.Dictionary):
     """Creates and librarys parameters for part of a chrisjen project.
     
     The use of Parameters is entirely optional, but it provides a handy 
@@ -100,7 +100,7 @@ class Parameters(amos.Dictionary):
                 settings parameters can be derived.
             
         """
-        # Uses kwargs and 'default' parameters as a starting amos.
+        # Uses kwargs and 'default' parameters as a starting camina.
         parameters = self.default
         # Adds any parameters from 'outline'.
         parameters.update(self._from_outline(item = item))
@@ -228,7 +228,7 @@ class Worker(keystones.Node, holden.System):
             
         """
         worker = cls(name = name, project = project)
-        for key in amos.iterify(project.outline.connections[name]):
+        for key in camina.iterify(project.outline.connections[name]):
             node = project.manager.librarian.acquire(name = key) 
             worker.append(item = node)
         return worker
@@ -247,7 +247,7 @@ class Worker(keystones.Node, holden.System):
         """
         graph = project.library.view['workflow']
         graph.add(item = name)
-        for key in amos.iterify(project.outline.connections[name]):
+        for key in camina.iterify(project.outline.connections[name]):
             node = project.manager.librarian.acquire(name = key) 
             worker.append(item = node)
         return worker
@@ -584,7 +584,7 @@ class NullNode(keystones.Node):
 #         nodes.Worker: _description_
         
 #     """
-#     for name in amos.iterify(project.outline.connections[name]):
+#     for name in camina.iterify(project.outline.connections[name]):
 #         kind = project.outline.kinds[name]  
 #         if kind in project.outline.suffixes['workers']:
 #             design = find_design(name = name, project = project)

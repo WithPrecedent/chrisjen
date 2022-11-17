@@ -34,7 +34,7 @@ import dataclasses
 import itertools
 from typing import TYPE_CHECKING, Any, ClassVar, Optional, Type
 
-import amos
+import camina
 import holden
 
 from ..core import framework
@@ -98,8 +98,8 @@ class Outline(keystones.View):
                 label = name  
             worker_keys = [k for k in section.keys() if k.endswith(suffixes)]
             for key in worker_keys:
-                prefix, suffix = amos.cleave_str(key)
-                values = amos.listify(section[key])
+                prefix, suffix = camina.cleave_str(key)
+                values = camina.listify(section[key])
                 if prefix == suffix:
                     if label in connections:
                         connections[label].extend(values)
@@ -126,7 +126,7 @@ class Outline(keystones.View):
                 k for k in section.keys() 
                 if k.endswith(self.rules['design'])]
             for design_key in design_keys:
-                prefix, suffix = amos.cleave_str(design_key)
+                prefix, suffix = camina.cleave_str(design_key)
                 if prefix == suffix:
                     designs[key] = section[design_key]
                 else:
@@ -237,8 +237,8 @@ class Outline(keystones.View):
             new_kinds = {}
             keys = [k for k in section.keys() if k.endswith(suffixes)]
             for key in keys:
-                _, suffix = amos.cleave_str(key)
-                values = list(amos.iterify(section[key]))
+                _, suffix = camina.cleave_str(key)
+                values = list(camina.iterify(section[key]))
                 if values not in [['none'], ['None'], ['NONE']]:
                     if suffix.endswith('s'):
                         kind = suffix[:-1]
@@ -260,7 +260,7 @@ class Outline(keystones.View):
         for key, values in self.connections.items():
             labels.append(key)
             labels.extend(values)
-        return amos.deduplicate_list(item = labels)    
+        return camina.deduplicate_list(item = labels)    
 
     @property
     def plurals(self) -> tuple[str]:
@@ -334,7 +334,7 @@ class Workflow(keystones.View):
         keys = [k for k in section.keys() if k.endswith(suffixes)]
         connects = []
         for key in keys:
-            new_connects = amos.iterify(section[key])
+            new_connects = camina.iterify(section[key])
             connects.extend(new_connects)
         return connects
         
@@ -350,7 +350,7 @@ class Workflow(keystones.View):
         try:
             return self.project.outline.designs[self.project.name]
         except KeyError:
-            return self.project.rules.default_worker
+            return self.project.rules.default_workflow
         
     """ Public Methods """
     
@@ -436,7 +436,7 @@ class Workflow(keystones.View):
 
  
 # @dataclasses.dataclass
-# class Summary(amos.Dictionary):
+# class Summary(camina.Dictionary):
 #     """Reports from completion of a chrisjen project.
     
 #     Args:

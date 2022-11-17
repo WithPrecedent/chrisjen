@@ -36,9 +36,10 @@ import pathlib
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
 import warnings
 
-import amos
+import camina
 import bobbie
 import holden
+import miller
 
 
 @dataclasses.dataclass
@@ -61,7 +62,7 @@ class Rules(abc.ABC):
             Defaults to 'as_needed'.
         default_task (ClassVar[str]): key name of the default task design.
             Defaults to 'technique'.
-        default_worker (ClassVar[str]): key name of the default worker design.
+        default_workflow (ClassVar[str]): key name of the default worker design.
             Defaults to 'waterfall'.
         null_names (ClassVar[list[Any]]): lists of key names that indicate a
             null node should be used. Defaults to ['none', 'None', None].   
@@ -88,7 +89,7 @@ class Rules(abc.ABC):
     default_librarian: ClassVar[str] = 'up_front'
     default_superviser: ClassVar[str] = 'copier'
     default_task: ClassVar[str] = 'technique'
-    default_worker: ClassVar[str] = 'waterfall'
+    default_workflow: ClassVar[str] = 'waterfall'
     null_names: ClassVar[list[Any]] = ['none', 'None', None]
 
 
@@ -97,19 +98,19 @@ class Keystones(abc.ABC):
     """Stores Keystone subclasses.
     
     For each Keystone, a class attribute is added with the snakecase
-    name of that Keystone. In that class attribute, an amos.Dictionary
+    name of that Keystone. In that class attribute, an camina.Dictionary
     is the value and it stores all Keystone subclasses of that type
     (again using snakecase names as keys).
     
     Attributes:
-        bases (ClassVar[amos.Dictionary]): dictionary of all direct 
+        bases (ClassVar[camina.Dictionary]): dictionary of all direct 
             Keystone subclasses. Keys are snakecase names of the
             Keystone subclass.
         All direct Keystone subclasses will have an attribute name added
         dynamically.
         
     """
-    bases: ClassVar[amos.Dictionary] = amos.Dictionary()
+    bases: ClassVar[camina.Dictionary] = camina.Dictionary()
         
     """ Public Methods """
     
@@ -124,24 +125,24 @@ class Keystones(abc.ABC):
         """
         name = cls._get_name(item = item)
         cls.bases[name] = item
-        setattr(cls, name, amos.Dictionary())
+        setattr(cls, name, camina.Dictionary())
         return
     
     @classmethod
-    def classify(cls, item: str | Type[Keystone]) ->str:
+    def classify(cls, item: str | Type[Keystone] | Keystone) ->str:
         """Returns the str name of the Keystone of which 'item' is.
 
         Args:
-            item (str | Type[Keystone]): Keystone subclass or its str name to 
-                return the str name of its base type.
+            item (str | Type[Keystone] | Keystone): Keystone subclass, subclass
+                instance, or its str name.
 
         Raises:
-            ValueError: if 'item' does not match a subclass of any 
-                Keystone type.
+            ValueError: if 'item' does not match a subclass of any Keystone 
+                type.
             
         Returns:
-            str: snakecase str name of the Keystone base type of which 
-                'item' is a subclass.
+            str: snakecase str name of the Keystone base type of which 'item' is 
+                a subclass or subclass instance.
                 
         """
         if isinstance(item, str):
@@ -151,6 +152,8 @@ class Keystones(abc.ABC):
                     if item == name:
                         return key
         else:
+            if not inspect.isclass(item):
+                item = item.__class__
             for key, value in cls.bases.items():
                 if issubclass(item, value):
                     return key
@@ -208,7 +211,8 @@ class Keystones(abc.ABC):
         base = cls.bases[attribute]
         # Adds link to 'project' if 'value' is already an instance of the 
         # appropriate base type.
-        if isinstance(value, base):
+        if (isinstance(value, base) 
+            and miller.has_attributes(item = base, attributes = ['project'])):
             setattr(value, 'project', project)
         else:
             # Gets the relevant registry for 'attribute'.
@@ -223,7 +227,7 @@ class Keystones(abc.ABC):
                 setattr(item, attribute, registry[name])
             # Gets name of class if it is already an appropriate subclass.
             elif inspect.issubclass(value, base):
-                name = amos.namify(item = getattr(item, attribute))
+                name = camina.namify(item = getattr(item, attribute))
             else:
                 raise ValueError(f'{value} is not an appropriate keystone')
             # Creates a subclass instance.
@@ -242,7 +246,7 @@ class Keystones(abc.ABC):
         name: Optional[str] = None) -> None:
         """Returns 'name' or str name of item.
         
-        By default, the method uses amos.namify to create a snakecase name. If
+        By default, the method uses camina.namify to create a snakecase name. If
         the resultant name begins with 'project_', that substring is removed. 
 
         If you want to use another naming convention, just subclass and override
@@ -257,7 +261,7 @@ class Keystones(abc.ABC):
             str: name of 'item' or 'name' (with the 'project' prefix removed).
             
         """
-        name = name or amos.namify(item = item)
+        name = name or camina.namify(item = item)
         if name.startswith('project_'):
             name = name[8:]
         return name        

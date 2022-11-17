@@ -36,7 +36,7 @@ import copy
 import itertools
 from typing import Any, Optional, Type, TYPE_CHECKING, Union
 
-import amos
+import camina
 
 if TYPE_CHECKING:
     from ..core import keystones
@@ -380,7 +380,7 @@ def get_labels(project: framework.Project) -> list[str]:
         for inner_key, inner_values in section.items():
             labels.append(inner_key)
             labels.extend(list(itertools.chain(inner_values)))
-    return amos.deduplicate_list(item = labels)     
+    return camina.deduplicate_list(item = labels)     
 
 def get_worker_sections(
     project: framework.Project) -> dict[str, dict[Hashable, Any]]: 
@@ -495,8 +495,8 @@ def _get_section_connections(
         k for k in section.keys() 
         if is_connections(key = k, suffixes = plurals)]
     for key in keys:
-        prefix, suffix = amos.cleave_str(key)
-        values = list(amos.iterify(section[key]))
+        prefix, suffix = camina.cleave_str(key)
+        values = list(camina.iterify(section[key]))
         if prefix == suffix:
             if prefix in connections:
                 connections[name].extend(values)
@@ -527,7 +527,7 @@ def _get_section_designs(
         k for k in section.keys() 
         if k.endswith(defaults._DESIGN_SUFFIX)]
     for key in design_keys:
-        prefix, suffix = amos.cleave_str(key)
+        prefix, suffix = camina.cleave_str(key)
         if prefix == suffix:
             designs[name] = section[key]
         else:
@@ -567,8 +567,8 @@ def _get_section_kinds(
     kinds = {}
     keys = [k for k in section.keys() if k.endswith(plurals)]
     for key in keys:
-        _, suffix = amos.cleave_str(key)
-        values = list(amos.iterify(section[key]))
+        _, suffix = camina.cleave_str(key)
+        values = list(camina.iterify(section[key]))
         if values not in [['none'], ['None'], ['NONE']]:
             if suffix.endswith('s'):
                 kind = suffix[:-1]
@@ -599,13 +599,13 @@ def _get_worker_names(project: framework.Project) -> list[str]:
         
 def _settings_to_workflow(
     settings: defaults.ProjectSettings, 
-    options: amos.Catalog, 
+    options: camina.Catalog, 
     workflow: defaults.Workflow) -> defaults.Workflow:
     """[summary]
 
     Args:
         settings (framework.ProjectSettings): [description]
-        options (amos.Catalog): [description]
+        options (camina.Catalog): [description]
         workflow (base.Workflow): [description]
 
     Returns:
@@ -627,13 +627,13 @@ def _settings_to_workflow(
 def _settings_to_composite(
     name: str, 
     settings: defaults.ProjectSettings,
-    options: amos.Catalog) -> framework.Projectnodes.Component:
+    options: camina.Catalog) -> framework.Projectnodes.Component:
     """[summary]
 
     Args:
         name (str): [description]
         settings (framework.ProjectSettings): [description]
-        options (amos.Catalog): [description]
+        options (camina.Catalog): [description]
 
     Returns:
         framework.Projectnodes.Component: [description]
@@ -643,7 +643,7 @@ def _settings_to_composite(
     kind = settings.kinds.get(name, None) 
     lookups = _get_lookups(name = name, design = design, kind = kind)
     base = _get_base(lookups = lookups, options = options)
-    parameters = amos.get_annotations(item = base)
+    parameters = camina.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
         name = name,
         settings = settings,
@@ -729,7 +729,7 @@ def _finalize_initializaton(
     else:
         kwargs_added = kwargs
     component = _get_component(lookups = lookups, project = project)
-    needed = amos.get_annotations(item = component)
+    needed = camina.get_annotations(item = component)
     attributes = {}
     initialization = {}
     for key, value in kwargs_added.items():
@@ -777,7 +777,7 @@ def _get_component(
 def _settings_to_adjacency(
     settings: defaults.ProjectSettings, 
     components: dict[str, framework.Projectnodes.Component],
-    system: defaults.Workflow) -> amos.Pipeline:
+    system: defaults.Workflow) -> camina.Pipeline:
     """[summary]
 
     Args:
@@ -795,33 +795,33 @@ def _settings_to_adjacency(
     return system
 
 def _path_to_result(
-    path: amos.Pipeline,
+    path: camina.Pipeline,
     project: framework.Project,
-    **kwargs) -> amos.Pipeline:
+    **kwargs) -> camina.Pipeline:
     """[summary]
 
     Args:
-        path (amos.Pipeline): [description]
+        path (camina.Pipeline): [description]
         project (framework.Project): [description]
 
     Returns:
         object: [description]
         
     """
-    result = amos.Pipeline()
+    result = camina.Pipeline()
     for path in project.workflow.paths:
         for node in path:
             result.append(node.complete(project = project, *kwargs))
     return result
 
-# def _get_workflow_structure(project: framework.Project) -> amos.Composite:
+# def _get_workflow_structure(project: framework.Project) -> camina.Composite:
 #     """[summary]
 
 #     Args:
 #         project (framework.Project): [description]
 
 #     Returns:
-#         amos.Composite: [description]
+#         camina.Composite: [description]
         
 #     """
 #     try:
@@ -831,4 +831,4 @@ def _path_to_result(
 #             structure = project.idea[project.name]['structure']
 #         except KeyError:
 #             structure = project.base.workflow_structure
-#     return amos.Composite.create(structure)
+#     return camina.Composite.create(structure)

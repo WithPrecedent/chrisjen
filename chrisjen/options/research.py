@@ -43,7 +43,7 @@ import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
-import amos
+import camina
 import holden
 
 from ..core import framework
@@ -162,7 +162,7 @@ class Compete(Compare):
             
         """
         graph = super().graph
-        endpoints = amos.iterify(graph.endpoint)
+        endpoints = camina.iterify(graph.endpoint)
         scorer = 'scorer'
         graph.add(scorer)
         for endpoint in endpoints:
@@ -255,7 +255,7 @@ class Survey(Compare):
             
         """
         graph = super().graph
-        endpoints = amos.iterify(graph.endpoint)
+        endpoints = camina.iterify(graph.endpoint)
         averager = 'averager'
         graph.add(averager)
         for endpoint in endpoints:

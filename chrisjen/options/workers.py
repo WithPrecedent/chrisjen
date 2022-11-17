@@ -39,7 +39,7 @@ import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
-import amos
+import camina
 import holden
 import more_itertools
 
@@ -209,7 +209,7 @@ def represent_research(
     kind = project.idea.kinds.get(name, None) 
     lookups = _get_lookups(name = name, design = design, kind = kind)
     base = project.components.withdraw(item = lookups)
-    parameters = amos.get_annotations(item = base)
+    parameters = camina.get_annotations(item = base)
     attributes, initialization = _parse_initialization(
         name = name,
         settings = project.idea,

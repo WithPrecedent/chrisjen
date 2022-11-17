@@ -39,7 +39,7 @@ import dataclasses
 import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
-import amos
+import camina
 import holden
 
 from ..core import framework
@@ -184,7 +184,7 @@ class Research(views.Workflow, abc.ABC):
         recipes = represent.represent_parallel(
             name = self.name, 
             project = self.project) 
-        endpoints = amos.iterify(graph.endpoint)
+        endpoints = camina.iterify(graph.endpoint)
         for endpoint in endpoints:
             for recipe in recipes:
                 serial = holden.Serial(contents = recipe)
@@ -273,7 +273,7 @@ class Research(views.Workflow, abc.ABC):
 #     kind = project.idea.kinds.get(name, None) 
 #     lookups = _get_lookups(name = name, design = design, kind = kind)
 #     base = project.components.withdraw(item = lookups)
-#     parameters = amos.get_annotations(item = base)
+#     parameters = camina.get_annotations(item = base)
 #     attributes, initialization = _parse_initialization(
 #         name = name,
 #         settings = project.idea,

@@ -30,29 +30,29 @@ import dataclasses
 import inspect
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-import amos
+import camina
 
 if TYPE_CHECKING:
     from ..core import keystones
 
      
 # @dataclasses.dataclass  # type: ignore
-# class ProjectLibrary(amos.Library):
+# class ProjectLibrary(camina.Library):
 #     """Stores classes instances and classes in a chained mapping.
     
 #     When searching for matches, instances are prioritized over classes.
     
 #     Args:
-#         classes (amos.Catalog): a catalog of stored classes. Defaults to any 
+#         classes (camina.Catalog): a catalog of stored classes. Defaults to any 
 #             empty Catalog.
-#         instances (amos.Catalog): a catalog of stored class instances. Defaults 
+#         instances (camina.Catalog): a catalog of stored class instances. Defaults 
 #             to an empty Catalog.
                  
 #     """
-#     classes: amos.Catalog[str, Type[framework.Keystone]] = dataclasses.field(
-#         default_factory = amos.Catalog)
-#     instances: amos.Catalog[str, framework.Keystone] = dataclasses.field(
-#         default_factory = amos.Catalog)
+#     classes: camina.Catalog[str, Type[framework.Keystone]] = dataclasses.field(
+#         default_factory = camina.Catalog)
+#     instances: camina.Catalog[str, framework.Keystone] = dataclasses.field(
+#         default_factory = camina.Catalog)
 
 #     """ Properties """
     
@@ -89,11 +89,11 @@ if TYPE_CHECKING:
 #         categories
         
 #     """
-#     keystones: ClassVar[amos.Catalog] = amos.Catalog()
-#     managers: ClassVar[amos.Catalog] = amos.Catalog()
-#     managers: ClassVar[amos.Catalog] = amos.Catalog()
+#     keystones: ClassVar[camina.Catalog] = camina.Catalog()
+#     managers: ClassVar[camina.Catalog] = camina.Catalog()
+#     managers: ClassVar[camina.Catalog] = camina.Catalog()
 #     nodes: ClassVar[ProjectLibrary] = ProjectLibrary()
-#     subtypes: ClassVar[amos.Catalog] = amos.Catalog()
+#     subtypes: ClassVar[camina.Catalog] = camina.Catalog()
 #     categories: ClassVar[MutableMapping[str, str]] = dataclasses.field(
 #         default_factory = dict)
     
@@ -133,7 +133,7 @@ if TYPE_CHECKING:
 #                 test and register.
             
 #         """
-#         key = amos.namify(item = item)
+#         key = camina.namify(item = item)
 #         # Removes 'project_' prefix if it exists.
 #         if key.startswith('project_'):
 #             key = key[8:]

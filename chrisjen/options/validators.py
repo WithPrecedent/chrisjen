@@ -27,7 +27,7 @@ from collections.abc import (
 import inspect
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 
-import amos
+import camina
 import miller
 
 from . import workshop
@@ -83,7 +83,7 @@ def validate_outline(project: framework.Project) -> framework.Project:
     #     if inspect.isclass(self.keystones):
     #         self.keystones = self.keystones()
     #     if (not isinstance(self.keystones, framework.Keystones)
-    #         or not amos.has_attributes(
+    #         or not camina.has_attributes(
     #             item = self,
     #             attributes = [
     #                 'clerk', 'component', 'manager', 'settings', 'stage', 

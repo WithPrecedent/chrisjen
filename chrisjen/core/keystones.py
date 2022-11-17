@@ -38,7 +38,7 @@ import itertools
 import pathlib
 from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING
 
-import amos
+import camina
 import bobbie
 import holden
 import miller
@@ -229,7 +229,7 @@ class Librarian(framework.Keystone, abc.ABC):
             if name in self.project.outline.designs:
                 keys.append(self.project.outline.designs[name])
             elif name is self.project.name:
-                keys.append(framework.Rules.default_worker)
+                keys.append(framework.Rules.default_workflow)
             if name in self.project.outline.kinds:
                 keys.append(self.project.outline.kinds[name])
             return keys
@@ -373,7 +373,7 @@ class Manager(framework.Keystone, abc.ABC):
         if self.project.name is None:
             idea_name = self._infer_project_name()
             if idea_name is None:
-                self.project.name = amos.namify(item = self.project)
+                self.project.name = camina.namify(item = self.project)
             else:
                 self.project.name = idea_name
         if self.project.name.endswith('_project'):
