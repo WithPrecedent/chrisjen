@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chrisjen"
-version = "0.1.2"
+version = "0.1.3"
 description = "Python project workflows made easy"
 authors = ["Corey Rayburn Yung <coreyrayburnyung@gmail.com>"]
 license = "Apache-2.0"
@@ -11,8 +11,8 @@ repository = "https://github.com/WithPrecedent/chrisjen"
 [tool.poetry.dependencies]
 python = "^3.9"
 more_itertools = "^9.0.0"
-camina = "^0.1.10"
 bobbie = "^0.1.1"
+camina = "^0.1.10"
 holden = "^0.1.5"
 miller = "^0.1.5"
 nagata = "^0.1.3"

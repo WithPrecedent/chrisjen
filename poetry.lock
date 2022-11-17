@@ -43,6 +43,17 @@ python-versions = ">=3.9,<4.0"
 amos = ">=0.1.9,<0.2.0"
 
 [[package]]
+name = "camina"
+version = "0.1.10"
+description = "Your Python project companion"
+category = "main"
+optional = false
+python-versions = ">=3.9,<4.0"
+
+[package.dependencies]
+miller = ">=0.1.5,<0.2.0"
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -64,14 +75,15 @@ miller = ">=0.1.2,<0.2.0"
 
 [[package]]
 name = "miller"
-version = "0.1.4"
+version = "0.1.5"
 description = "introspection tools using consistent, accessible syntax"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-amos = ">=0.1.5,<0.2.0"
+amos = ">=0.1.10,<0.2.0"
+nagata = ">=0.1.3,<0.2.0"
 
 [[package]]
 name = "more-itertools"
@@ -167,7 +179,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "88ff679daeaceee518a7c6d4ab8d28e14d4722a43aac42cfc535791d5220c768"
+content-hash = "041122f8068fed16c86ab6a09401a6104e00454102ea989f40f4ef86f03034c7"
 
 [metadata.files]
 amos = [
@@ -185,6 +197,10 @@ bobbie = [
     {file = "bobbie-0.1.1-py3-none-any.whl", hash = "sha256:7d5a007266b14c5cc473c1bef2269d1a5a5be1b8ac7d22654a3057c4cbe01f85"},
     {file = "bobbie-0.1.1.tar.gz", hash = "sha256:35cb9ca5fe93cf72ca263a7efd382f63aefef3427a9021737876d36df51d9d44"},
 ]
+camina = [
+    {file = "camina-0.1.10-py3-none-any.whl", hash = "sha256:e86ae436b9246a21808d0766038f2d6ce1533c0998b1b07fa6a6e5f4f444eade"},
+    {file = "camina-0.1.10.tar.gz", hash = "sha256:6c8e36903c9f7aea53ce73270a797c2b68b251a2d72f57823d393363bfa9d2a1"},
+]
 colorama = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
@@ -194,8 +210,8 @@ holden = [
     {file = "holden-0.1.5.tar.gz", hash = "sha256:9fe0cd10148c2b4ac01f84047c6ef20219e6d912f3209e43f392da626b0c53a4"},
 ]
 miller = [
-    {file = "miller-0.1.4-py3-none-any.whl", hash = "sha256:ee1a7dac27fbc57bb26aa960a74d83b75977aa99c43bad4e5fbd9456a880bf86"},
-    {file = "miller-0.1.4.tar.gz", hash = "sha256:fcb7cf6e11bdb03a6e2979055d54942a45d4ad497060c4bfc7fe9b6f8dea702f"},
+    {file = "miller-0.1.5-py3-none-any.whl", hash = "sha256:9c99b1b8ca918c0b1d991cd895688523dbf11d13e46ce542523944cd46025363"},
+    {file = "miller-0.1.5.tar.gz", hash = "sha256:ed17d6a876b3827903c6cf1ffbc61a8181be94df8b286f8538c02296de9b3221"},
 ]
 more-itertools = [
     {file = "more-itertools-9.0.0.tar.gz", hash = "sha256:5a6257e40878ef0520b1803990e3e22303a41b5714006c32a3fd8304b26ea1ab"},
