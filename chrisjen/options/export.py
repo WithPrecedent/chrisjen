@@ -33,8 +33,7 @@ from ..core import framework
 
 
 _LINE_BREAK = '\n'
-_DIRECTED_LINK = '->'
-_UNDIRECTED_LINK = '--'
+_LINK = '->'
 
 def to_dot(
     project: framework.Project,
@@ -57,22 +56,38 @@ def to_dot(
 
     """
     edges = holden.transform(
-        item = item, 
+        item = project.workflow.graph, 
         output = 'edges', 
         raise_same_error = False)
-    name = name or 'holden'
-    if isinstance(item, holden.Directed):
-        dot = 'digraph '
-        link = _DIRECTED_LINK
-    else:
-        dot = 'graph '
-        link = _UNDIRECTED_LINK
-    dot = dot +  name + ' {\n'
+    name = name or 'chrisjen'
+    dot = 'digraph ' +  name + ' {\n'
     if settings is not None:
         for key, value in settings.items():
             dot = dot + f'{key}={value};{_LINE_BREAK}'
     for edge in edges:
-        dot = dot + f'{edge[0]} {link} {edge[1]}{_LINE_BREAK}'
+        cluster = None
+        if isinstance(edge[0], tuple):
+            cluster = edge[0][0]
+            start = edge[0][1]
+        else:
+            start = edge[0]
+        if isinstance(edge[1], tuple):
+            stop = edge[1][1]
+        else:
+            stop = edge[1]
+        if start == 'none':
+            start = start + '_' + cluster
+        if stop == 'none':
+            stop = stop + '_' + cluster
+        if cluster:
+            dot = (
+                dot 
+                + f'subgraph cluster_{cluster} '
+                + '{ label='
+                + cluster
+                + f' rank=same {start} labeljust=l '
+                + '}\n')
+        dot = dot + f'{start} {_LINK} {stop}{_LINE_BREAK}'
     dot = dot + '}'
     if path is not None:
         with open(path, 'w') as a_file:

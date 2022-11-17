@@ -57,6 +57,7 @@ from .core.keystones import *
 from .core.framework import *
 from .core.nodes import *
 
+from .options.export import *
 from .options.librarians import *
 from .options.managers import *
 from .options.research import *
