@@ -28,17 +28,16 @@ To Do:
 """
 from __future__ import annotations
 import abc
-from collections.abc import Hashable, MutableMapping
+from collections.abc import Hashable
 import contextlib
 import dataclasses
 import inspect
 import pathlib
-from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
+from typing import Any, ClassVar, Optional, Type
 import warnings
 
 import camina
 import bobbie
-import holden
 import miller
 
 
@@ -64,8 +63,8 @@ class Rules(abc.ABC):
             Defaults to 'technique'.
         default_workflow (ClassVar[str]): key name of the default worker design.
             Defaults to 'waterfall'.
-        null_names (ClassVar[list[Any]]): lists of key names that indicate a
-            null node should be used. Defaults to ['none', 'None', None].   
+        null_node_names (ClassVar[list[Any]]): lists of key names that indicate 
+            a null node should be used. Defaults to ['none', 'None', None].   
         
     """
     parsers: ClassVar[dict[str, tuple[str]]] = {
@@ -90,7 +89,7 @@ class Rules(abc.ABC):
     default_superviser: ClassVar[str] = 'copier'
     default_task: ClassVar[str] = 'technique'
     default_workflow: ClassVar[str] = 'waterfall'
-    null_names: ClassVar[list[Any]] = ['none', 'None', None]
+    null_node_names: ClassVar[list[Any]] = ['none', 'None', None]
 
 
 @dataclasses.dataclass
@@ -319,12 +318,12 @@ class Project(object):
     Args:
         name (Optional[str]): designates the name of a class instance that is 
             used for internal referencing throughout chrisjen. Defaults to None. 
-        idea (Optional[Keystone]): configuration settings for the 
-            project. Defaults to None.
-        clerk (Optional[Keystone]): a filing clerk for loading and saving 
-            files throughout a chrisjen project. Defaults to None.
-        manager (Optional[Keystone]): constructor for a chrisjen 
-            project. Defaults to None.
+        idea (Optional[Keystone]): configuration settings for the project. 
+            Defaults to None.
+        clerk (Optional[Keystone]): a filing clerk for loading and saving files 
+            throughout a chrisjen project. Defaults to None.
+        manager (Optional[Keystone]): constructor for a chrisjen project. 
+            Defaults to None.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
             folders related to the project. If it is None, a str will be created 
@@ -333,18 +332,23 @@ class Project(object):
         automatic (bool): whether to automatically iterate through the project
             stages (True) or whether it must be iterating manually (False). 
             Defaults to True.
-        rules (Optional[Type[Rules]]): a class storing the default
-            project options. Defaults to Rules.
+            
+    Attributes:
+        rules (ClassVar[Rules]): a class storing the default project options. 
+            Defaults to Rules.
         library (ClassVar[Keystones]): library of nodes for executing a
             chrisjen project. Defaults to an instance of ProjectLibrary.
  
     """
     name: Optional[str] = None
     idea: Optional[bobbie.Settings] = None 
-    manager: Optional[Keystone] = None
-    identification: Optional[str] = None
-    automatic: Optional[bool] = True
-    rules: Optional[Type[Rules]] = Rules
+    manager: Optional[Keystone] = dataclasses.field(
+        default = None, repr = False, compare = False)
+    identification: Optional[str] = dataclasses.field(
+        default = None, compare = False)
+    automatic: Optional[bool] = dataclasses.field(
+        default = True, compare = False)
+    rules: ClassVar[Rules] = Rules
     library: ClassVar[Keystones] = Keystones
         
     """ Initialization Methods """

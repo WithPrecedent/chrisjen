@@ -55,7 +55,7 @@ class Criteria(framework.Keystone):
         name (Optional[str]): designates the name of a class instance that is 
             used for internal and external referencing in a composite object.
             Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'implement' 
+        contents (Optional[Any]): stored item(s) that has/have an 'execute' 
             method. Defaults to None.
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an 
@@ -129,29 +129,6 @@ class Librarian(framework.Keystone, abc.ABC):
             # initialization.update(**kwargs)
             node = self._get_node(lookups = lookups)
             return node.create(name = name, project = self.project, **kwargs)
-
-    # def collect(
-    #     self, 
-    #     name: str, 
-    #     **kwargs: Any) -> Node:
-    #     """Gets node and all subnodes from project library.
-
-    #     Args:
-    #         name (str): name of the node that should match a key in the project
-    #             library.
-
-    #     Returns:
-    #         keystones.Node: a Node subclass instance based on passed arguments.
-            
-    #     """
-    #     lookups = self._get_lookups(name = name)
-    #     initialization = self._get_initialization(lookups = lookups)
-    #     initialization.update(**kwargs)
-    #     node = self._get_node(lookups = lookups)
-    #     return node.create(
-    #         name = name, 
-    #         project = self.project, 
-    #         **initialization)
             
     @classmethod
     def create(
@@ -222,7 +199,7 @@ class Librarian(framework.Keystone, abc.ABC):
             list[str]: _description_
             
         """
-        if name in framework.Rules.null_names:
+        if name in framework.Rules.null_node_names:
             return ['null_node']
         else:
             keys = [name]
