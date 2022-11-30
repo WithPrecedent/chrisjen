@@ -41,7 +41,7 @@ from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 import camina
 import holden
-import more_itertools
+# import more_itertools
 
 from ..core import framework
 from ..core import keystones
@@ -298,30 +298,30 @@ def test_implement(
             project = copies[i], 
             **kwargs))
          
-def task_implement(
-    node: nodes.Component,
-    project: nodes.Project, 
-    **kwargs) -> nodes.Project:
-    """Applies 'node' to 'project'.
+# def task_implement(
+#     node: nodes.Component,
+#     project: nodes.Project, 
+#     **kwargs) -> nodes.Project:
+#     """Applies 'node' to 'project'.
 
-    Args:
-        node (nodes.Component): node in a workflow to apply to 'project'.
-        project (nodes.Project): instance from which data needed for 
-            implementation should be derived and all results be added.
+#     Args:
+#         node (nodes.Component): node in a workflow to apply to 'project'.
+#         project (nodes.Project): instance from which data needed for 
+#             implementation should be derived and all results be added.
 
-    Returns:
-        nodes.Project: with possible changes made by 'node'.
+#     Returns:
+#         nodes.Project: with possible changes made by 'node'.
         
-    """
-    try:
-        project = node.complete(project = project, **kwargs)
-    except AttributeError:
-        project = node(project, **kwargs)
-    return project    
+#     """
+#     try:
+#         project = node.complete(project = project, **kwargs)
+#     except AttributeError:
+#         project = node(project, **kwargs)
+#     return project    
 
-def count_ancestors(node: nodes.Component, workflow: defaults.Stage) -> int:
-    connections = list(more_itertools.collapse(workflow.values()))
-    return connections.count(node)
+# def count_ancestors(node: nodes.Component, workflow: defaults.Stage) -> int:
+#     connections = list(more_itertools.collapse(workflow.values()))
+#     return connections.count(node)
     
     
     

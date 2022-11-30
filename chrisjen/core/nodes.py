@@ -32,6 +32,7 @@ import contextlib
 import dataclasses
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
 
+import ashford
 import camina
 import holden
 import miller
@@ -163,7 +164,47 @@ class Parameters(camina.Dictionary):
                     pass
         return self
     
+
+@dataclasses.dataclass   
+class Criteria(ashford.Keystone):
+    """Used for conditional nodes.
     
+    Args:
+        name (Optional[str]): designates the name of a class instance that is 
+            used for internal and external referencing in a composite object.
+            Defaults to None.
+        contents (Optional[Callable]): stored function or an instance that has
+            an 'execute' method. Defaults to None.
+        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
+            'contents' when'contents' is called. Defaults to an empty dict.
+            
+    """
+    name: Optional[str] = None
+    contents: Optional[Callable] = None
+    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
+        default_factory = dict)
+
+    """ Public Methods """
+
+    @classmethod
+    def create(
+        cls, 
+        project: framework.Project,
+        name: Optional[str] = None,
+        **kwargs: Any) -> Criteria:
+        """Returns a subclass instance based on passed arguments.
+
+        Args:
+            project (framework.Project): related Project instance.
+            name (Optional[str]): name or key to lookup the subclass.
+
+        Returns:
+            Criteria: subclass instance based on passed arguments.
+            
+        """
+        return cls(name = name, **kwargs)
+         
+             
 @dataclasses.dataclass
 class Worker(keystones.Node, holden.System):
     """Base class for an iterative node.

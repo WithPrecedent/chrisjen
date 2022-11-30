@@ -82,13 +82,13 @@ def validate_outline(project: framework.Project) -> framework.Project:
     #     """Creates or validates 'keystones'."""
     #     if inspect.isclass(self.keystones):
     #         self.keystones = self.keystones()
-    #     if (not isinstance(self.keystones, framework.Keystones)
+    #     if (not isinstance(self.keystones, ashford.Keystones)
     #         or not camina.has_attributes(
     #             item = self,
     #             attributes = [
     #                 'clerk', 'component', 'manager', 'settings', 'stage', 
     #                 'workflow'])):
-    #         self.keystones = framework.Keystones()
+    #         self.keystones = ashford.Keystones()
     #     return self
 
     

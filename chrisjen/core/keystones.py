@@ -17,11 +17,9 @@ License: Apache-2.0
     limitations under the License.
 
 Contents:
-    Criteria
     Librarian
     Manager
     Node
-    Parameters
     View
 
 To Do:
@@ -34,10 +32,10 @@ from collections.abc import Hashable, Mapping, MutableMapping
 import contextlib
 import dataclasses
 import inspect
-import itertools
 import pathlib
-from typing import Any, Callable, ClassVar, Optional, Type, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, Optional
 
+import ashford
 import camina
 import bobbie
 import holden
@@ -45,51 +43,10 @@ import miller
 import nagata
 
 from . import framework
- 
-
-@dataclasses.dataclass   
-class Criteria(framework.Keystone):
-    """Used for conditional nodes.
     
-    Args:
-        name (Optional[str]): designates the name of a class instance that is 
-            used for internal and external referencing in a composite object.
-            Defaults to None.
-        contents (Optional[Any]): stored item(s) that has/have an 'execute' 
-            method. Defaults to None.
-        parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
-            'contents' when the 'implement' method is called. Defaults to an 
-            empty dict.
-            
-    """
-    name: Optional[str] = None
-    contents: Optional[Callable] = None
-    parameters: MutableMapping[Hashable, Any] = dataclasses.field(
-        default_factory = dict)
-
-    """ Public Methods """
-
-    @classmethod
-    def create(
-        cls, 
-        project: framework.Project,
-        name: Optional[str] = None,
-        **kwargs: Any) -> Criteria:
-        """Returns a subclass instance based on passed arguments.
-
-        Args:
-            project (framework.Project): related Project instance.
-            name (Optional[str]): name or key to lookup the subclass.
-
-        Returns:
-            Criteria: subclass instance based on passed arguments.
-            
-        """
-        return cls(name = name, **kwargs)
-                
 
 @dataclasses.dataclass
-class Librarian(framework.Keystone, abc.ABC):
+class Librarian(ashford.Keystone, abc.ABC):
     """Stores, organizes, and builds nodes.
         
     Args:
@@ -232,12 +189,15 @@ class Librarian(framework.Keystone, abc.ABC):
               
 
 @dataclasses.dataclass
-class Manager(framework.Keystone, abc.ABC):
+class Manager(ashford.Keystone, abc.ABC):
     """Controller for chrisjen projects.
         
     Args:
         project (framework.Project): linked Project instance to modify and 
             control.
+        clerk (Optional[nagata.FileManager]): file manager. Defaults to None.
+        librarian (Optional[Librarian]): class to access stored keystones. 
+            Defaults to None.
              
     """
     project: Optional[framework.Project] = dataclasses.field(
@@ -291,7 +251,7 @@ class Manager(framework.Keystone, abc.ABC):
         self._validate_id()
         self._validate_clerk()
         self._set_parallelization()
-        self = framework.Keystones.validate(
+        self = ashford.Keystones.validate(
             item = self, 
             attribute = 'librarian')
         return
@@ -368,8 +328,14 @@ class Manager(framework.Keystone, abc.ABC):
                 default = framework.Rules.default_settings)        
         return
 
-    def _infer_project_name(self) -> str:
-        """Tries to infer project name from 'project.idea'."""
+    def _infer_project_name(self) -> Optional[str]:
+        """Infers project name from 'project.idea'.
+        
+        Returns:
+            Optional[str]: name of project based on project settings. Returns
+                None if a name can not be inferred. 
+            
+        """
         name = None    
         for key in self.project.idea.keys():
             if key.endswith('_project'):
@@ -380,10 +346,10 @@ class Manager(framework.Keystone, abc.ABC):
     def _validate_librarian(self) -> None:
         """Creates or validates 'librarian'."""
         if self.librarian is None:
-            self.librarian = framework.Keystones.librarian[
+            self.librarian = ashford.Keystones.librarian[
                 framework.Rules.default_librarian]
         elif isinstance(self.manager, str):
-            self.librarian = framework.Keystones.librarian[
+            self.librarian = ashford.Keystones.librarian[
                 self.librarian]
         if inspect.isclass(self.librarian):
             self.librarian = self.librarian(project = self)
@@ -426,7 +392,7 @@ class Manager(framework.Keystone, abc.ABC):
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, framework.Keystone, Hashable, abc.ABC):
+class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -582,7 +548,7 @@ class Node(holden.Labeled, framework.Keystone, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class View(framework.Keystone, abc.ABC):
+class View(ashford.Keystone, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
     View subclasses should emphasize the used of properties so that any changes
@@ -616,5 +582,5 @@ class View(framework.Keystone, abc.ABC):
             View: subclass instance based on passed arguments.
             
         """
-        return cls(name = name,project = project, **kwargs) 
+        return cls(name = name, project = project, **kwargs) 
     

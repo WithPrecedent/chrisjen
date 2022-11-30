@@ -1,6 +1,6 @@
 [[package]]
 name = "ashford"
-version = "0.1.0"
+version = "0.1.1"
 description = "factory, registration, and validation tools for python"
 category = "main"
 optional = false
@@ -8,7 +8,7 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 camina = ">=0.1.10,<0.2.0"
-miller = ">=0.1.5,<0.2.0"
+miller = ">=0.1.6,<0.2.0"
 
 [[package]]
 name = "atomicwrites"
@@ -181,12 +181,12 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "041122f8068fed16c86ab6a09401a6104e00454102ea989f40f4ef86f03034c7"
+content-hash = "c5e85668d05f2628298e7988bca87c1382901659c9cbce912d89057ae752d26c"
 
 [metadata.files]
 ashford = [
-    {file = "ashford-0.1.0-py3-none-any.whl", hash = "sha256:68d3f3a247efd1655b02966bd5a406509ade5788fb163793c61f0280a79fde1f"},
-    {file = "ashford-0.1.0.tar.gz", hash = "sha256:cf2e9793f00a10d0799c7546606519e26e8da718bc97fa75e4b744fc1c3b2fdf"},
+    {file = "ashford-0.1.1-py3-none-any.whl", hash = "sha256:66cef2fb349d4f1f8ef0d13158892477063aa9ae8ddeb29f5ee6a5d84132ecb3"},
+    {file = "ashford-0.1.1.tar.gz", hash = "sha256:e16afee69f314fe3bf8aa64aca769023cb9e7344bd82a7d211f9d78bf41d3ef1"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},

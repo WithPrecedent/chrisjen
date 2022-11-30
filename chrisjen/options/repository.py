@@ -49,9 +49,9 @@ if TYPE_CHECKING:
 #             to an empty Catalog.
                  
 #     """
-#     classes: camina.Catalog[str, Type[framework.Keystone]] = dataclasses.field(
+#     classes: camina.Catalog[str, Type[ashford.Keystone]] = dataclasses.field(
 #         default_factory = camina.Catalog)
-#     instances: camina.Catalog[str, framework.Keystone] = dataclasses.field(
+#     instances: camina.Catalog[str, ashford.Keystone] = dataclasses.field(
 #         default_factory = camina.Catalog)
 
 #     """ Properties """
@@ -102,7 +102,7 @@ if TYPE_CHECKING:
 #     @classmethod           
 #     def classify(
 #         cls, 
-#         item: Union[framework.Keystone, Type[framework.Keystone]]) -> str:
+#         item: Union[ashford.Keystone, Type[ashford.Keystone]]) -> str:
 #         """Returns name of kind that 'item' is an instance or subclass of.
 
 #         Args:
@@ -125,11 +125,11 @@ if TYPE_CHECKING:
 #     @classmethod
 #     def register(
 #         cls, 
-#         item: Union[framework.Keystone, Type[framework.Keystone]]) -> None:
+#         item: Union[ashford.Keystone, Type[ashford.Keystone]]) -> None:
 #         """Registers 'item' in the appropriate class attributes.
 
 #         Args:
-#             item (Union[framework.Keystone, Type[framework.Keystone]]): item to
+#             item (Union[ashford.Keystone, Type[ashford.Keystone]]): item to
 #                 test and register.
             
 #         """
@@ -141,7 +141,7 @@ if TYPE_CHECKING:
 #             cls.nodes.deposit(item = item, name = key)
 #         if Node in item.__bases__:
 #             cls.subtypes[key] = item
-#         if framework.Keystone in item.__bases__:
+#         if ashford.Keystone in item.__bases__:
 #             cls.keystones[key] = item
 #         if issubclass(item, Manager):
 #             cls.managers[key] = item

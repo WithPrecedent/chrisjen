@@ -61,19 +61,19 @@ class Publisher(keystones.Manager):
         
     def draft(self) -> None:
         """Adds an outline to 'project'."""
-        outline = framework.Keystones.view['outline']
+        outline = ashford.Keystones.view['outline']
         self.project.outline = outline.create(project = self.project)
         return
     
     def publish(self) -> None:
         """Adds a workflow to 'project'."""
-        workflow = framework.Keystones.view['workflow']
+        workflow = ashford.Keystones.view['workflow']
         self.project.workflow = workflow.create(project = self.project)
         return
      
     def execute(self) -> None:
         """Adds a summary to 'project'."""
-        summary = framework.Keystones.view['summary']
+        summary = ashford.Keystones.view['summary']
         self.project.summary = summary.create(project = self.project)
         return       
  
