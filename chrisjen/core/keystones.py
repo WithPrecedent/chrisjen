@@ -253,7 +253,8 @@ class Manager(ashford.Keystone, abc.ABC):
         self._set_parallelization()
         self = ashford.Keystones.validate(
             item = self, 
-            attribute = 'librarian')
+            attribute = 'librarian',
+            parameters = {'project': self})
         return
     
     """ Private Methods """ 

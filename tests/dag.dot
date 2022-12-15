@@ -1,23 +1,23 @@
 digraph dag {
 subgraph cluster_wrangler { label=wrangler rank=same none_wrangler labeljust=l }
-none_wrangler -> scorer
-subgraph cluster_wrangler { label=wrangler rank=same none_wrangler labeljust=l }
 none_wrangler -> analyst
-analyst -> normalize
+subgraph cluster_wrangler { label=wrangler rank=same none_wrangler labeljust=l }
+none_wrangler -> scorer
 analyst -> robust
 analyst -> minmax
-subgraph cluster_scale { label=scale rank=same minmax labeljust=l }
-minmax -> train_test
+analyst -> normalize
 subgraph cluster_scale { label=scale rank=same minmax labeljust=l }
 minmax -> stratified_kfold
+subgraph cluster_scale { label=scale rank=same minmax labeljust=l }
+minmax -> train_test
 subgraph cluster_split { label=split rank=same stratified_kfold labeljust=l }
 stratified_kfold -> weight_of_evidence
-subgraph cluster_split { label=split rank=same stratified_kfold labeljust=l }
-stratified_kfold -> james_stein
 subgraph cluster_split { label=split rank=same stratified_kfold labeljust=l }
 stratified_kfold -> one_hot
 subgraph cluster_split { label=split rank=same stratified_kfold labeljust=l }
 stratified_kfold -> target
+subgraph cluster_split { label=split rank=same stratified_kfold labeljust=l }
+stratified_kfold -> james_stein
 subgraph cluster_encode { label=encode rank=same target labeljust=l }
 target -> smote
 subgraph cluster_encode { label=encode rank=same target labeljust=l }
@@ -49,19 +49,19 @@ james_stein -> none_encode
 subgraph cluster_split { label=split rank=same train_test labeljust=l }
 train_test -> weight_of_evidence
 subgraph cluster_split { label=split rank=same train_test labeljust=l }
-train_test -> james_stein
-subgraph cluster_split { label=split rank=same train_test labeljust=l }
 train_test -> one_hot
 subgraph cluster_split { label=split rank=same train_test labeljust=l }
 train_test -> target
-subgraph cluster_scale { label=scale rank=same robust labeljust=l }
-robust -> train_test
+subgraph cluster_split { label=split rank=same train_test labeljust=l }
+train_test -> james_stein
 subgraph cluster_scale { label=scale rank=same robust labeljust=l }
 robust -> stratified_kfold
-subgraph cluster_scale { label=scale rank=same normalize labeljust=l }
-normalize -> train_test
+subgraph cluster_scale { label=scale rank=same robust labeljust=l }
+robust -> train_test
 subgraph cluster_scale { label=scale rank=same normalize labeljust=l }
 normalize -> stratified_kfold
+subgraph cluster_scale { label=scale rank=same normalize labeljust=l }
+normalize -> train_test
 scorer -> critic
 critic -> shap
 shap -> sklearn

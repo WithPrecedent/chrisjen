@@ -39,7 +39,7 @@ import warnings
 import ashford
 import camina
 import bobbie
-import miller
+import nagata
 
 
 @dataclasses.dataclass
@@ -124,7 +124,7 @@ class Project(object):
     """
     name: Optional[str] = None
     idea: Optional[bobbie.Settings] = None 
-    manager: Optional[Keystone] = dataclasses.field(
+    manager: Optional[nagata.FileManager] = dataclasses.field(
         default = None, repr = False, compare = False)
     identification: Optional[str] = dataclasses.field(
         default = None, compare = False)
@@ -142,7 +142,10 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
-        self = Keystones.validate(item = self, attribute = 'manager')
+        self = ashford.Keystones.validate(
+            item = self, 
+            attribute = 'manager',
+            parameters = {'project': self})
        
     """ Public Class Methods """
 
