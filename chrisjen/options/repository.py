@@ -33,7 +33,7 @@ from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING, Union
 import camina
 
 if TYPE_CHECKING:
-    from ..core import keystones
+    from ..core import resources
 
      
 # @dataclasses.dataclass  # type: ignore

@@ -44,7 +44,7 @@ import holden
 # import more_itertools
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 from ..core import nodes
 from . import tasks
 
@@ -62,7 +62,7 @@ from . import tasks
 #         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
 #             'contents' when the 'implement' method is called. Defaults to an
 #             empty Parameters instance.
-#         project (Optional[framework.Project]): related Project instance.
+#         project (Optional[structure.Project]): related Project instance.
                      
 #     """
 #     name: Optional[str] = None
@@ -71,7 +71,7 @@ from . import tasks
 #             default_factory = lambda: collections.defaultdict(set)))
 #     parameters: MutableMapping[Hashable, Any] = dataclasses.field(
 #         default_factory = nodes.Parameters)
-#     project: Optional[framework.Project] = None
+#     project: Optional[structure.Project] = None
                             
     
 @dataclasses.dataclass
@@ -87,7 +87,7 @@ class Research(holden.Parallel, abc.ABC):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None

@@ -29,7 +29,7 @@ import itertools
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING, Union
 
 
-from ..core import keystones
+from ..core import resources
 
 if TYPE_CHECKING:
     from ..core import framework

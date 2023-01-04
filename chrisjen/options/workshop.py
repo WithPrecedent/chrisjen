@@ -39,7 +39,7 @@ from typing import Any, Optional, Type, TYPE_CHECKING, Union
 import camina
 
 if TYPE_CHECKING:
-    from ..core import keystones
+    from ..core import resources
     
 
 """ Public Functions """
@@ -47,13 +47,13 @@ if TYPE_CHECKING:
 
 def represent_node(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     **kwargs) -> defaults.Component:
     """Creates node based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         nodes.Component: [description]
@@ -64,13 +64,13 @@ def represent_node(
     return builder(name = name, project = project, **kwargs)
 
 def represent_workflow(
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[Type[defaults.Workflow]] = None, 
     **kwargs) -> defaults.Workflow:
     """Creates workflow based on 'project' and 'kwargs'.
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[base.Workflow]]): [description]. Defaults to None.
 
     Returns:
@@ -87,14 +87,14 @@ def represent_workflow(
 
 def represent_component(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[str] = None,  
     **kwargs) -> defaults.Component:
     """Creates component based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Worker]]): [description]. Defaults to 
             None.
 
@@ -135,14 +135,14 @@ def represent_component(
 
 def represent_worker(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[str] = None,  
     **kwargs) -> components.Worker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Worker]]): [description]. Defaults to 
             None.
 
@@ -164,19 +164,19 @@ def represent_worker(
 
 def represent_worker(
     name: str,
-    project: framework.Project,
-    base: Optional[Type[framework.ProjectWorker]] = None,  
-    **kwargs) -> framework.ProjectWorker:
+    project: structure.Project,
+    base: Optional[Type[structure.ProjectWorker]] = None,  
+    **kwargs) -> structure.ProjectWorker:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
-        base (Optional[Type[framework.ProjectWorker]]): [description]. Defaults to 
+        project (structure.Project): [description]
+        base (Optional[Type[structure.ProjectWorker]]): [description]. Defaults to 
             None.
 
     Returns:
-        framework.ProjectWorker: [description]
+        structure.ProjectWorker: [description]
         
     """ 
     base = base or project.base.node.library['worker']
@@ -184,14 +184,14 @@ def represent_worker(
 
 def represent_researcher(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[Type[components.Researcher]] = None,  
     **kwargs) -> components.Researcher:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Researcher]]): [description]. Defaults to 
             None.
 
@@ -210,14 +210,14 @@ def represent_researcher(
 
 def represent_judge(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[Type[components.Judge]] = None,  
     **kwargs) -> components.Judge:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Judge]]): [description]. Defaults to 
             None.
 
@@ -230,14 +230,14 @@ def represent_judge(
 
 def represent_step(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[Type[components.Step]] = None,  
     **kwargs) -> components.Step:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Step]]): [description]. Defaults to 
             None.
 
@@ -250,14 +250,14 @@ def represent_step(
 
 def represent_technique(
     name: str,
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[Type[components.Technique]] = None,  
     **kwargs) -> components.Technique:
     """Creates worker based on 'name', 'project', and 'kwargs'.
 
     Args:
         name (str):
-        project (framework.Project): [description]
+        project (structure.Project): [description]
         base (Optional[Type[components.Technique]]): [description]. Defaults to 
             None.
 
@@ -269,11 +269,11 @@ def represent_technique(
     return  
 
 def get_connections(
-    project: framework.Project) -> dict[str, dict[str, list[str]]]:
+    project: structure.Project) -> dict[str, dict[str, list[str]]]:
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, dict[str, list[str]]]: [description]
@@ -294,11 +294,11 @@ def get_connections(
                 connections[key][inner_key] = inner_value
     return connections
 
-def get_designs(project: framework.Project) -> dict[str, str]:
+def get_designs(project: structure.Project) -> dict[str, str]:
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, str]: [description]
@@ -310,11 +310,11 @@ def get_designs(project: framework.Project) -> dict[str, str]:
         designs.update(new_designs)
     return designs
          
-def get_implementation(project: framework.Project) -> dict[str, dict[str, Any]]:
+def get_implementation(project: structure.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, dict[str, Any]]: [description]
@@ -326,11 +326,11 @@ def get_implementation(project: framework.Project) -> dict[str, dict[str, Any]]:
         implementation[new_key] = section
     return implementation
    
-def get_initialization(project: framework.Project) -> dict[str, dict[str, Any]]:
+def get_initialization(project: structure.Project) -> dict[str, dict[str, Any]]:
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, dict[str, Any]]: [description]
@@ -344,11 +344,11 @@ def get_initialization(project: framework.Project) -> dict[str, dict[str, Any]]:
         initialization[key] = new_initialization
     return initialization
                           
-def get_kinds(project: framework.Project) -> dict[str, str]:
+def get_kinds(project: structure.Project) -> dict[str, str]:
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, str]: [description]
@@ -362,11 +362,11 @@ def get_kinds(project: framework.Project) -> dict[str, str]:
         kinds.update(new_kinds)  
     return kinds
 
-def get_labels(project: framework.Project) -> list[str]:
+def get_labels(project: structure.Project) -> list[str]:
     """Returns names of nodes based on 'project.idea'.
 
     Args:
-        project (framework.Project): an instance of Project with 'settings' and
+        project (structure.Project): an instance of Project with 'settings' and
             'connections'.
         
     Returns:
@@ -383,11 +383,11 @@ def get_labels(project: framework.Project) -> list[str]:
     return camina.deduplicate_list(item = labels)     
 
 def get_worker_sections(
-    project: framework.Project) -> dict[str, dict[Hashable, Any]]: 
+    project: structure.Project) -> dict[str, dict[Hashable, Any]]: 
     """Returns names of sections containing data for worker creation.
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[str, dict[Hashable, Any]]: [description]
@@ -398,11 +398,11 @@ def get_worker_sections(
         k: v for k, v in project.idea.items() 
         if is_worker_section(section = v, suffixes = suffixes)}
 
-def infer_project_name(project: framework.Project) -> Optional[str]:
+def infer_project_name(project: structure.Project) -> Optional[str]:
     """Tries to infer project name from settings contents.
     
     Args:
-        project (framework.Project): an instance of Project with 'settings'.
+        project (structure.Project): an instance of Project with 'settings'.
         
     Returns:
         Optional[str]: project name or None, if none is found.
@@ -577,11 +577,11 @@ def _get_section_kinds(
             kinds.update(dict.fromkeys(values, kind))
     return kinds  
 
-def _get_worker_names(project: framework.Project) -> list[str]: 
+def _get_worker_names(project: structure.Project) -> list[str]: 
     """[summary]
 
     Args:
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         list[str]: [description]
@@ -604,7 +604,7 @@ def _settings_to_workflow(
     """[summary]
 
     Args:
-        settings (framework.ProjectSettings): [description]
+        settings (structure.ProjectSettings): [description]
         options (camina.Catalog): [description]
         workflow (base.Workflow): [description]
 
@@ -627,16 +627,16 @@ def _settings_to_workflow(
 def _settings_to_composite(
     name: str, 
     settings: defaults.ProjectSettings,
-    options: camina.Catalog) -> framework.Projectnodes.Component:
+    options: camina.Catalog) -> structure.Projectnodes.Component:
     """[summary]
 
     Args:
         name (str): [description]
-        settings (framework.ProjectSettings): [description]
+        settings (structure.ProjectSettings): [description]
         options (camina.Catalog): [description]
 
     Returns:
-        framework.Projectnodes.Component: [description]
+        structure.Projectnodes.Component: [description]
         
     """    
     design = settings.designs.get(name, None) 
@@ -658,7 +658,7 @@ def _settings_to_composite(
 
 def _get_lookups(
     name: str, 
-    project: framework.Project,
+    project: structure.Project,
     base: Optional[str] = None) -> list[str]:
     """[summary]
 
@@ -682,12 +682,12 @@ def _get_lookups(
 
 def _finalize_implementation(
     lookups: list[str], 
-    project: framework.Project) -> dict[Hashable, Any]:
+    project: structure.Project) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -704,13 +704,13 @@ def _finalize_implementation(
 
 def _finalize_initializaton(
     lookups: list[str], 
-    project: framework.Project,
+    project: structure.Project,
     **kwargs) -> dict[Hashable, Any]:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         dict[Hashable, Any]: [description]
@@ -741,12 +741,12 @@ def _finalize_initializaton(
 
 def _finalize_worker(
     worker: components.Worker,
-    project: framework.Project) -> components.Worker:
+    project: structure.Project) -> components.Worker:
     """[summary]
 
     Args:
         worker (components.Worker): [description]
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         components.Worker: [description]
@@ -761,12 +761,12 @@ def _finalize_worker(
 
 def _get_component(
     lookups: list[str], 
-    project: framework.Project) -> defaults.Component:
+    project: structure.Project) -> defaults.Component:
     """[summary]
 
     Args:
         lookups (list[str]): [description]
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         nodes.Component: [description]
@@ -776,13 +776,13 @@ def _get_component(
 
 def _settings_to_adjacency(
     settings: defaults.ProjectSettings, 
-    components: dict[str, framework.Projectnodes.Component],
+    components: dict[str, structure.Projectnodes.Component],
     system: defaults.Workflow) -> camina.Pipeline:
     """[summary]
 
     Args:
-        settings (framework.ProjectSettings): [description]
-        components (dict[str, framework.Projectnodes.Component]): [description]
+        settings (structure.ProjectSettings): [description]
+        components (dict[str, structure.Projectnodes.Component]): [description]
         system (base.Workflow): [description]
 
     Returns:
@@ -796,13 +796,13 @@ def _settings_to_adjacency(
 
 def _path_to_result(
     path: camina.Pipeline,
-    project: framework.Project,
+    project: structure.Project,
     **kwargs) -> camina.Pipeline:
     """[summary]
 
     Args:
         path (camina.Pipeline): [description]
-        project (framework.Project): [description]
+        project (structure.Project): [description]
 
     Returns:
         object: [description]
@@ -814,11 +814,11 @@ def _path_to_result(
             result.append(node.complete(project = project, *kwargs))
     return result
 
-# def _get_workflow_structure(project: framework.Project) -> camina.Composite:
+# def _get_workflow_structure(project: structure.Project) -> camina.Composite:
 #     """[summary]
 
 #     Args:
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 
 #     Returns:
 #         camina.Composite: [description]

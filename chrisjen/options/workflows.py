@@ -43,7 +43,7 @@ import camina
 import holden
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 from ..core import nodes
 from . import represent
 from . import views
@@ -61,7 +61,7 @@ class Waterfall(views.Workflow):
         contents (MutableMapping[Hashable, set[Hashable]]): keys are names of
             nodes and values are sets of names of nodes. Defaults to a 
             defaultdict that has a set for its value format.
-        project (Optional[framework.Project]): related Project instance. 
+        project (Optional[structure.Project]): related Project instance. 
             Defaults to None.
                      
     """
@@ -159,7 +159,7 @@ class Research(views.Workflow, abc.ABC):
             Defaults to None.
         contents (Optional[Any]): stored item(s) to be applied to 'item' passed 
             to the 'complete' method. Defaults to None.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None

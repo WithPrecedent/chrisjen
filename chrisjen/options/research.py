@@ -47,7 +47,7 @@ import camina
 import holden
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 from ..core import nodes
 from . import tasks
 from . import workflows
@@ -66,7 +66,7 @@ class Compare(workflows.Research):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None
@@ -92,7 +92,7 @@ class Observe(workflows.Research):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None
@@ -138,7 +138,7 @@ class Compete(Compare):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None
@@ -203,7 +203,7 @@ class Lean(Compare):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None
@@ -230,7 +230,7 @@ class Survey(Compare):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
             
     """
     name: Optional[str] = None

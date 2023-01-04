@@ -30,6 +30,7 @@ import pathlib
 import chrisjen
 import holden
 
+
 @dataclasses.dataclass
 class Parser(chrisjen.Compete):
 

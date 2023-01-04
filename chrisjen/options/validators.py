@@ -34,17 +34,17 @@ from . import workshop
 
 if TYPE_CHECKING:
     from ..core import framework
-    from ..core import keystones
+    from ..core import resources
 
     
 def validate_workers(project: framework.Project) -> framework.Project:
     """Creates or validates 'project.manager.contents'.
     
     Args:
-        project (framework.Project): project to examine and validate.
+        project (structure.Project): project to examine and validate.
         
     Returns:
-        framework.Project: validated framework.Project instance.
+        structure.Project: validated structure.Project instance.
         
     """
     if not project.outline.workers:
@@ -61,10 +61,10 @@ def validate_outline(project: framework.Project) -> framework.Project:
     """Creates or validates 'project.outline'.
     
     Args:
-        project (framework.Project): project to examine and validate.
+        project (structure.Project): project to examine and validate.
         
     Returns:
-        framework.Project: validated framework.Project instance.
+        structure.Project: validated structure.Project instance.
         
     """
     if not project.outline.workers:

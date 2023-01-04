@@ -50,7 +50,7 @@ def represent_parallel(
 
     Args:
         name (str): _description_
-        project (framework.Project): _description_
+        project (structure.Project): _description_
 
     Returns:
         list[list[tuple[str, str]]]: _description_
@@ -72,7 +72,7 @@ def represent_serial(
 
     Args:
         name (str): _description_
-        project (framework.Project): _description_
+        project (structure.Project): _description_
 
     Returns:
         list[str]: _description_
@@ -94,7 +94,7 @@ def represent_serial_steps(
 
     Args:
         name (str): _description_
-        project (framework.Project): _description_
+        project (structure.Project): _description_
 
     Returns:
         list[list[tuple[str, str]]]: _description_

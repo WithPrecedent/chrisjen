@@ -37,8 +37,8 @@ import camina
 import holden
 import miller
 
-from ..core import framework
-from ..core import keystones
+from . import framework
+from . import resources
 
 
 @dataclasses.dataclass    
@@ -123,7 +123,7 @@ class Parameters(camina.Dictionary):
         """Returns any applicable parameters from 'outline'.
 
         Args:
-            project (framework.Project): project has parameters from 'outline.'
+            project (structure.Project): project has parameters from 'outline.'
 
         Returns:
             dict[str, Any]: any applicable outline parameters or an empty dict.
@@ -195,7 +195,7 @@ class Criteria(ashford.Keystone):
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            project (framework.Project): related Project instance.
+            project (structure.Project): related Project instance.
             name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
@@ -206,7 +206,7 @@ class Criteria(ashford.Keystone):
          
              
 @dataclasses.dataclass
-class Worker(keystones.Node, holden.System):
+class Worker(resources.Node, holden.System):
     """Base class for an iterative node.
         
     Args:
@@ -219,7 +219,7 @@ class Worker(keystones.Node, holden.System):
         parameters (MutableMapping[Hashable, Any]): parameters to be attached to 
             'contents' when the 'implement' method is called. Defaults to an
             empty Parameters instance.
-        project (Optional[framework.Project]): related Project instance.
+        project (Optional[structure.Project]): related Project instance.
                      
     """
     name: Optional[str] = None
@@ -275,7 +275,7 @@ class Worker(keystones.Node, holden.System):
         return worker
 
     @classmethod
-    def graph(cls, name: str, project: framework.Project) -> keystones.View:
+    def graph(cls, name: str, project: framework.Project) -> resources.View:
         """Returns a directed acyclic graph with str names of nodes.
 
         Args:
@@ -295,7 +295,7 @@ class Worker(keystones.Node, holden.System):
                                           
     """ Public Methods """
     
-    def append(self, item: keystones.Graph) -> None:
+    def append(self, item: resources.Graph) -> None:
         """Appends 'item' to the endpoints of the stored graph.
 
         Appending creates an edge between every endpoint of this instance's
@@ -323,7 +323,7 @@ class Worker(keystones.Node, holden.System):
             for endpoint in current_endpoints:
                 for root in holden.get_roots_adjacency(item = other):
                     self.connect((endpoint, root))
-        elif isinstance(item, keystones.Node):
+        elif isinstance(item, resources.Node):
             current_endpoints = self.endpoint
             if item not in self:
                 self.add(item = item)
@@ -352,7 +352,7 @@ class Worker(keystones.Node, holden.System):
             item = node.complete(item, **kwargs)
         return item
   
-    def prepend(self, item: keystones.Graph) -> None:
+    def prepend(self, item: resources.Graph) -> None:
         """Prepends 'item' to the roots of the stored graph.
 
         Prepending creates an edge between every endpoint of 'item' and every
@@ -367,7 +367,7 @@ class Worker(keystones.Node, holden.System):
                 or Collection[Hashable] type.
                 
         """
-        if isinstance(item, keystones.Graph):
+        if isinstance(item, resources.Graph):
             current_roots = self.root
             form = holden.classify(item = item)
             if form == 'adjacency':
@@ -430,7 +430,7 @@ class Worker(keystones.Node, holden.System):
   
                  
 @dataclasses.dataclass
-class Task(keystones.Node):
+class Task(resources.Node):
     """Base class for non-iterable nodes in a project workflow.
 
     Args:
@@ -473,7 +473,7 @@ class Task(keystones.Node):
    
     
 @dataclasses.dataclass
-class NullNode(keystones.Node):
+class NullNode(resources.Node):
     """Class for null nodes in a chrisjen project.
 
     Args:
@@ -566,16 +566,16 @@ class NullNode(keystones.Node):
            
     # def implement(
     #     self,
-    #     project: framework.Project, 
-    #     **kwargs) -> framework.Project:
+    #     project: structure.Project, 
+    #     **kwargs) -> structure.Project:
     #     """Applies 'contents' to 'project'.
         
     #     Args:
-    #         project (framework.Project): instance from which data needed for 
+    #         project (structure.Project): instance from which data needed for 
     #             implementation should be derived and all results be added.
 
     #     Returns:
-    #         framework.Project: with possible changes made.
+    #         structure.Project: with possible changes made.
             
     #     """
     #     if len(self.contents) > 1 and project.idea.general['parallelize']:
@@ -588,8 +588,8 @@ class NullNode(keystones.Node):
    
     # def _implement_in_parallel(
     #     self, 
-    #     project: framework.Project, 
-    #     **kwargs) -> framework.Project:
+    #     project: structure.Project, 
+    #     **kwargs) -> structure.Project:
     #     """Applies 'implementation' to 'project' using multiple cores.
 
     #     Args:

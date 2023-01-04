@@ -1,6 +1,6 @@
 [[package]]
 name = "ashford"
-version = "0.1.2"
+version = "0.1.3"
 description = "factory, registration, and validation tools for python"
 category = "main"
 optional = false
@@ -20,32 +20,36 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 
 [[package]]
 name = "attrs"
-version = "22.1.0"
+version = "22.2.0"
 description = "Classes Without Boilerplate"
 category = "dev"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 
 [package.extras]
-dev = ["cloudpickle", "coverage[toml] (>=5.0.2)", "furo", "hypothesis", "mypy (>=0.900,!=0.940)", "pre-commit", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "sphinx", "sphinx-notfound-page", "zope.interface"]
-docs = ["furo", "sphinx", "sphinx-notfound-page", "zope.interface"]
-tests = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "zope.interface"]
-tests_no_zope = ["cloudpickle", "coverage[toml] (>=5.0.2)", "hypothesis", "mypy (>=0.900,!=0.940)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins"]
+cov = ["attrs[tests]", "coverage-enable-subprocess", "coverage[toml] (>=5.3)"]
+dev = ["attrs[docs,tests]"]
+docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-towncrier", "towncrier", "zope.interface"]
+tests = ["attrs[tests-no-zope]", "zope.interface"]
+tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=0.971,<0.990)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
+tests_no_zope = ["cloudpickle", "hypothesis", "mypy (>=0.971,<0.990)", "pympler", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-xdist[psutil]"]
 
 [[package]]
 name = "bobbie"
-version = "0.1.3"
+version = "0.1.5"
 description = "flexible, easy python project configuration"
 category = "main"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = "*"
+develop = true
 
-[package.dependencies]
-camina = ">=0.1.10,<0.2.0"
+[package.source]
+type = "directory"
+url = "../bobbie"
 
 [[package]]
 name = "camina"
-version = "0.1.10"
+version = "0.1.11"
 description = "Your Python project companion"
 category = "main"
 optional = false
@@ -166,27 +170,24 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "652c5e2f4c007ced678ab463d01813495cc92dd7ff6b1b362987f417c810a29c"
+content-hash = "8e546e6061858d25cbc224a6986ae999045c13e43e37d01a058092d1765277b3"
 
 [metadata.files]
 ashford = [
-    {file = "ashford-0.1.2-py3-none-any.whl", hash = "sha256:a59c199871fa1c92891274aadaf45ea9895496191030a09e7098a2b1f826112e"},
-    {file = "ashford-0.1.2.tar.gz", hash = "sha256:59e664e0b1049057305aefaae3814c189063e6d7a649d9e062f295f2f7aa3d23"},
+    {file = "ashford-0.1.3-py3-none-any.whl", hash = "sha256:3e4ff9ced09c11f71b3c9994381a8505c54d96337ae1e1d297e37bc6903631c0"},
+    {file = "ashford-0.1.3.tar.gz", hash = "sha256:fa41766064c2b86dcf0d00d94ba4684839ab3b9a00f3d29731c3eab7d62058b3"},
 ]
 atomicwrites = [
     {file = "atomicwrites-1.4.1.tar.gz", hash = "sha256:81b2c9071a49367a7f770170e5eec8cb66567cfbbc8c73d20ce5ca4a8d71cf11"},
 ]
 attrs = [
-    {file = "attrs-22.1.0-py2.py3-none-any.whl", hash = "sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c"},
-    {file = "attrs-22.1.0.tar.gz", hash = "sha256:29adc2665447e5191d0e7c568fde78b21f9672d344281d0c6e1ab085429b22b6"},
+    {file = "attrs-22.2.0-py3-none-any.whl", hash = "sha256:29e95c7f6778868dbd49170f98f8818f78f3dc5e0e37c0b1f474e3561b240836"},
+    {file = "attrs-22.2.0.tar.gz", hash = "sha256:c9227bfc2f01993c03f68db37d1d15c9690188323c067c641f1a35ca58185f99"},
 ]
-bobbie = [
-    {file = "bobbie-0.1.3-py3-none-any.whl", hash = "sha256:f765e5490b72e1e10c8baebf91e32bb95a01d95fbcde950b2e8cedb8f3233410"},
-    {file = "bobbie-0.1.3.tar.gz", hash = "sha256:6ab9cea5c3026e6ade8a61e02235e39ed446b0a531c5b7356b61aa2db2e35aea"},
-]
+bobbie = []
 camina = [
-    {file = "camina-0.1.10-py3-none-any.whl", hash = "sha256:e86ae436b9246a21808d0766038f2d6ce1533c0998b1b07fa6a6e5f4f444eade"},
-    {file = "camina-0.1.10.tar.gz", hash = "sha256:6c8e36903c9f7aea53ce73270a797c2b68b251a2d72f57823d393363bfa9d2a1"},
+    {file = "camina-0.1.11-py3-none-any.whl", hash = "sha256:7e15f1663256a9222ac7766ca1c5028e1f0b8658389f7a2a7da20937576edfd5"},
+    {file = "camina-0.1.11.tar.gz", hash = "sha256:ee1f2f1b9bea1464a9a584286dd2d1cbbc607e4a69a4deddea1d4aacfc654fb7"},
 ]
 colorama = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},

@@ -27,7 +27,7 @@ import dataclasses
 from typing import Any, Optional, TYPE_CHECKING
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 from ..core import nodes
 
 

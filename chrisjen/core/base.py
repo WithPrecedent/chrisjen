@@ -46,11 +46,11 @@ from . import framework
     
 
 @dataclasses.dataclass
-class Librarian(ashford.Keystone, abc.ABC):
+class Librarian(framework.Role, abc.ABC):
     """Stores, organizes, and builds nodes.
         
     Args:
-        project (framework.Project): linked Project instance with a 'library'
+        project (structure.Project): linked Project instance with a 'library'
             attribute containing Keystones.
              
     """
@@ -96,7 +96,7 @@ class Librarian(ashford.Keystone, abc.ABC):
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            project (framework.Project): related Project instance.
+            project (structure.Project): related Project instance.
             name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
@@ -156,7 +156,7 @@ class Librarian(ashford.Keystone, abc.ABC):
             list[str]: _description_
             
         """
-        if name in framework.Defaults.null_node_names:
+        if name in framework.Defaults.null_nodes:
             return ['null_node']
         else:
             keys = [name]
@@ -189,13 +189,14 @@ class Librarian(ashford.Keystone, abc.ABC):
               
 
 @dataclasses.dataclass
-class Manager(ashford.Keystone, abc.ABC):
+class Manager(framework.Role, abc.ABC):
     """Controller for chrisjen projects.
         
     Args:
-        project (framework.Project): linked Project instance to modify and 
+        project (structure.Project): linked Project instance to modify and 
             control.
-        clerk (Optional[nagata.FileManager]): file manager. Defaults to None.
+        clerk (Optional[Keystone]): a filing clerk for loading and saving files 
+            throughout a chrisjen project. Defaults to None.
         librarian (Optional[Librarian]): class to access stored keystones. 
             Defaults to None.
              
@@ -235,7 +236,7 @@ class Manager(ashford.Keystone, abc.ABC):
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            project (framework.Project): related Project instance.
+            project (structure.Project): related Project instance.
             name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
@@ -251,7 +252,7 @@ class Manager(ashford.Keystone, abc.ABC):
         self._validate_id()
         self._validate_clerk()
         self._set_parallelization()
-        self = ashford.Keystones.validate(
+        self = framework.Roles.validate(
             item = self, 
             attribute = 'librarian',
             parameters = {'project': self})
@@ -269,13 +270,13 @@ class Manager(ashford.Keystone, abc.ABC):
         """
         try:
             defaults = self.project.defaults.settings['files']
-            nagata.FileFramework.settings.update(defaults)
+            nagata.Filestructure.settings.update(defaults)
         except KeyError:
             pass
         for key in self.project.defaults.parsers['files']:
             try:
                 project_settings = self.project.idea[key]
-                nagata.FileFramework.settings.update(project_settings)
+                nagata.Filestructure.settings.update(project_settings)
             except KeyError:
                 pass
         root_folder = pathlib.Path('..').joinpath('data')
@@ -311,7 +312,7 @@ class Manager(ashford.Keystone, abc.ABC):
         if self.project.name is None:
             idea_name = self._infer_project_name()
             if idea_name is None:
-                self.project.name = camina.namify(self.project)
+                self.project.name = camina.namify(item = self.project)
             else:
                 self.project.name = idea_name
         if self.project.name.endswith('_project'):
@@ -322,11 +323,11 @@ class Manager(ashford.Keystone, abc.ABC):
         """Creates or validates 'project.idea'."""
         if inspect.isclass(self.project.idea):
             self.project.idea = self.project.idea()
-        elif not isinstance(self.project.idea, framework.Idea):
-            base = framework.Idea
+        elif not isinstance(self.project.idea, base.Idea):
+            base = base.Idea
             self.project.idea = base.create(
                 source = self.project.idea,
-                default = framework.Defaults.settings)        
+                default = base.Defaults.settings)        
         return
 
     def _infer_project_name(self) -> Optional[str]:
@@ -347,10 +348,10 @@ class Manager(ashford.Keystone, abc.ABC):
     def _validate_librarian(self) -> None:
         """Creates or validates 'librarian'."""
         if self.librarian is None:
-            self.librarian = ashford.Keystones.librarian[
+            self.librarian = framework.Roles.librarian[
                 framework.Defaults.librarian]
         elif isinstance(self.manager, str):
-            self.librarian = ashford.Keystones.librarian[
+            self.librarian = framework.Roles.librarian[
                 self.librarian]
         if inspect.isclass(self.librarian):
             self.librarian = self.librarian(project = self)
@@ -393,7 +394,7 @@ class Manager(ashford.Keystone, abc.ABC):
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
+class Node(holden.Labeled, framework.Role, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -460,7 +461,7 @@ class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            project (framework.Project): related Project instance.
+            project (structure.Project): related Project instance.
             name (Optional[str]): name or key to lookup the subclass.
 
         Returns:
@@ -549,7 +550,7 @@ class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class View(ashford.Keystone, abc.ABC):
+class View(framework.Role, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
     View subclasses should emphasize the used of properties so that any changes
@@ -557,7 +558,7 @@ class View(ashford.Keystone, abc.ABC):
     
     Args:
         name
-        project (framework.Project): a related project instance which has data 
+        project (structure.Project): a related project instance which has data 
             from which the properties of a View can be derived.
             
     """
@@ -576,7 +577,7 @@ class View(ashford.Keystone, abc.ABC):
         """Returns a subclass instance based on passed arguments.
 
         Args:
-            project (framework.Project): related Project instance.
+            project (structure.Project): related Project instance.
             name (Optional[str]): name or key to lookup the subclass.
 
         Returns:

@@ -39,15 +39,15 @@ from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 import ashford 
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 
     
 @dataclasses.dataclass
-class Publisher(keystones.Manager):
+class Publisher(resources.Manager):
     """Constructs an entire workflow at once.
         
     Args:
-        project (framework.Project): linked Project instance.
+        project (structure.Project): linked Project instance.
              
     """
     project: framework.Project

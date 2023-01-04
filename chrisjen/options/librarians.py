@@ -37,15 +37,15 @@ import dataclasses
 from typing import Any, ClassVar, Optional, Protocol, Type, TYPE_CHECKING
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 
     
 @dataclasses.dataclass
-class UpFront(keystones.Librarian):
+class UpFront(resources.Librarian):
     """Constructs an entire workflow at once.
         
     Args:
-        project (framework.Project): linked Project instance to modify and 
+        project (structure.Project): linked Project instance to modify and 
             control.
              
     """
@@ -55,11 +55,11 @@ class UpFront(keystones.Librarian):
 
  
 @dataclasses.dataclass
-class AsNeeded(keystones.Librarian):
+class AsNeeded(resources.Librarian):
     """Constructs all workers in workflows but not tasks.
         
     Args:
-        project (framework.Project): linked Project instance to modify and 
+        project (structure.Project): linked Project instance to modify and 
             control.
              
     """
@@ -97,11 +97,11 @@ class AsNeeded(keystones.Librarian):
 
    
 @dataclasses.dataclass
-class OnlyAsNeeded(keystones.Librarian):
+class OnlyAsNeeded(resources.Librarian):
     """Constructs a workflow as it is iterated.
         
     Args:
-        project (framework.Project): linked Project instance to modify and 
+        project (structure.Project): linked Project instance to modify and 
             control.
              
     """

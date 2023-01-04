@@ -38,12 +38,12 @@ import camina
 import holden
 
 from ..core import framework
-from ..core import keystones
+from ..core import resources
 from ..core import nodes
 
 
 @dataclasses.dataclass
-class Outline(keystones.View):
+class Outline(resources.View):
     """Provides a different view of data stored in 'project.idea'.
     
     The properties in Outline are used in the construction of a Workflow. So,
@@ -53,15 +53,15 @@ class Outline(keystones.View):
 
     Args:
         name
-        project (framework.Project): a related project instance which has data
+        project (structure.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
 
     """
     name: Optional[str] = None
     project: Optional[framework.Project] = dataclasses.field(
         default = None, repr = False, compare = False)
-    rules: Optional[dict[str, tuple[str]]] = dataclasses.field(
-        default_factory = lambda: framework.Rules.parsers)
+    defaults: Optional[dict[str, tuple[str]]] = dataclasses.field(
+        default_factory = lambda: framework.Defaults.parsers)
     
     """ Properties """       
                      
@@ -124,7 +124,7 @@ class Outline(keystones.View):
         for key, section in self.workers.items():
             design_keys = [
                 k for k in section.keys() 
-                if k.endswith(self.rules['design'])]
+                if k.endswith(self.defaults['design'])]
             for design_key in design_keys:
                 prefix, suffix = camina.cleave_str(design_key)
                 if prefix == suffix:
@@ -141,7 +141,7 @@ class Outline(keystones.View):
             dict[str, Any]: dict of file settings.
             
         """
-        for name in self.rules['files']:
+        for name in self.defaults['files']:
             try:
                 return self[name]
             except KeyError:
@@ -157,10 +157,10 @@ class Outline(keystones.View):
             
         """
         for name, section in self.project.idea.items():
-            if name.endswith(self.rules['manager']):
+            if name.endswith(self.defaults['manager']):
                 return section
         for name, section in self.project.idea.items():
-            suffixes = itertools.chain_from_iterable(self.rules.values()) 
+            suffixes = itertools.chain_from_iterable(self.defaults.values()) 
             if not name.endswith(suffixes):
                 return section
         return {}
@@ -173,7 +173,7 @@ class Outline(keystones.View):
             dict[str, Any]: dict of general settings.
             
         """       
-        for name in self.rules['general']:
+        for name in self.defaults['general']:
             try:
                 return self[name]
             except KeyError:
@@ -194,7 +194,7 @@ class Outline(keystones.View):
         """
         implementation = {}      
         for name, section in self.project.idea.items():
-            for suffix in self.rules['parameters']:
+            for suffix in self.defaults['parameters']:
                 if name.endswith(suffix):
                     key = name.removesuffix('_' + suffix)
                     implementation[key] = section
@@ -215,8 +215,8 @@ class Outline(keystones.View):
         initialization = {}
         all_plurals = (
             self.plurals
-            + self.rules['design']
-            + self.rules['manager'])
+            + self.defaults['design']
+            + self.defaults['manager'])
         for key, section in self.workers.items():   
             initialization[key] = {
                 k: v for k, v in section.items() if not k.endswith(all_plurals)}
@@ -296,11 +296,11 @@ class Outline(keystones.View):
     
 
 @dataclasses.dataclass
-class Workflow(keystones.View):
+class Workflow(resources.View):
     """Provides a different view of data stored in 'project.idea'.
 
     Args:
-        project (framework.Project): a related project instance which has data
+        project (structure.Project): a related project instance which has data
             from which the properties of an Outline can be derived.
 
     """
@@ -350,7 +350,7 @@ class Workflow(keystones.View):
         try:
             return self.project.outline.designs[self.project.name]
         except KeyError:
-            return self.project.rules.default_workflow
+            return self.project.defaults.default_workflow
         
     """ Public Methods """
     
@@ -363,7 +363,7 @@ class Workflow(keystones.View):
         """[summary]
 
         Args:
-            project (framework.Project): [description]
+            project (structure.Project): [description]
 
         Returns:
             Workflow: [description]
@@ -452,11 +452,11 @@ class Workflow(keystones.View):
 #     """ Public Methods """
 
 #     @classmethod
-#     def create(cls, project: framework.Project) -> Summary:
+#     def create(cls, project: structure.Project) -> Summary:
 #         """[summary]
 
 #         Args:
-#             project (framework.Project): [description]
+#             project (structure.Project): [description]
 
 #         Returns:
 #             Results: [description]
@@ -466,16 +466,16 @@ class Workflow(keystones.View):
 
 #     # def complete(
 #     #     self, 
-#     #     project: framework.Project, 
-#     #     **kwargs) -> framework.Project:
+#     #     project: structure.Project, 
+#     #     **kwargs) -> structure.Project:
 #     #     """Calls the 'implement' method the number of times in 'iterations'.
 
 #     #     Args:
-#     #         project (framework.Project): instance from which data needed for 
+#     #         project (structure.Project): instance from which data needed for 
 #     #             implementation should be derived and all results be added.
 
 #     #     Returns:
-#     #         framework.Project: with possible changes made.
+#     #         structure.Project: with possible changes made.
             
 #     #     """
 #     #     if self.contents not in [None, 'None', 'none']:

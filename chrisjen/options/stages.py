@@ -46,13 +46,13 @@ from . import workshop
 # """ Public Functions """
 
 # def represent_workflow(
-#     project: framework.Project,
+#     project: structure.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
 #     """[summary]
 
 #     Args:
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 #         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
 #     Returns:
@@ -72,13 +72,13 @@ from . import workshop
 #         workflow = workflow)
     
 # def represent_workflow(
-#     project: framework.Project,
+#     project: structure.Project,
 #     base: Optional[Type[Workflow]] = None, 
 #     **kwargs) -> Workflow:
 #     """[summary]
 
 #     Args:
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 #         base (Optional[Type[Workflow]]): [description]. Defaults to None.
 
 #     Returns:
@@ -94,13 +94,13 @@ from . import workshop
 #         workflow = workflow)
 
 # def represent_results(
-#     project: framework.Project,
+#     project: structure.Project,
 #     base: Optional[Type[Results]] = None, 
 #     **kwargs) -> Results:
 #     """[summary]
 
 #     Args:
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 #         base (Optional[Type[Results]]): [description]. Defaults to None.
 
 #     Returns:
@@ -115,11 +115,11 @@ from . import workshop
 
 # """ Private Functions """
 
-# def _get_structure(project: framework.Project) -> camina.Composite:
+# def _get_structure(project: structure.Project) -> camina.Composite:
 #     """[summary]
 
 #     Args:
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 
 #     Returns:
 #         camina.Composite: [description]
@@ -141,7 +141,7 @@ from . import workshop
 #     """[summary]
 
 #     Args:
-#         settings (framework.ProjectSettings): [description]
+#         settings (structure.ProjectSettings): [description]
 #         options (base.LIBRARY): [description]
 
 #     Returns:
@@ -163,16 +163,16 @@ from . import workshop
 # def _settings_to_component(
 #     name: str, 
 #     settings: defaults.ProjectSettings,
-#     options: camina.Catalog) -> framework.Projectnodes.Component:
+#     options: camina.Catalog) -> structure.Projectnodes.Component:
 #     """[summary]
 
 #     Args:
 #         name (str): [description]
-#         settings (framework.ProjectSettings): [description]
+#         settings (structure.ProjectSettings): [description]
 #         options (camina.Catalog): [description]
 
 #     Returns:
-#         framework.Projectnodes.Component: [description]
+#         structure.Projectnodes.Component: [description]
         
 #     """    
 #     design = settings.designs.get(name, None) 
@@ -244,7 +244,7 @@ from . import workshop
 
 #     Args:
 #         lookups (list[str]): [description]
-#         settings (framework.ProjectSettings): [description]
+#         settings (structure.ProjectSettings): [description]
 
 #     Returns:
 #         dict[Hashable, Any]: [description]
@@ -268,7 +268,7 @@ from . import workshop
 
 #     Args:
 #         name (str): [description]
-#         settings (framework.ProjectSettings): [description]
+#         settings (structure.ProjectSettings): [description]
 #         parameters (list[str]): [description]
 
 #     Returns:
@@ -289,13 +289,13 @@ from . import workshop
 
 # def _settings_to_adjacency(
 #     settings: defaults.ProjectSettings, 
-#     components: dict[str, framework.Projectnodes.Component],
+#     components: dict[str, structure.Projectnodes.Component],
 #     system: Workflow) -> camina.Pipeline:
 #     """[summary]
 
 #     Args:
-#         settings (framework.ProjectSettings): [description]
-#         components (dict[str, framework.Projectnodes.Component]): [description]
+#         settings (structure.ProjectSettings): [description]
+#         components (dict[str, structure.Projectnodes.Component]): [description]
 #         system (Workflow): [description]
 
 #     Returns:
@@ -309,13 +309,13 @@ from . import workshop
 
 # def _path_to_result(
 #     path: camina.Pipeline,
-#     project: framework.Project,
+#     project: structure.Project,
 #     **kwargs) -> camina.Pipeline:
 #     """[summary]
 
 #     Args:
 #         path (camina.Pipeline): [description]
-#         project (framework.Project): [description]
+#         project (structure.Project): [description]
 
 #     Returns:
 #         object: [description]
