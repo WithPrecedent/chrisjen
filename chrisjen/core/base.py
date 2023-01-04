@@ -46,7 +46,7 @@ from . import framework
     
 
 @dataclasses.dataclass
-class Librarian(framework.Role, abc.ABC):
+class Librarian(framework.Resource, abc.ABC):
     """Stores, organizes, and builds nodes.
         
     Args:
@@ -189,7 +189,7 @@ class Librarian(framework.Role, abc.ABC):
               
 
 @dataclasses.dataclass
-class Manager(framework.Role, abc.ABC):
+class Manager(framework.Resource, abc.ABC):
     """Controller for chrisjen projects.
         
     Args:
@@ -252,7 +252,7 @@ class Manager(framework.Role, abc.ABC):
         self._validate_id()
         self._validate_clerk()
         self._set_parallelization()
-        self = framework.Roles.validate(
+        self = framework.Resources.validate(
             item = self, 
             attribute = 'librarian',
             parameters = {'project': self})
@@ -348,10 +348,10 @@ class Manager(framework.Role, abc.ABC):
     def _validate_librarian(self) -> None:
         """Creates or validates 'librarian'."""
         if self.librarian is None:
-            self.librarian = framework.Roles.librarian[
+            self.librarian = framework.Resources.librarian[
                 framework.Defaults.librarian]
         elif isinstance(self.manager, str):
-            self.librarian = framework.Roles.librarian[
+            self.librarian = framework.Resources.librarian[
                 self.librarian]
         if inspect.isclass(self.librarian):
             self.librarian = self.librarian(project = self)
@@ -394,7 +394,7 @@ class Manager(framework.Role, abc.ABC):
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, framework.Role, Hashable, abc.ABC):
+class Node(holden.Labeled, framework.Resource, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -550,7 +550,7 @@ class Node(holden.Labeled, framework.Role, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class View(framework.Role, abc.ABC):
+class View(framework.Resource, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
     View subclasses should emphasize the used of properties so that any changes

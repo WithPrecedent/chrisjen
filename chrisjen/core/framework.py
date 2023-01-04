@@ -168,12 +168,25 @@ class Resource(ashford.Keystone, abc.ABC):
     """Mixin for core package base classes.
     
     Attributes:
-        library (ClassVar[Type[Team]]: library where Role subclasses are 
+        library (ClassVar[Type[Team]]: library where Resource subclasses are 
             stored.
             
     """
-    library: ClassVar[Type[Resources]] = Resources
 
+    """ Initialization Methods """
+    
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any):
+        """Automatically registers subclass in Keystones."""
+        # Because Keystone will be used as a mixin, it is important to call 
+        # other base class '__init_subclass__' methods, if they exist.
+        with contextlib.suppress(AttributeError):
+            super().__init_subclass__(*args, **kwargs) # type: ignore
+        if Resource in cls.__bases__:
+            Resources.add(item = cls)
+        else:
+            Resources.register(item = cls)
+            
     # """ Dunder Methods """
     
     # def __get__(self, obj: object, objtype: Type[Any] = None) -> Any:
@@ -238,9 +251,9 @@ class Project(object):
     Args:
         name (Optional[str]): designates the name of a class instance that is 
             used for internal referencing throughout chrisjen. Defaults to None. 
-        idea (Optional[Role]): configuration settings for the project. 
+        idea (Optional[Resource]): configuration settings for the project. 
             Defaults to None.
-        manager (Optional[Role]): constructor for a chrisjen project. 
+        manager (Optional[Resource]): constructor for a chrisjen project. 
             Defaults to None.
         identification (Optional[str]): a unique identification name for a 
             chrisjen project. The name is primarily used for creating file 
@@ -269,8 +282,9 @@ class Project(object):
         default = None, compare = False)
     automatic: Optional[bool] = dataclasses.field(
         default = True, compare = False)
+    manager: Optional[Type[Resource] | Resource] = None
     defaults: ClassVar[Type[Defaults]] = Defaults
-        
+    
     """ Initialization Methods """
 
     def __post_init__(self) -> None:
@@ -280,7 +294,7 @@ class Project(object):
         # Calls parent and/or mixin initialization method(s).
         with contextlib.suppress(AttributeError):
             super().__post_init__()
-        self = ashford.Team.validate(
+        self = Resources.validate(
             item = self, 
             attribute = 'manager',
             parameters = {'project': self})

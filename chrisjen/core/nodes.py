@@ -27,7 +27,7 @@ from __future__ import annotations
 import abc
 import collections
 from collections.abc import (
-    Collection, Hashable, Mapping, MutableMapping, MutableSequence, Set)
+    Callable, Hashable, Mapping, MutableMapping, MutableSequence, Set)
 import contextlib
 import dataclasses
 from typing import Any, ClassVar, Optional, Type, TYPE_CHECKING
@@ -206,7 +206,7 @@ class Criteria(ashford.Keystone):
          
              
 @dataclasses.dataclass
-class Worker(resources.Node, holden.System):
+class Worker(resources.Node):
     """Base class for an iterative node.
         
     Args:
@@ -295,7 +295,7 @@ class Worker(resources.Node, holden.System):
                                           
     """ Public Methods """
     
-    def append(self, item: resources.Graph) -> None:
+    def append(self, item: framework.Graph) -> None:
         """Appends 'item' to the endpoints of the stored graph.
 
         Appending creates an edge between every endpoint of this instance's
@@ -352,7 +352,7 @@ class Worker(resources.Node, holden.System):
             item = node.complete(item, **kwargs)
         return item
   
-    def prepend(self, item: resources.Graph) -> None:
+    def prepend(self, item: framework.Graph) -> None:
         """Prepends 'item' to the roots of the stored graph.
 
         Prepending creates an edge between every endpoint of 'item' and every
@@ -367,7 +367,7 @@ class Worker(resources.Node, holden.System):
                 or Collection[Hashable] type.
                 
         """
-        if isinstance(item, resources.Graph):
+        if isinstance(item, framework.Graph):
             current_roots = self.root
             form = holden.classify(item = item)
             if form == 'adjacency':

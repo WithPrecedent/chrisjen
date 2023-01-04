@@ -46,7 +46,7 @@ from . import framework
     
 
 @dataclasses.dataclass
-class Librarian(ashford.Keystone, abc.ABC):
+class Librarian(framework.Resource, abc.ABC):
     """Stores, organizes, and builds nodes.
         
     Args:
@@ -189,7 +189,7 @@ class Librarian(ashford.Keystone, abc.ABC):
               
 
 @dataclasses.dataclass
-class Manager(ashford.Keystone, abc.ABC):
+class Manager(framework.Resource, abc.ABC):
     """Controller for chrisjen projects.
         
     Args:
@@ -393,7 +393,7 @@ class Manager(ashford.Keystone, abc.ABC):
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
+class Node(holden.Labeled, framework.Resource, Hashable, abc.ABC):
     """Base class for nodes in a chrisjen project.
 
     Args:
@@ -549,7 +549,7 @@ class Node(holden.Labeled, ashford.Keystone, Hashable, abc.ABC):
 
 
 @dataclasses.dataclass   
-class View(ashford.Keystone, abc.ABC):
+class View(framework.Resource, abc.ABC):
     """Organizes data in a related project to increase accessibility.
     
     View subclasses should emphasize the used of properties so that any changes

@@ -11,12 +11,12 @@ repository = "https://github.com/WithPrecedent/chrisjen"
 [tool.poetry.dependencies]
 python = "^3.9"
 more_itertools = "^9.0.0"
-ashford = "^0.1.3" 
+ashford = "^0.1.5" 
 bobbie = "^0.1.5"
-camina = "^0.1.11"
-holden = "^0.1.6"
-miller = "^0.1.6"
-nagata = "^0.1.4"
+camina = "^0.1.12"
+holden = "^0.1.7"
+miller = "^0.1.7"
+nagata = "^0.1.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
