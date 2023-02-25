@@ -1,7 +1,7 @@
 """
 keystones: base classes for a chrisjen project
 Corey Rayburn Yung <coreyrayburnyung@gmail.com>
-Copyright 2020-2022, Corey Rayburn Yung
+Copyright 2020-2023, Corey Rayburn Yung
 License: Apache-2.0
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -326,7 +326,7 @@ class Manager(framework.Resource, abc.ABC):
             base = framework.Idea
             self.project.idea = base.create(
                 source = self.project.idea,
-                default = framework.Defaults.settings)        
+                defaults = framework.Defaults.settings)        
         return
 
     def _infer_project_name(self) -> Optional[str]:
