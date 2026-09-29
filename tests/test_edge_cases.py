@@ -39,19 +39,25 @@ def fail(item: Any) -> Any:
     raise RuntimeError(message)
 
 
-@chrisjen.technique
 def edge_add_one(item: Any) -> Any:
     return item + 1
 
 
-@chrisjen.technique
+chrisjen.Technique.register("edge_add_one", edge_add_one)
+
+
 def edge_add_bonus(item: Any, bonus: int = 0) -> Any:
     return item + bonus
 
 
-@chrisjen.technique
+chrisjen.Technique.register("edge_add_bonus", edge_add_bonus)
+
+
 def edge_log(item: Any, label: str = "x") -> Any:
     return [*item, label]
+
+
+chrisjen.Technique.register("edge_log", edge_log)
 
 
 """ Nodes """
@@ -76,13 +82,17 @@ class EdgeShadow(chrisjen.Technique):
         return "class"
 
 
-@chrisjen.technique
 def edge_shadow(item: Any) -> Any:
     return "function"
 
 
-def test_registered_functions_take_precedence_over_subclasses() -> None:
+chrisjen.Technique.register("edge_shadow", edge_shadow)
+
+
+def test_the_latest_registration_replaces_an_earlier_one() -> None:
+    # The class was registered first, and the function replaced it.
     assert chrisjen.Technique.create("edge_shadow").complete(1) == "function"
+    chrisjen.Technique.register("edge_shadow", EdgeShadow)  # type: ignore[arg-type]
 
 
 @dataclasses.dataclass
@@ -107,18 +117,20 @@ def test_null_node() -> None:
     assert chrisjen.NullNode(name="skip").name == "skip"
 
 
-def test_technique_decorator() -> None:
+def test_register() -> None:
     def original(item: Any) -> Any:
         return "first"
 
     def replacement(item: Any) -> Any:
         return "second"
 
-    assert chrisjen.technique(original, name="edge_swap") is original
+    registered = chrisjen.Technique.register("edge_swap", original)
+    assert isinstance(registered, chrisjen.Technique)
+    assert registered.contents is original
     assert chrisjen.Technique.create("edge_swap").complete(0) == "first"
-    chrisjen.technique(name="edge_swap")(replacement)
+    chrisjen.Technique.register("edge_swap", replacement)
     assert chrisjen.Technique.create("edge_swap").complete(0) == "second"
-    assert chrisjen.technique(lambda item: item, name="edge_lambda")
+    chrisjen.Technique.register("edge_lambda", lambda item: item)
     assert chrisjen.Technique.create("edge_lambda").complete(3) == 3
 
 

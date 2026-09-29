@@ -130,3 +130,77 @@ def test_accepted_arguments_when_signature_is_unavailable(
     monkeypatch.setattr(inspect, "signature", broken)
     arguments = {"a": 1}
     assert utilities.accepted_arguments(len, arguments) == arguments
+
+
+""" Importing by path """
+
+
+def test_import_object_from_dotted_and_colon_paths() -> None:
+    import collections
+    import os.path
+    import statistics
+
+    assert utilities.import_object("statistics.fmean") is statistics.fmean
+    assert utilities.import_object("statistics:fmean") is statistics.fmean
+    assert utilities.import_object("statistics") is statistics
+    assert utilities.import_object("os.path") is os.path
+    assert utilities.import_object("builtins.str.upper") is str.upper
+    assert utilities.import_object("builtins:str.upper") is str.upper
+    assert (
+        utilities.import_object("collections:OrderedDict.fromkeys")
+        == collections.OrderedDict.fromkeys
+    )
+    assert utilities.import_object("statistics.NormalDist") is (
+        statistics.NormalDist
+    )
+
+
+def test_import_object_errors() -> None:
+    with pytest.raises(ImportError, match="'no_such_module.tool'.*no module"):
+        utilities.import_object("no_such_module.tool")
+    with pytest.raises(ImportError, match="'no_such_module:tool'.*no module"):
+        utilities.import_object("no_such_module:tool")
+    with pytest.raises(ImportError, match="'statistics.nope'"):
+        utilities.import_object("statistics.nope")
+    with pytest.raises(ImportError, match="'statistics:fmean.nope'"):
+        utilities.import_object("statistics:fmean.nope")
+    # A bare name that is not a module cannot be imported.
+    with pytest.raises(ImportError):
+        utilities.import_object("str.upper")
+
+
+def test_import_object_does_not_hide_a_modules_own_import_errors(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    module = tmp_path / "tt_broken_module.py"
+    module.write_text("import tt_dependency_that_does_not_exist\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    with pytest.raises(ModuleNotFoundError) as error:
+        utilities.import_object("tt_broken_module.tool")
+    assert error.value.name == "tt_dependency_that_does_not_exist"
+    with pytest.raises(ModuleNotFoundError):
+        utilities.import_object("tt_broken_module:tool")
+
+
+def test_import_object_finds_modules_created_after_the_first_call(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    with pytest.raises(ImportError):
+        utilities.import_object("tt_late_module.tool")
+    (tmp_path / "tt_late_module.py").write_text(
+        "def tool(item):\n    return 7\n"
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    assert utilities.import_object("tt_late_module.tool")(0) == 7
+
+
+def test_import_object_imports_submodules_that_are_not_imported_yet(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    package = tmp_path / "tt_package"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "sub.py").write_text("def tool(item):\n    return item + 1\n")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    assert utilities.import_object("tt_package.sub.tool")(1) == 2
+    assert utilities.import_object("tt_package.sub:tool")(1) == 2

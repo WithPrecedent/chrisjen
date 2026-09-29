@@ -5,12 +5,14 @@ Contents:
     how_soon_is_now: returns a timestamp `str`.
     average: computes the mean of a `Sequence` of results.
     accepted_arguments: limits keyword arguments to those a function accepts.
+    import_object: imports an object from its import path.
 
 """
 
 from __future__ import annotations
 
 import datetime
+import importlib
 import inspect
 from typing import TYPE_CHECKING, Any
 
@@ -113,3 +115,52 @@ def accepted_arguments(
     ):
         return dict(arguments)
     return {k: v for k, v in arguments.items() if k in parameters}
+
+
+def import_object(path: str) -> Any:
+    """Imports an object (such as a function or class) from its import path.
+
+    The path can be dotted (`"statistics.fmean"` or
+    `"sklearn.preprocessing.StandardScaler"`) or use a colon between the module
+    and the attributes (`"package.module:Class.method"`). With a dotted path,
+    the longest prefix that is a module is imported and the rest are attributes.
+
+    Args:
+        path: import path of the object.
+
+    Raises:
+        ImportError: if no module or attribute matches `path`.
+
+    Returns:
+        The imported object.
+
+    """
+    if ":" in path:
+        module_name, _, attributes = path.partition(":")
+        candidates = [(module_name, attributes.split("."))]
+    else:
+        parts = path.split(".")
+        candidates = [
+            (".".join(parts[:cut]), parts[cut:])
+            for cut in range(len(parts), 0, -1)
+        ]
+    for module_name, attributes in candidates:
+        try:
+            item = importlib.import_module(module_name)
+        except ModuleNotFoundError as error:
+            # Only a missing candidate module means to try a shorter prefix.
+            # A module that is found but is missing one of its own imports is
+            # a real problem, so it is not hidden.
+            missing = error.name or ""
+            if module_name == missing or module_name.startswith(f"{missing}."):
+                continue
+            raise
+        try:
+            for attribute in attributes:
+                item = getattr(item, attribute)
+        except AttributeError as error:
+            message = f"cannot import {path!r}: {error}"
+            raise ImportError(message) from error
+        return item
+    message = f"cannot import {path!r}: no module of that name was found"
+    raise ImportError(message)

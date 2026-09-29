@@ -5,6 +5,7 @@ The random numbers are seeded, so every run checks the same cases.
 
 from __future__ import annotations
 
+import abc
 import itertools
 import random
 from collections.abc import Callable
@@ -20,7 +21,7 @@ for amount in range(1, 5):
     TECHNIQUES[f"prop_add_{amount}"] = lambda item, amount=amount: item + amount
     TECHNIQUES[f"prop_mul_{amount}"] = lambda item, amount=amount: item * amount
 for _name, _function in TECHNIQUES.items():
-    chrisjen.technique(_function, name=_name)
+    chrisjen.Technique.register(_name, _function)
 STEP_NAMES = ["clean", "scale", "fit", "check", "report"]
 
 
@@ -224,3 +225,54 @@ def test_random_projects_agree_with_a_plain_calculation(seed: int) -> None:
 @chrisjen.criterion
 def prop_largest(result: Any) -> Any:
     return result
+
+
+""" Types of techniques """
+
+
+class PropAdd(chrisjen.Technique, abc.ABC):
+    """Adds the amount in the name."""
+
+
+class PropMul(chrisjen.Technique, abc.ABC):
+    """Multiplies by the amount in the name."""
+
+
+for _amount in range(1, 5):
+    PropAdd.register(f"op_{_amount}", lambda item, _a=_amount: item + _a)
+    PropMul.register(f"op_{_amount}", lambda item, _a=_amount: item * _a)
+OPERATIONS = {
+    "prop_add": lambda item, amount: item + amount,
+    "prop_mul": lambda item, amount: item * amount,
+}
+
+
+@pytest.mark.parametrize("seed", SEEDS)
+def test_the_type_of_a_step_chooses_which_technique_is_used(seed: int) -> None:
+    random_ = random.Random(seed)
+    steps = STEP_NAMES[: random_.randint(1, 4)]
+    section: dict[str, Any] = {"w_steps": steps}
+    item = random_.randint(-5, 5)
+    expected = item
+    for step in steps:
+        kind = random_.choice(["prop_add", "prop_mul"])
+        amounts = random_.choices(range(1, 5), k=random_.randint(1, 3))
+        section[f"{step}_techniques"] = [f"op_{a}" for a in amounts]
+        # Half of the steps write the type in the names instead.
+        if random_.random() < 0.5:
+            section[f"{step}_technique_type"] = kind
+        else:
+            section[f"{step}_techniques"] = [f"{kind}.op_{a}" for a in amounts]
+        for amount in amounts:
+            expected = OPERATIONS[kind](expected, amount)
+    settings = {"prop_project": {"prop_workers": ["w"]}, "w": section}
+    assert chrisjen.Project(settings, item=item).apply() == expected
+
+
+def test_names_in_both_types_need_a_type() -> None:
+    settings = {
+        "prop_project": {"prop_workers": ["w"]},
+        "w": {"w_techniques": "op_1"},
+    }
+    with pytest.raises(KeyError, match="more than one type"):
+        chrisjen.Project(settings, item=1).publish()

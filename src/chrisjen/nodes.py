@@ -3,19 +3,20 @@
 Contents:
     Node: base class for anything that can be applied to an item in a
         workflow.
-    Technique: a single action, either a function or a subclass with its own
-        `implement` method.
+    Technique: a single action that wraps a tool, and the base class of all
+        types of techniques.
     NullNode: a `Technique` that does nothing.
     Step: a stage of a workflow with one or more techniques.
     Worker: a node with a workflow of its own.
-    technique: decorator that registers a function as a `Technique`.
 
 """
 
 from __future__ import annotations
 
 import abc
+import copy
 import dataclasses
+import inspect
 from collections.abc import Callable, MutableMapping, MutableSequence
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -29,13 +30,11 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class Node(holden.Labeled, wonka.Subclasser, abc.ABC):
+class Node(holden.Labeled, abc.ABC):
     """Base class for nodes in a chrisjen workflow.
 
-    Nodes are hashed and compared by `name`. Every subclass can be built from
-    its snake case class name with `create` (a `wonka` factory method). For
-    example, `Technique.create('slice', parameters = {'name': 'slice'})`
-    returns an instance of a `Technique` subclass named `Slice`.
+    Nodes are hashed and compared by `name`, so a `str` equal to the name of a
+    node can be used in its place.
 
     Args:
         name: name used to refer to the node in a workflow. Defaults to `None`,
@@ -111,106 +110,362 @@ class Node(holden.Labeled, wonka.Subclasser, abc.ABC):
 
 
 @dataclasses.dataclass
-class Technique(Node):
-    """A single action in a workflow.
+class Technique(Node, wonka.Registrar):
+    """A single action in a workflow, which usually wraps another tool.
 
-    A `Technique` can be made in three ways:
+    A `Technique` is an ordinary object (not a decorated function). Its
+    `contents` is the tool that it wraps: any callable, or the import path of
+    one, such as `"statistics.fmean"`. A path is only imported when the
+    technique is first used, so techniques can wrap optional packages.
 
-    1. Register a function with the `technique` decorator. The function must
-       accept `item` as its first argument and returns the changed `item`.
-       Only the keyword parameters that the function accepts are passed.
-    2. Subclass `Technique` and override `implement`. The subclass is found
-       automatically by its snake case class name.
-    3. Pass a function as `contents` when creating an instance.
+    ```py
+    technique = chrisjen.Technique("mean", contents = "statistics.fmean")
+    technique.complete([1, 2, 3])  # 2.0
+    ```
+
+    **Registering.** Techniques are found by name in a registry (a `wonka`
+    `Registrar`). Create and register one in a single step with `register`:
+
+    ```py
+    chrisjen.Technique.register("mean", "statistics.fmean")
+    ```
+
+    **Types.** Each type of technique has a registry of its own. To create a
+    type, subclass `Technique` and `abc.ABC` (the direct subclass of `Technique`
+    that lists `abc.ABC` is the type):
+
+    ```py
+    class Cleaner(chrisjen.Technique, abc.ABC):
+        \"\"\"Techniques that clean data.\"\"\"
+
+    Cleaner.register("drop_missing", "package.module.drop_missing")
+    ```
+
+    Any other subclass registers its *class* in the registry of its type (or in
+    the general registry, if it is a direct subclass of `Technique`) under its
+    snake case class name, so it is found automatically. To change how a type
+    of technique calls its tool (for example, to build an object from
+    parameters and then call one of its methods), override `implement`.
+
+    **Finding techniques.** A name is looked up in the registry of every type.
+    If the name is registered in more than one type, write it with its type
+    (`"cleaner.drop_missing"`) or name the type with `kind`. Calling `create`
+    on a type only looks in that type. The registered technique is copied
+    before it is used, so each use has its own parameters and state.
 
     Args:
         name: name used to refer to the technique in a workflow.
-        contents: function to call with `item`. Defaults to `None`.
-        parameters: keyword arguments passed to `contents`. Defaults to an
-            empty `dict`.
+        contents: the tool to wrap: a callable or the import path of one.
+            Defaults to `None`, which is only useful for subclasses that
+            override `implement`.
+        parameters: keyword arguments passed to the tool. Defaults to an empty
+            `dict`.
 
     Attributes:
-        functions: functions registered with the `technique` decorator.
-        aliases: alternative names for techniques.
+        registry: techniques and technique classes of this type by name.
+        types: `dict` of the names of all technique types and the types.
 
     """
 
-    contents: Callable[..., Any] | None = None
-    functions: ClassVar[dict[str, Callable[..., Any]]] = {}
-    aliases: ClassVar[dict[str, str]] = {
-        "none": "null_node",
-        "null": "null_node",
-    }
+    contents: Callable[..., Any] | str | None = None
+    registry: ClassVar[dict[str, Any]] = {}
+    types: ClassVar[dict[str, type[Technique]]] = {}
+
+    """ Initialization Methods """
+
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
+        """Creates a new technique type or registers the subclass."""
+        super().__init_subclass__(*args, **kwargs)
+        key = wonka.options._KEY_NAMER(cls)
+        if Technique in cls.__bases__ and abc.ABC in cls.__bases__:
+            cls.registry = {}
+            Technique.types[key] = cls
+        else:
+            cls.registry[key] = cls
 
     """ Class Methods """
+
+    @classmethod
+    def available(cls) -> dict[str, list[str]]:
+        """Returns the names of the registered techniques of each type.
+
+        Returns:
+            A `dict` of type names and sorted lists of technique names.
+                Types with no registered techniques are left out.
+
+        """
+        return {
+            kind: sorted(technique_type.registry)
+            for kind, technique_type in Technique.types.items()
+            if technique_type.registry
+        }
 
     @classmethod
     def create(
         cls,
         item: str,
         parameters: MutableMapping[Any, Any] | None = None,
-        **kwargs: Any,
+        kind: str | type[Technique] | None = None,
     ) -> Technique:
-        """Creates a technique by name.
+        """Creates a copy of a registered technique.
 
         Args:
-            item: name of a function registered with `technique`, a snake case
-                `Technique` subclass name, or an alias.
-            parameters: arguments for the created instance (such as `name` or
-                `parameters`). Defaults to `None`.
-            **kwargs: additional keyword arguments for `wonka`.
+            item: name of the technique, optionally with its type ("type.name").
+            parameters: attributes to set on the copy (such as `name`,
+                `contents`, or `parameters`). The name defaults to the name
+                looked up. A `parameters` `dict` is combined with the
+                technique's own parameters, and takes precedence. Defaults to
+                `None`.
+            kind: type of technique (a name or a class) to look in. Defaults to
+                `None`, which looks in the type that `create` was called on or,
+                for `Technique`, in every type.
 
         Raises:
-            KeyError: if `item` matches no known technique.
+            KeyError: if `item` is not registered, or is registered in more
+                than one type and `kind` was not used to choose one.
 
         Returns:
-            A `Technique` instance.
+            A `Technique` (or subclass) instance.
+
+        """
+        owner, key = cls.locate(item, kind)
+        # The copy is named for the name that was asked for (so "null" and
+        # "none" stay distinct), unless a name is passed.
+        parameters = {"name": key, **(parameters or {})}
+        return super(Technique, owner).create(key, parameters)
+
+    @classmethod
+    def locate(
+        cls, item: str, kind: str | type[Technique] | None = None
+    ) -> tuple[type[Technique], str]:
+        """Finds the type of technique that has `item` registered.
+
+        Args:
+            item: name of the technique, optionally with its type ("type.name").
+            kind: type of technique (a name or a class) to look in.
+
+        Raises:
+            KeyError: if `item` is not registered, or is registered in more
+                than one type and `kind` was not used to choose one.
+
+        Returns:
+            A `tuple` of the technique type and the name in its registry.
+
+        """
+        if kind is not None:
+            owner = cls._get_type(kind)
+            key = item.removeprefix(f"{wonka.options._KEY_NAMER(owner)}.")
+            candidates = [(owner, key)] if key in owner.registry else []
+        elif cls is not Technique:
+            candidates = [(cls, item)] if item in cls.registry else []
+        else:
+            head, _, tail = item.partition(".")
+            if tail and head in Technique.types:
+                owner = Technique.types[head]
+                candidates = [(owner, tail)] if tail in owner.registry else []
+            else:
+                candidates = [
+                    (technique_type, item)
+                    for technique_type in Technique.types.values()
+                    if item in technique_type.registry
+                ]
+        if len(candidates) == 1:
+            return candidates[0]
+        if candidates:
+            kinds = ", ".join(
+                wonka.options._KEY_NAMER(owner) for owner, _ in candidates
+            )
+            message = (
+                f"{item!r} is registered in more than one type of technique "
+                f"({kinds}): use a name like '{wonka.options._KEY_NAMER(candidates[0][0])}.{item}' "
+                f"or pass kind"
+            )
+            raise KeyError(message)
+        known = "; ".join(
+            f"{kind_name}: {', '.join(names)}"
+            for kind_name, names in cls.available().items()
+        )
+        message = (
+            f"{item!r} is not a known technique. Register one with "
+            f"Technique.register(name, tool) or define a subclass of "
+            f"Technique. Known techniques: {known or 'none'}"
+        )
+        raise KeyError(message)
+
+    @classmethod
+    def produce(
+        cls, item: Any, parameters: MutableMapping[Any, Any] | None = None
+    ) -> Technique:
+        """Applies `parameters` to a technique (or creates one from a class).
+
+        `wonka` calls this method to finish creating a technique.
+
+        Args:
+            item: a copy of a registered technique, or a registered class.
+            parameters: attributes to set, or arguments for a class. A
+                `parameters` `dict` is combined with the technique's own.
+
+        Returns:
+            The technique.
 
         """
         parameters = dict(parameters or {})
-        parameters.setdefault("name", item)
-        if item in cls.functions:
-            return cls(contents=cls.functions[item], **parameters)
-        key = cls.aliases.get(item, item)
-        try:
-            return super().create(key, parameters=parameters, **kwargs)
-        except KeyError as error:
-            known = sorted(
-                {*cls.functions, *cls.aliases, *_subclass_names(cls)}
+        if inspect.isclass(item):
+            return item(**parameters)
+        if "parameters" in parameters:
+            parameters["parameters"] = {
+                **item.parameters,
+                **parameters["parameters"],
+            }
+        for key, value in parameters.items():
+            setattr(item, key, value)
+        return item
+
+    @classmethod
+    def register(
+        cls,
+        item: str | Technique,
+        contents: Callable[..., Any] | str | None = None,
+        parameters: MutableMapping[str, Any] | None = None,
+        *,
+        name: str | None = None,
+    ) -> Technique:
+        """Registers a technique, so it can be found by name.
+
+        Args:
+            item: the name of a new technique, or a technique to register.
+            contents: the tool to wrap, if `item` is a name. Defaults to
+                `None`.
+            parameters: default keyword parameters for the tool, if `item` is a
+                name. Defaults to `None`.
+            name: name to register under. Defaults to `item` (or its `name`).
+
+        Raises:
+            TypeError: if `item` is not a `str` or an instance of this type of
+                technique.
+
+        Returns:
+            The registered technique. It replaces any technique with the same
+                name in the registry.
+
+        """
+        if isinstance(item, str):
+            key = name or item
+            technique = cls(
+                name=key, contents=contents, parameters=dict(parameters or {})
             )
+        elif isinstance(item, cls):
+            key = name or item.name
+            technique = item
+        else:
             message = (
-                f"{item!r} is not a known technique: define a Technique "
-                f"subclass or register a function with @chrisjen.technique. "
-                f"Known techniques: {', '.join(known)}"
+                f"item must be a name or a {cls.__name__} instance, not "
+                f"{type(item).__name__}"
             )
-            raise KeyError(message) from error
+            raise TypeError(message)
+        cls.registry[key] = technique
+        return technique
+
+    """ Private Methods """
+
+    @classmethod
+    def _get_type(cls, kind: str | type[Technique]) -> type[Technique]:
+        """Returns the technique type that `kind` names."""
+        if inspect.isclass(kind) and issubclass(kind, Technique):
+            return kind
+        name = str(kind).lower()
+        if name in Technique.types:
+            return Technique.types[name]
+        message = (
+            f"{kind!r} is not a type of technique. Known types: "
+            f"{', '.join(Technique.types)}"
+        )
+        raise KeyError(message)
 
     """ Public Methods """
 
     def implement(self, item: Any, **kwargs: Any) -> Any:
-        """Calls `contents` with `item`.
+        """Calls the wrapped tool with `item`.
+
+        Override this method to call a tool differently (for example, to build
+        an object from the parameters and then call one of its methods).
 
         Args:
             item: data or object to change.
-            **kwargs: keyword arguments for `contents`. Any that `contents` does
+            **kwargs: keyword arguments for the tool. Any that the tool does
                 not accept are dropped.
 
         Raises:
-            NotImplementedError: if there is no function in `contents` and a
+            NotImplementedError: if there is no tool in `contents` and a
                 subclass does not override this method.
+            TypeError: if the tool is not callable.
 
         Returns:
             The changed `item`.
 
         """
-        if self.contents is None:
+        tool = self.resolve()
+        if tool is None:
             message = (
-                f"technique {self.name!r} has no function: pass a function as "
-                f"contents or override implement in a subclass"
+                f"technique {self.name!r} has no tool: pass a callable or "
+                f"import path as contents or override implement in a subclass"
             )
             raise NotImplementedError(message)
-        arguments = utilities.accepted_arguments(self.contents, kwargs)
-        return self.contents(item, **arguments)
+        if not callable(tool):
+            message = (
+                f"technique {self.name!r} wraps {tool!r}, which is not "
+                f"callable: override implement to use it"
+            )
+            raise TypeError(message)
+        return tool(item, **utilities.accepted_arguments(tool, kwargs))
+
+    def resolve(self) -> Any:
+        """Returns the wrapped tool, importing it if `contents` is a path.
+
+        Raises:
+            ImportError: if `contents` is an import path that cannot be
+                imported.
+
+        Returns:
+            The tool in `contents`, or `None` if there is none.
+
+        """
+        if isinstance(self.contents, str):
+            return utilities.import_object(self.contents)
+        return self.contents
+
+    """ Dunder Methods """
+
+    def __deepcopy__(self, memo: dict[int, Any]) -> Technique:
+        """Copies the technique, sharing a tool that cannot be copied.
+
+        The registry copies a technique each time it creates one. Everything is
+        copied, including a tool in `contents` (so that a tool with its own
+        state, such as a model, is not shared). If the tool cannot be copied
+        (because it holds a lock or a connection, for example), the copy uses
+        the same tool.
+
+        Args:
+            memo: `dict` of objects already copied.
+
+        Returns:
+            A copy of the technique.
+
+        """
+        clone = copy.copy(self)
+        for field in dataclasses.fields(self):
+            value = getattr(self, field.name)
+            try:
+                value = copy.deepcopy(value, memo)
+            except Exception:
+                if field.name != "contents":
+                    raise
+            setattr(clone, field.name, value)
+        return clone
+
+
+Technique.types["technique"] = Technique
 
 
 @dataclasses.dataclass
@@ -219,7 +474,7 @@ class NullNode(Technique):
 
     It is included for comparisons where doing nothing is one of the options
     (e.g., a "none" technique among techniques for scaling data). It is
-    available as "none", "null", and "null_node".
+    registered as "none", "null", and "null_node".
 
     """
 
@@ -237,6 +492,9 @@ class NullNode(Technique):
 
         """
         return item
+
+
+Technique.registry.update({"none": NullNode, "null": NullNode})
 
 
 @dataclasses.dataclass
@@ -355,48 +613,3 @@ class Worker(Node):
             message = f"worker {self.name!r} has no workflow"
             raise ValueError(message)
         return self.contents.execute(item, **kwargs)
-
-
-def technique(
-    function: Callable[..., Any] | None = None, *, name: str | None = None
-) -> Any:
-    """Registers a function as a `Technique`.
-
-    It can be used with or without arguments:
-
-    ```py
-    @chrisjen.technique
-    def scale(item, factor = 2):
-        return item * factor
-
-    @chrisjen.technique(name = 'double')
-    def twice(item):
-        return item * 2
-    ```
-
-    Args:
-        function: function to register. It should accept the item as its first
-            argument and return the changed item.
-        name: name to register the function under. Defaults to the function's
-            `__name__`.
-
-    Returns:
-        The function itself, so that it can still be used directly. If
-            `function` is `None`, a decorator is returned.
-
-    """
-
-    def register(func: Callable[..., Any]) -> Callable[..., Any]:
-        Technique.functions[name or func.__name__] = func
-        return func
-
-    return register if function is None else register(function)
-
-
-def _subclass_names(cls: type) -> list[str]:
-    """Returns the snake case names of all subclasses of `cls`."""
-    names: list[str] = []
-    for subclass in cls.__subclasses__():
-        names.append(wonka.options._KEY_NAMER(subclass))
-        names.extend(_subclass_names(subclass))
-    return names

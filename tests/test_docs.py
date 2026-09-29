@@ -19,8 +19,11 @@ import pathlib
 import re
 import sys
 import types
+from collections.abc import Iterator
 
 import pytest
+
+import chrisjen
 
 ROOT = pathlib.Path(__file__).parent.parent
 FILES = [ROOT / "README.md", *sorted((ROOT / "docs").glob("*.md"))]
@@ -59,6 +62,29 @@ def actual_output(text: str) -> list[str]:
     while lines and not lines[-1]:
         lines.pop()
     return lines
+
+
+@pytest.fixture(autouse=True)
+def restore_registries() -> Iterator[None]:
+    """Removes the techniques and types that the examples register.
+
+    The examples in different files define types and techniques with the same
+    names, so each file starts with the registries that existed before it.
+    """
+    types = dict(chrisjen.Technique.types)
+    registries = {
+        name: (technique_type, dict(technique_type.registry))
+        for name, technique_type in types.items()
+    }
+    criteria = dict(chrisjen.Workflow.criteria_registry)
+    yield
+    chrisjen.Technique.types.clear()
+    chrisjen.Technique.types.update(types)
+    for technique_type, registry in registries.values():
+        technique_type.registry.clear()
+        technique_type.registry.update(registry)
+    chrisjen.Workflow.criteria_registry.clear()
+    chrisjen.Workflow.criteria_registry.update(criteria)
 
 
 @pytest.mark.parametrize("path", FILES, ids=lambda p: p.name)

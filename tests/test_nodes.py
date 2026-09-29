@@ -10,19 +10,25 @@ import pytest
 import chrisjen
 
 
-@chrisjen.technique
 def nodes_double(item: Any) -> Any:
     return item * 2
 
 
-@chrisjen.technique(name="nodes_shift")
+chrisjen.Technique.register("nodes_double", nodes_double)
+
+
 def _shift(item: Any, amount: int = 1) -> Any:
     return item + amount
 
 
-@chrisjen.technique
+chrisjen.Technique.register("nodes_shift", _shift)
+
+
 def nodes_flexible(item: Any, **kwargs: Any) -> Any:
     return (item, kwargs)
+
+
+chrisjen.Technique.register("nodes_flexible", nodes_flexible)
 
 
 @dataclasses.dataclass
@@ -79,7 +85,7 @@ def test_unknown_technique() -> None:
 
 def test_technique_without_function() -> None:
     technique = chrisjen.Technique(name="empty")
-    with pytest.raises(NotImplementedError, match="no function"):
+    with pytest.raises(NotImplementedError, match="no tool"):
         technique.complete(1)
 
 

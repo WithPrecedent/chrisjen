@@ -10,19 +10,25 @@ import pytest
 import chrisjen
 
 
-@chrisjen.technique
 def reg_add_one(item: Any) -> Any:
     return item + 1
 
 
-@chrisjen.technique
+chrisjen.Technique.register("reg_add_one", reg_add_one)
+
+
 def reg_times_two(item: Any) -> Any:
     return item * 2
 
 
-@chrisjen.technique
+chrisjen.Technique.register("reg_times_two", reg_times_two)
+
+
 def reg_minus_three(item: Any) -> Any:
     return item - 3
+
+
+chrisjen.Technique.register("reg_minus_three", reg_minus_three)
 
 
 @chrisjen.criterion

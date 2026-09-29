@@ -13,19 +13,25 @@ import pytest
 import chrisjen
 
 
-@chrisjen.technique
 def project_double(item: Any) -> Any:
     return item * 2
 
 
-@chrisjen.technique
+chrisjen.Technique.register("project_double", project_double)
+
+
 def project_add(item: Any, amount: int = 1) -> Any:
     return item + amount
 
 
-@chrisjen.technique
+chrisjen.Technique.register("project_add", project_add)
+
+
 def project_negate(item: Any) -> Any:
     return -item
+
+
+chrisjen.Technique.register("project_negate", project_negate)
 
 
 @chrisjen.criterion

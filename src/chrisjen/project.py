@@ -238,18 +238,24 @@ class Project:
 
     """ Private Methods """
 
-    def _build_technique(self, name: str) -> nodes.Technique:
-        """Returns the technique with `name`."""
+    def _build_technique(
+        self, name: str, kind: str | None = None
+    ) -> nodes.Technique:
+        """Returns a copy of the registered technique with `name`."""
         parameters = dict(self.outline.parameters.get(name, {}))
         return nodes.Technique.create(
-            name, parameters={"name": name, "parameters": parameters}
+            name,
+            parameters={"name": name, "parameters": parameters},
+            kind=kind,
         )
 
-    def _build_step(self, name: str, techniques: list[str]) -> nodes.Step:
+    def _build_step(
+        self, name: str, techniques: list[str], kind: str | None = None
+    ) -> nodes.Step:
         """Returns a step with `techniques`."""
         return nodes.Step(
             name=name,
-            contents=[self._build_technique(t) for t in techniques],
+            contents=[self._build_technique(t, kind) for t in techniques],
             parameters=dict(self.outline.parameters.get(name, {})),
         )
 
@@ -258,8 +264,9 @@ class Project:
         plan = self.outline
         techniques = plan.techniques[name]
         # A worker without steps has a single step named for the worker.
+        kinds = plan.types.get(name, {})
         steps = [
-            self._build_step(step, step_techniques)
+            self._build_step(step, step_techniques, kinds.get(step))
             for step, step_techniques in techniques.items()
         ]
         names = {step.name for step in steps}

@@ -28,6 +28,7 @@ _SUFFIXES: tuple[str, ...] = (
     "_design",
     "_requires",
     "_steps",
+    "_technique_type",
     "_techniques",
     "_workers",
 )
@@ -63,7 +64,9 @@ class Outline:
     "{worker}_steps" lists its steps, and "{step}_techniques" lists the
     techniques of each step. If a worker has no steps, "{worker}_techniques"
     lists its techniques directly. A step with no techniques uses a technique
-    with the same name as the step. "{step}_requires" lists steps that must
+    with the same name as the step. "{step}_technique_type" (or
+    "{worker}_technique_type" for a worker with no steps) names the type of technique to look in, such as
+    "cleaner"; without it, techniques are looked up by name in every type. "{step}_requires" lists steps that must
     come before a step (see `Pert`), and "{worker}_requires" in the project
     section lists workers that must come before a worker. If any step (or
     worker) has requirements, only the listed requirements connect the steps
@@ -90,6 +93,8 @@ class Outline:
             steps and the names of steps that must come before them. The
             requirements of the workers themselves are stored under the name
             of the project.
+        types: `dict` of worker names and a `dict` of the names of their steps
+            and the type of technique named for each (if any).
         parameters: `dict` of names and their keyword parameters.
         durations: `dict` of names and their durations, taken from the
             "duration" parameter, if any.
@@ -112,6 +117,7 @@ class Outline:
     requirements: dict[str, dict[str, list[str]]] = dataclasses.field(
         default_factory=dict
     )
+    types: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
     parameters: dict[str, dict[str, Any]] = dataclasses.field(
         default_factory=dict
     )
@@ -325,6 +331,7 @@ class Outline:
                 raise ValueError(message)
             self.techniques[worker][worker] = techniques
             self._add_techniques(techniques)
+            self._add_type(section, worker, worker)
             return
         self.steps[worker] = steps
         for step in steps:
@@ -337,11 +344,20 @@ class Outline:
             )
             self.techniques[worker][step] = techniques or [step]
             self._add_techniques(self.techniques[worker][step])
+            self._add_type(section, worker, step)
             required = self._get_names(
                 section, f"{step}_requires", f"the requirements of {step!r}"
             )
             if required:
                 self.requirements.setdefault(worker, {})[step] = required
+
+    def _add_type(
+        self, section: Mapping[str, Any], worker: str, step: str
+    ) -> None:
+        """Records the type of technique for a step, if the section names one."""
+        kind = section.get(f"{step}_technique_type")
+        if kind is not None:
+            self.types.setdefault(worker, {})[step] = str(kind).strip().lower()
 
     def _add_techniques(self, techniques: list[str]) -> None:
         """Records the names of techniques that are not also steps."""

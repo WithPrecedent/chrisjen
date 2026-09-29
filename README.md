@@ -24,19 +24,20 @@ Named after Earth's unflappable leader in *The Expanse*, who knew how to get thi
 import chrisjen
 
 
-@chrisjen.technique
 def drop_negatives(item):
     return [x for x in item if x >= 0]
 
 
-@chrisjen.technique
 def double(item):
     return [x * 2 for x in item]
 
 
-@chrisjen.technique
 def total(item):
     return sum(item)
+
+
+for function in (drop_negatives, double, total):
+    chrisjen.Technique.register(function.__name__, function)
 
 
 settings = {
@@ -62,7 +63,7 @@ A `chrisjen` project has three parts, which are named the same way in every proj
 
 * **Workers** are the big parts of a project (for example, "prepare" and "summarize").
 * **Steps** are the stages of a worker (for example, "clean" and "scale").
-* **Techniques** are the actual actions in a step. They are ordinary Python functions.
+* **Techniques** are the actual actions in a step. They wrap Python tools, usually functions.
 
 You describe them in an ini, toml, json, yaml, xml, or Python file (or a `dict`), and a `Project` does the rest. The same example as a file:
 
@@ -117,9 +118,10 @@ Each worker (and the project itself) has a `design` that decides how its parts a
 For example, to try three ways of scaling and keep whichever has the smallest spread, list the techniques and change the design to `contest`:
 
 ```python
-@chrisjen.technique
 def halve(item):
     return [x / 2 for x in item]
+
+chrisjen.Technique.register("halve", halve)
 
 
 @chrisjen.criterion
@@ -159,9 +161,9 @@ print(contest.scores)
 | [bobbie](https://github.com/WithPrecedent/bobbie) | Loading settings from files and `dict` types. |
 | [holden](https://github.com/WithPrecedent/holden) | The graph data structure of a workflow, including exports to Graphviz and mermaid. |
 | [nagata](https://github.com/WithPrecedent/nagata) | Loading and saving a project's files. |
-| [wonka](https://github.com/WithPrecedent/wonka) | Creating techniques and workflow designs from their names. |
+| [wonka](https://github.com/WithPrecedent/wonka) | The registries that techniques (one for each type of technique) and workflow designs are created from by name. |
 
-Techniques can be functions or classes, and you can add your own workflow designs. Everything is found by name, so a new technique or design is available in settings files as soon as it is defined.
+A technique is an object that wraps any callable (or the import path of one), so a single interface can drive tools from many packages. You can define your own types of techniques and your own workflow designs. Everything is found by name, so a new technique or design is available in settings files as soon as it is registered.
 
 ## Getting started
 
@@ -185,13 +187,14 @@ pip install chrisjen
 
 #### Techniques
 
-A technique is a function that takes the item being worked on and returns the changed item. Register it with `@chrisjen.technique` and refer to it by name. A function can also take keyword parameters, which are filled from a `<name>_parameters` section of your settings:
+A technique is an object that wraps a tool. Its `contents` is any callable (or the import path of one). When the technique is applied, the item being worked on is passed to the tool along with any keyword parameters that the tool accepts. Register a technique with `Technique.register` and refer to it by name. Parameters come from a `<name>_parameters` section of your settings:
 
 ```python
-@chrisjen.technique
 def keep_above(item, minimum=0):
     return [x for x in item if x > minimum]
 
+
+chrisjen.Technique.register("keep_above", keep_above)
 
 settings = {
     "filter_project": {"filter_workers": "filterer"},
@@ -202,7 +205,21 @@ print(chrisjen.Project(settings, item=[1, 2, 3, 4]).apply())
 # [3, 4]
 ```
 
-For techniques that need more than a function, subclass `chrisjen.Technique` and write an `implement` method. The subclass is found by its snake case name (`RunningTotal` is "running_total").
+Techniques can wrap tools from other packages. Give the import path of the tool instead of the tool. It is only imported when the technique is used, so a project can wrap optional packages. A registered technique can also have default parameters:
+
+```python
+chrisjen.Technique.register("mean", "statistics.fmean")
+chrisjen.Technique.register("rounded", round, {"ndigits": 1})
+
+settings = {
+    "average_project": {"average_workers": "averager"},
+    "averager": {"averager_techniques": "mean, rounded"},
+}
+print(chrisjen.Project(settings, item=[1, 2, 4]).apply())
+# 2.3
+```
+
+For techniques that need more than a call, subclass `chrisjen.Technique` and write an `implement` method. The subclass is registered by its snake case name (`RunningTotal` is "running_total").
 
 ```python
 import dataclasses
@@ -222,6 +239,44 @@ settings = {
 print(chrisjen.Project(settings, item=[1, 2, 3]).apply())
 # [1, 3, 6]
 ```
+
+#### Types of techniques
+
+Packages built on `chrisjen` often have several *types* of techniques (for example, techniques for cleaning, for analyzing, and for visualizing data), which wrap different tools in different ways. Create a type by subclassing `Technique` and `abc.ABC`. Each type has its own registry (a [wonka](https://github.com/WithPrecedent/wonka) `Registrar`), so the same name can be used in more than one type:
+
+```python
+import abc
+
+
+class Cleaner(chrisjen.Technique, abc.ABC):
+    """Techniques that clean data."""
+
+
+class Analyzer(chrisjen.Technique, abc.ABC):
+    """Techniques that analyze data."""
+
+
+Cleaner.register("remove_zeros", lambda item: [x for x in item if x != 0])
+Analyzer.register("largest", max)
+
+settings = {
+    "stats_project": {"stats_workers": ["tidy", "measure"]},
+    "tidy": {
+        "tidy_techniques": "remove_zeros",
+        "tidy_technique_type": "cleaner",
+    },
+    "measure": {
+        "measure_techniques": "largest",
+        "measure_technique_type": "analyzer",
+    },
+}
+print(chrisjen.Project(settings, item=[0, 3, 0, 9]).apply())
+# 9
+print(sorted(Cleaner.registry))
+# ['remove_zeros']
+```
+
+Naming the type of a step is optional. Without it, a name is looked up in every type, and you only need to name the type (or write the name as `cleaner.remove_zeros`) if the same name is registered in more than one.
 
 #### The three stages of a project
 

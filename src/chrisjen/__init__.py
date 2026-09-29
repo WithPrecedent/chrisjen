@@ -24,12 +24,11 @@ __all__: list[str] = [
     "Worker",
     "Workflow",
     "criterion",
-    "technique",
     "to_dot",
 ]
 
 from .export import to_dot
-from .nodes import Node, NullNode, Step, Technique, Worker, technique
+from .nodes import Node, NullNode, Step, Technique, Worker
 from .outline import Outline
 from .project import Project
 from .workflows import (

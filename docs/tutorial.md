@@ -16,28 +16,29 @@ The **item** is the data (or any object) that the project works on. Each techniq
 
 ## 1. Write techniques
 
-A technique is a function that takes the item as its first argument and returns the changed item. The `technique` decorator registers it so that it can be referred to by name:
+A technique is an object that wraps a tool, and a tool is anything callable. The simplest tool is a function that takes the item as its first argument and returns the changed item. `Technique.register` creates a technique that wraps a function and registers it, so that it can be referred to by name:
 
 ```python
 import chrisjen
 
 
-@chrisjen.technique
 def drop_negatives(item):
     return [x for x in item if x >= 0]
 
 
-@chrisjen.technique
 def scale(item, factor=2):
     return [x * factor for x in item]
 
 
-@chrisjen.technique
 def total(item):
     return sum(item)
+
+
+for function in (drop_negatives, scale, total):
+    chrisjen.Technique.register(function.__name__, function)
 ```
 
-The functions are unchanged by the decorator, so you can still call them yourself:
+The functions are unchanged, so you can still call them yourself:
 
 ```python
 print(scale([1, 2, 3]))
@@ -169,9 +170,10 @@ print(project.apply())
 Some designs treat the techniques of a step as *alternatives* instead. `contest` tries every combination and keeps the result with the best score. It needs a **criterion**, a function that takes a result and returns a score (higher is better, unless you set `select = min`).
 
 ```python
-@chrisjen.technique
 def halve(item):
     return [x / 2 for x in item]
+
+chrisjen.Technique.register("halve", halve)
 
 
 @chrisjen.criterion
@@ -224,7 +226,7 @@ The other designs are described in the [advanced user guide](advanced.md) and [r
 
 ## 8. Write a technique as a class
 
-When a technique needs setup, or you want to keep related code together, subclass `chrisjen.Technique` and write an `implement` method. It is found by its snake case class name:
+When a technique needs more than a call, or you want to keep related code together, subclass `chrisjen.Technique` and write an `implement` method. The class is registered by its snake case name:
 
 ```python
 import dataclasses
@@ -244,7 +246,127 @@ print(chrisjen.Project(settings, item=[1, 2, 3, 4]).apply())
 # 6
 ```
 
-## 9. Save and load files
+## 9. Wrap tools from other packages
+
+A technique wraps a tool, and the tool is anything callable. You can register a function from another package directly, or give its import path as a `str`. A path is only imported when the technique is used, so techniques can wrap optional packages, and a mistake in a path is reported when the technique is applied.
+
+Here, three tools from the standard library are wrapped. The third argument of `register` sets default parameters, which are passed to the tool (and can be overridden in your settings):
+
+```python
+chrisjen.Technique.register("mean", "statistics.fmean")
+chrisjen.Technique.register("root", "math.sqrt")
+chrisjen.Technique.register("rounded", round, {"ndigits": 1})
+
+settings = {
+    "wrap_project": {"wrap_workers": "measure"},
+    "measure": {
+        "measure_steps": ["average", "finish"],
+        "average_techniques": "mean",
+        "finish_techniques": "root, rounded",
+    },
+}
+project = chrisjen.Project(settings, item=[2, 8])
+print(project.apply())
+# 2.2
+```
+
+The mean of 2 and 8 is 5.0, its square root is about 2.236, and `round` keeps one digit. A `<name>_parameters` section in your settings changes the parameters:
+
+```python
+settings["rounded_parameters"] = {"ndigits": 3}
+print(chrisjen.Project(settings, item=[2, 8]).apply())
+# 2.236
+```
+
+Parameters that a tool does not accept are left out, so you can share parameters among the techniques of a step without breaking any of them.
+
+A `Technique` calls its tool with the item as the first argument. Tools that need to be called differently (for example, a class that must be created from the parameters and then used, or a method of the item itself) are wrapped by a *type* of technique that says how, which is the next section.
+
+## 10. Types of techniques
+
+Different kinds of tools need to be called in different ways. A **type** of technique is a subclass of `Technique` and `abc.ABC`. Each type has its own registry, and it can override `implement` to change how its tools are called. This example has a type for cleaning data and a type for summarizing data with a distribution class:
+
+```python
+import abc
+
+
+class Cleaner(chrisjen.Technique, abc.ABC):
+    """Techniques that clean data."""
+
+
+class Modeler(chrisjen.Technique, abc.ABC):
+    """Techniques that build an object from parameters and then use it."""
+
+    method = "cdf"
+
+    def implement(self, item, **kwargs):
+        model = self.resolve()(**kwargs)
+        return getattr(model, self.method)(item)
+
+
+Cleaner.register("filter", lambda item: [x for x in item if x != 0])
+Modeler.register("normal", "statistics.NormalDist", {"mu": 0, "sigma": 1})
+```
+
+Then a step can name the type of its techniques with `{step}_technique_type` (or `{worker}_technique_type`, for a worker without steps). With settings like these, the "tidy" worker only looks in the `Cleaner` registry:
+
+```python
+settings = {
+    "types_project": {"types_workers": ["tidy", "summarize", "model"]},
+    "tidy": {
+        "tidy_techniques": "filter",
+        "tidy_technique_type": "cleaner",
+    },
+    "summarize": {"summarize_techniques": "mean"},
+    "model": {
+        "model_techniques": "normal",
+        "model_technique_type": "modeler",
+    },
+    "normal_parameters": {"mu": 2, "sigma": 2},
+}
+print(chrisjen.Project(settings, item=[0, 2, 0, 2]).apply())
+# 0.5
+```
+
+The item `[0, 2, 0, 2]` is cleaned to `[2, 2]` and averaged (with the `mean` technique from the previous section) to `2.0`. The normal distribution with a mean of 2 then gives `cdf(2.0) == 0.5`. Parameters in `normal_parameters` are combined with the parameters registered with the technique.
+
+Naming the type is optional. Without it, a name is looked up in every type, and a name that is registered in more than one type (like `filter` above) raises a `KeyError` that tells you to name the type. You can also write the type in the name, as `cleaner.filter`. `Technique.available()` lists everything that is registered, by type:
+
+```python
+class Analyzer(chrisjen.Technique, abc.ABC):
+    """Techniques that analyze data."""
+
+
+Analyzer.register("filter", lambda item: [x for x in item if x > 0])
+print(chrisjen.Technique.create("cleaner.filter").complete([0, 1, -1]))
+# [1, -1]
+print(chrisjen.Technique.create("filter", kind="analyzer").complete([0, 1, -1]))
+# [1]
+print(sorted(chrisjen.Technique.available()["cleaner"]))
+# ['filter']
+```
+
+A technique can also be defined by subclassing a type. The class is registered under its snake case name in the registry of its type:
+
+```python
+import dataclasses
+
+
+@dataclasses.dataclass
+class DropNones(Cleaner):
+    def implement(self, item, **kwargs):
+        return [x for x in item if x is not None]
+
+
+print(chrisjen.Technique.create("drop_nones").complete([1, None, 2]))
+# [1, 2]
+print(sorted(Cleaner.registry))
+# ['drop_nones', 'filter']
+```
+
+`chrisjen` does not define any types beyond the general `Technique`. It is meant to be the foundation for packages that do (a data science package could have `Cleaner`, `Munger`, `Analyzer`, and `Visualizer` types that wrap `pandas`, `scikit-learn`, `matplotlib`, and so on). The [advanced user guide](advanced.md) describes how registries and lookups work.
+
+## 11. Save and load files
 
 A project's `clerk` manages files. It creates `input`, `interim`, and `output` folders when it is first used:
 
@@ -273,7 +395,7 @@ print(project.clerk.framework.settings["file_encoding"])
 # utf-8
 ```
 
-## 10. Draw the workflow
+## 12. Draw the workflow
 
 `to_dot` returns [Graphviz](https://graphviz.org/) text (and writes it to a file if you pass `path`). `to_mermaid` returns [mermaid](https://mermaid.js.org/) text, which many Markdown tools can draw.
 
@@ -297,5 +419,5 @@ print(project.to_dot())
 
 ## Next steps
 
-* The [advanced user guide](advanced.md) describes every design, how settings are read, and how to add your own designs.
+* The [advanced user guide](advanced.md) describes every design, how techniques are registered and found, how settings are read, and how to add your own designs.
 * The [recipes](recipes.md) show complete examples of each design.

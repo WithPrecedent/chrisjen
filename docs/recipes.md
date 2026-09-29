@@ -13,20 +13,23 @@ import statistics
 import chrisjen
 
 
-@chrisjen.technique
 def last_value(item):
     values = item["values"]
     return {**item, "prediction": values[-1]}
 
+chrisjen.Technique.register("last_value", last_value)
 
-@chrisjen.technique
+
 def average(item):
     return {**item, "prediction": statistics.fmean(item["values"])}
 
+chrisjen.Technique.register("average", average)
 
-@chrisjen.technique
+
 def recent_average(item, window=3):
     return {**item, "prediction": statistics.fmean(item["values"][-window:])}
+
+chrisjen.Technique.register("recent_average", recent_average)
 
 
 @chrisjen.criterion
@@ -56,16 +59,12 @@ print(contest.scores)
 
 ## Try several values of a parameter
 
-Techniques are chosen by name, so to compare parameter values, register one technique for each value:
+Techniques are chosen by name, and a technique can be registered with default parameters. To compare parameter values, register the same tool once for each value:
 
 ```python
 for window in (2, 3, 5):
-    chrisjen.technique(
-        lambda item, window=window: {
-            **item,
-            "prediction": statistics.fmean(item["values"][-window:]),
-        },
-        name=f"window_{window}",
+    chrisjen.Technique.register(
+        f"window_{window}", recent_average, {"window": window}
     )
 
 settings["forecaster"]["predict_techniques"] = ["window_2", "window_3", "window_5"]
@@ -81,14 +80,16 @@ print(contest.winner, contest.scores)
 `survey` runs every combination and averages the results, instead of choosing one. Here, two ways of estimating a total are averaged:
 
 ```python
-@chrisjen.technique
 def estimate_low(item):
     return sum(item) * 0.9
 
+chrisjen.Technique.register("estimate_low", estimate_low)
 
-@chrisjen.technique
+
 def estimate_high(item):
     return sum(item) * 1.1
+
+chrisjen.Technique.register("estimate_high", estimate_high)
 
 
 settings = {
@@ -107,9 +108,10 @@ print(chrisjen.Project(settings, item=[10, 20, 30]).apply())
 `agile` repeats a workflow until a criterion is satisfied. This example halves a step size until it is small enough, and `max_iterations` is a safety limit:
 
 ```python
-@chrisjen.technique
 def halve_step(item):
     return item / 2
+
+chrisjen.Technique.register("halve_step", halve_step)
 
 
 @chrisjen.criterion
@@ -144,14 +146,16 @@ settings = {
 }
 
 
-@chrisjen.technique
 def drop_negatives(item):
     return [x for x in item if x >= 0]
 
+chrisjen.Technique.register("drop_negatives", drop_negatives)
 
-@chrisjen.technique
+
 def scale(item, factor=2):
     return [x * factor for x in item]
+
+chrisjen.Technique.register("scale", scale)
 
 
 project = chrisjen.Project(settings)
@@ -226,19 +230,22 @@ import pandas as pd
 import chrisjen
 
 
-@chrisjen.technique
 def fill_missing(item, value=0):
     return item.fillna(value)
 
+chrisjen.Technique.register("fill_missing", fill_missing)
 
-@chrisjen.technique
+
 def standardize(item):
     return (item - item.mean()) / item.std()
 
+chrisjen.Technique.register("standardize", standardize)
 
-@chrisjen.technique
+
 def summarize_columns(item):
     return item.describe().loc[["mean", "std"]]
+
+chrisjen.Technique.register("summarize_columns", summarize_columns)
 
 
 settings = {
@@ -273,9 +280,10 @@ Techniques and criteria are registered when the module that defines them is impo
 import chrisjen
 
 
-@chrisjen.technique
 def clean(item):
     ...
+
+chrisjen.Technique.register("clean", clean)
 
 
 # main.py
