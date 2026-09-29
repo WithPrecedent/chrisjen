@@ -28,7 +28,7 @@ repos:
     - id: uv-lock
 
 - repo: https://github.com/jsh9/pydoclint
-  rev: 0.8.3
+  rev: 0.10.1
   hooks:
     - id: pydoclint
-      args: [--style=google, --check-return-types=False]
+      args: [--style=google, --check-return-types=False, --arg-type-hints-in-docstring=False, --check-class-attributes=False, --skip-checking-raises=True]

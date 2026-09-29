@@ -94,15 +94,15 @@ wheels = [
 
 [[package]]
 name = "bobbie"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bunches" },
     { name = "wonka" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e9/7d/d67589436d4d70d774b55d5ecf5010f88ec0df5347d2a4c2f5e2d8fd8f76/bobbie-0.2.0.tar.gz", hash = "sha256:9735c3895246ca208728329e0bcff2af58d3657b03d7b9a2b9d26430c4934049", size = 117546, upload-time = "2026-06-18T19:09:50.082Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/85/9f/1601f3757bdfa8b8e7429e9c947cb003a17a46a655db811f50476be5f279/bobbie-0.2.1.tar.gz", hash = "sha256:259d9151c859ce72e426e99fcb79e0a99dc930b5b782b3769f11429a65132d69", size = 118313, upload-time = "2026-09-29T20:22:52.832Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0e/c9/9aaf875c09218c36201774ed9948d8e30022ade6dd52469a2f737f70c766/bobbie-0.2.0-py3-none-any.whl", hash = "sha256:d0129d2da4573704255ea7b3d8957410b9457918617cd6b12908b587fe4fd48e", size = 13101, upload-time = "2026-06-18T19:09:49.073Z" },
+    { url = "https://files.pythonhosted.org/packages/e3/31/c8f9bd82e4fc93e3954696b1454b5a8d2ac32afc6912652ed7a197c8818b/bobbie-0.2.1-py3-none-any.whl", hash = "sha256:296e6073c464cd6c5bda66dfb06c4574ce8e41725a579c30b71e7bb27b53d874", size = 13310, upload-time = "2026-09-29T20:22:51.781Z" },
 ]
 
 [[package]]
@@ -281,11 +281,12 @@ wheels = [
 
 [[package]]
 name = "chrisjen"
-version = "0.1.4"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "bobbie" },
     { name = "holden" },
+    { name = "nagata" },
     { name = "wonka" },
 ]
 
@@ -322,9 +323,10 @@ tests = [
 
 [package.metadata]
 requires-dist = [
-    { name = "bobbie" },
-    { name = "holden" },
-    { name = "wonka" },
+    { name = "bobbie", specifier = ">=0.2.1" },
+    { name = "holden", specifier = ">=0.2.2" },
+    { name = "nagata" },
+    { name = "wonka", specifier = ">=0.2.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -575,15 +577,15 @@ wheels = [
 
 [[package]]
 name = "holden"
-version = "0.1.9"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bunches" },
     { name = "wonka" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/83/05/cac4116fba59e7dd05160dff274937bf2bae82b078f875eaf3773e5d4c8c/holden-0.1.9.tar.gz", hash = "sha256:1e22838dce6c88696c6d9cb837d2030a5da1201ff0b5f8a793f2d3faf8fccc9e", size = 34969, upload-time = "2025-03-03T01:19:37.824Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0d/b3/5a8b87ec2328fc736380aaea90ecfbde46787444c7414ea718b799b1e571/holden-0.2.2.tar.gz", hash = "sha256:4ebd75a18a2a2b5b052cc2831c199348f13625f7b8cd32640d13f8ee58536ba3", size = 177324, upload-time = "2026-09-29T17:05:32.863Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/52/e004482983e288537ccc5090791ab21a8b4be28c4ee1092ad352cffeb61c/holden-0.1.9-py3-none-any.whl", hash = "sha256:75ba82c1b5fdff81c0dfe629a2e7fc6b2b9a36ab9ed2790bf29ff36ebf387169", size = 35821, upload-time = "2025-03-03T01:19:35.997Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/2c/2c1b3fb38b145b8d41b41a15d7d92fe92b08b1527fe09b150a3acf75ec92/holden-0.2.2-py3-none-any.whl", hash = "sha256:3365f7f0166815640cbccc990ed971b5a0c7a3629c254a84a2c4ecacd58ce8d9", size = 40650, upload-time = "2026-09-29T17:05:31.802Z" },
 ]
 
 [[package]]
@@ -1124,6 +1126,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a2/6e/371856a3fb9d31ca8dac321cda606860fa4548858c0cc45d9d1d4ca2628b/mypy_extensions-1.1.0.tar.gz", hash = "sha256:52e68efc3284861e772bbcd66823fde5ae21fd2fdb51c62a211403730b916558", size = 6343, upload-time = "2025-04-22T14:54:24.164Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl", hash = "sha256:1be4cccdb0f2482337c4743e60421de3a356cd97508abadd57d47403e94f5505", size = 4963, upload-time = "2025-04-22T14:54:22.983Z" },
+]
+
+[[package]]
+name = "nagata"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "wonka" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0b/da/fcb87f83133a3f26a0644ee13c49dea63853af46d65145495def7ecc8a18/nagata-0.2.0.tar.gz", hash = "sha256:417ba7420d3dff8154bc468af2c0182f433d13d05a99f382d73245f133912dd5", size = 243573, upload-time = "2026-09-29T19:30:16.309Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/35/3f/9c434e1fbfe2c4ce4e05a947347d2e159fe9c7d37fed85a101a53267ac42/nagata-0.2.0-py3-none-any.whl", hash = "sha256:6ae225a7c6edae112af41c9bdbeda1f8a665f626a0164cc014aaba69cc133d15", size = 22246, upload-time = "2026-09-29T19:30:15.285Z" },
 ]
 
 [[package]]
