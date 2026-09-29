@@ -1,0 +1,106 @@
+"""validators: validating functions
+Corey Rayburn Yung <coreyrayburnyung@gmail.com>
+Copyright 2020-2023, Corey Rayburn Yung
+License: Apache-2.0
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+Contents:
+
+    
+"""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core import framework
+
+
+def validate_workers(project: framework.Project) -> framework.Project:
+    """Creates or validates 'project.manager.contents'.
+    
+    Args:
+        project (structure.Project): project to examine and validate.
+        
+    Returns:
+        structure.Project: validated structure.Project instance.
+        
+    """
+    if not project.outline.workers:
+        workers = [project.registry.keystones['worker']]
+    else:
+        names = project.outline.workers
+        workers = []
+        for name in names:
+            workers.append(project.registry.workers[name])
+    project.manager.contents = workers
+    return project
+
+def validate_outline(project: framework.Project) -> framework.Project:
+    """Creates or validates 'project.outline'.
+    
+    Args:
+        project (structure.Project): project to examine and validate.
+        
+    Returns:
+        structure.Project: validated structure.Project instance.
+        
+    """
+    if not project.outline.workers:
+        workers = [project.registry.keystones['worker']]
+    else:
+        names = project.outline.workers
+        workers = []
+        for name in names:
+            workers.append(project.registry.workers[name])
+    project.manager.contents = workers
+    return project
+
+
+    # def _validate_keystones(self) -> None:
+    #     """Creates or validates 'keystones'."""
+    #     if inspect.isclass(self.keystones):
+    #         self.keystones = self.keystones()
+    #     if (not isinstance(self.keystones, ashford.Keystones)
+    #         or not camina.has_attributes(
+    #             item = self,
+    #             attributes = [
+    #                 'clerk', 'component', 'manager', 'settings', 'stage',
+    #                 'workflow'])):
+    #         self.keystones = ashford.Keystones()
+    #     return self
+
+
+    # def _validate_workflow(self) -> None:
+    #     """Creates or validates 'workflow'."""
+    #     if self.workflow is None:
+    #         self.workflow = self.workflow
+    #     return self
+
+    # def _validate_results(self) -> None:
+    #     """Creates or validates 'results'."""
+    #     if not hasattr(self, 'results'):
+    #         self.results = self.results
+    #     return self
+
+    # def _validate_data(self) -> None:
+    #     """Creates or validates 'data'.
+
+    #     The default method performs no validation but is included as a hook for
+    #     subclasses to override if validation of the 'data' attribute is
+    #     required.
+
+    #     """
+    #     return self
+
