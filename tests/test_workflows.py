@@ -12,9 +12,9 @@ import chrisjen
 
 def make_step(name: str, *functions: Any, **parameters: Any) -> chrisjen.Step:
     techniques = [
-        chrisjen.Technique(name=f.__name__, contents=f) for f in functions
+        chrisjen.Technique(name = f.__name__, contents = f) for f in functions
     ]
-    return chrisjen.Step(name=name, contents=techniques, parameters=parameters)
+    return chrisjen.Step(name = name, contents = techniques, parameters = parameters)
 
 
 def add_one(item: int) -> int:
@@ -50,7 +50,7 @@ def test_design_by_name_and_alias() -> None:
 
 
 def test_unknown_design() -> None:
-    with pytest.raises(KeyError, match="not a known workflow design"):
+    with pytest.raises(KeyError, match = "not a known workflow design"):
         chrisjen.Workflow.design("spiral", steps())
 
 
@@ -66,14 +66,14 @@ def test_graph_structure() -> None:
 def test_cycle_is_detected() -> None:
     workflow = chrisjen.Workflow.design("waterfall", steps())
     workflow.connect(("b", "a"))
-    with pytest.raises(ValueError, match="cycle"):
+    with pytest.raises(ValueError, match = "cycle"):
         workflow.order()
 
 
 def test_unknown_requirement() -> None:
-    with pytest.raises(KeyError, match="unknown nodes"):
+    with pytest.raises(KeyError, match = "unknown nodes"):
         chrisjen.Workflow.design(
-            "pert", steps(), requirements={"b": ["missing"]}
+            "pert", steps(), requirements = {"b": ["missing"]}
         )
 
 
@@ -100,7 +100,7 @@ def test_keyword_arguments_reach_techniques() -> None:
 
     workflow = chrisjen.Workflow.design("waterfall", [make_step("s", scale)])
     assert workflow.execute(3) == 3
-    assert workflow.execute(3, factor=5) == 15
+    assert workflow.execute(3, factor = 5) == 15
 
 
 def test_kanban_isolates_stages() -> None:
@@ -147,12 +147,12 @@ def test_pert_dependencies_and_critical_path() -> None:
     workflow = chrisjen.Workflow.design(
         "pert",
         nodes,
-        requirements={
+        requirements = {
             "left": ["start"],
             "right": ["start"],
             "finish": ["left", "right"],
         },
-        durations={"start": 1, "left": 5, "right": 2, "finish": 1},
+        durations = {"start": 1, "left": 5, "right": 2, "finish": 1},
     )
     assert workflow.root == ["start"]
     assert workflow.endpoint == ["finish"]
@@ -179,7 +179,7 @@ def test_pert_without_requirements_is_sequential() -> None:
 
 def test_agile_repeats_until_criteria_met() -> None:
     workflow = chrisjen.Workflow.design(
-        "agile", [make_step("a", add_one)], criteria=lambda r: r >= 5
+        "agile", [make_step("a", add_one)], criteria = lambda r: r >= 5
     )
     assert workflow.execute(0) == 5
     assert workflow.iterations == 5
@@ -189,8 +189,8 @@ def test_agile_stops_at_max_iterations() -> None:
     workflow = chrisjen.Workflow.design(
         "agile",
         [make_step("a", add_one)],
-        criteria=lambda r: False,  # noqa: ARG005
-        max_iterations=3,
+        criteria = lambda r: False,  # noqa: ARG005
+        max_iterations = 3,
     )
     assert workflow.execute(0) == 3
     assert workflow.iterations == 3
@@ -202,7 +202,7 @@ def test_lean_keeps_the_best() -> None:
         return item + 1
 
     workflow = chrisjen.Workflow.design(
-        "lean", [make_step("a", shape)], criteria=lambda r: -abs(r - 3)
+        "lean", [make_step("a", shape)], criteria = lambda r: -abs(r - 3)
     )
     assert workflow.execute(0) == 3
     assert workflow.score == 0
@@ -213,8 +213,8 @@ def test_lean_tolerance() -> None:
     workflow = chrisjen.Workflow.design(
         "lean",
         [make_step("a", add_one)],
-        criteria=lambda r: min(r, 10) * 0.01,
-        tolerance=0.05,
+        criteria = lambda r: min(r, 10) * 0.01,
+        tolerance = 0.05,
     )
     # Each pass improves the score by 0.01, which is below the tolerance.
     result = workflow.execute(0)
@@ -225,7 +225,7 @@ def test_lean_tolerance() -> None:
 def test_iterative_designs_need_criteria() -> None:
     for design in ("agile", "lean", "contest"):
         workflow = chrisjen.Workflow.design(design, steps())
-        with pytest.raises(ValueError, match="criteria"):
+        with pytest.raises(ValueError, match = "criteria"):
             workflow.execute(1)
 
 
@@ -241,7 +241,7 @@ def two_choice_steps() -> list[chrisjen.Step]:
 
 def test_contest_tries_every_combination() -> None:
     workflow = chrisjen.Workflow.design(
-        "contest", two_choice_steps(), criteria=lambda r: r
+        "contest", two_choice_steps(), criteria = lambda r: r
     )
     result = workflow.execute(10)
     assert set(workflow.results) == {
@@ -257,12 +257,12 @@ def test_contest_tries_every_combination() -> None:
 
 def test_contest_select_min_and_ties() -> None:
     workflow = chrisjen.Workflow.design(
-        "contest", two_choice_steps(), criteria=lambda r: r, select="min"
+        "contest", two_choice_steps(), criteria = lambda r: r, select = "min"
     )
     assert workflow.execute(10) == 8
     assert workflow.winner == "add_one > minus_three"
     tied = chrisjen.Workflow.design(
-        "contest", two_choice_steps(), criteria=lambda r: 0
+        "contest", two_choice_steps(), criteria = lambda r: 0
     )
     tied.execute(10)
     assert tied.winner == "add_one > minus_three"
@@ -276,7 +276,7 @@ def test_contest_does_not_change_the_input() -> None:
     workflow = chrisjen.Workflow.design(
         "contest",
         [make_step("a", append_x, append_x)],
-        criteria=lambda r: len(r),
+        criteria = lambda r: len(r),
     )  # noqa: PLW0108
     original: list[str] = []
     workflow.execute(original)
@@ -285,9 +285,9 @@ def test_contest_does_not_change_the_input() -> None:
 
 def test_contest_invalid_select() -> None:
     workflow = chrisjen.Workflow.design(
-        "contest", steps(), criteria=lambda r: r, select="median"
+        "contest", steps(), criteria = lambda r: r, select = "median"
     )
-    with pytest.raises(ValueError, match="select"):
+    with pytest.raises(ValueError, match = "select"):
         workflow.execute(1)
 
 
@@ -297,13 +297,13 @@ def test_contest_named_criterion() -> None:
         return result
 
     workflow = chrisjen.Workflow.design(
-        "contest", two_choice_steps(), criteria="workflows_biggest"
+        "contest", two_choice_steps(), criteria = "workflows_biggest"
     )
     assert workflow.execute(10) == 21
     missing = chrisjen.Workflow.design(
-        "contest", two_choice_steps(), criteria="workflows_missing"
+        "contest", two_choice_steps(), criteria = "workflows_missing"
     )
-    with pytest.raises(KeyError, match="not a registered criterion"):
+    with pytest.raises(KeyError, match = "not a registered criterion"):
         missing.execute(10)
 
 
@@ -312,12 +312,12 @@ def test_contest_between_workers() -> None:
         inner = chrisjen.Workflow.design(
             "waterfall", [make_step(name, function)]
         )
-        return chrisjen.Worker(name=name, contents=inner)
+        return chrisjen.Worker(name = name, contents = inner)
 
     workflow = chrisjen.Workflow.design(
         "contest",
         [branch(add_one, "slow"), branch(times_two, "fast")],
-        criteria=lambda r: r,
+        criteria = lambda r: r,
     )
     assert workflow.execute(10) == 20
     assert workflow.winner == "fast"

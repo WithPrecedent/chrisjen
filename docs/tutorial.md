@@ -26,7 +26,7 @@ def drop_negatives(item):
     return [x for x in item if x >= 0]
 
 
-def scale(item, factor=2):
+def scale(item, factor = 2):
     return [x * factor for x in item]
 
 
@@ -66,7 +66,7 @@ Here the "prepare" worker has two steps, "clean" and "resize". The `{step}_techn
 ## 3. Create and run the project
 
 ```python
-project = chrisjen.Project(settings, item=[3, -1, 4, -1, 5])
+project = chrisjen.Project(settings, item = [3, -1, 4, -1, 5])
 print(project.apply())
 # 24
 ```
@@ -116,7 +116,7 @@ summarize_techniques = total
 ```
 
 ```python
-project = chrisjen.Project("report.ini", item=[3, -1, 4, -1, 5])
+project = chrisjen.Project("report.ini", item = [3, -1, 4, -1, 5])
 print(project.apply())
 # 24
 ```
@@ -134,7 +134,7 @@ A technique function's other arguments are parameters. Their values come from a 
 
 ```python
 settings["scale_parameters"] = {"factor": 10}
-project = chrisjen.Project(settings, item=[3, -1, 4, -1, 5])
+project = chrisjen.Project(settings, item = [3, -1, 4, -1, 5])
 print(project.apply())
 # 120
 ```
@@ -142,7 +142,7 @@ print(project.apply())
 If a parameter section belongs to a step (here, "resize"), it applies to all the techniques of the step that accept the parameter. A technique's own parameters win over its step's. Parameters passed to `apply` win over both, and parameters in a worker's section are passed to everything in that worker.
 
 ```python
-print(project.apply(factor=1))
+print(project.apply(factor = 1))
 # 12
 ```
 
@@ -160,7 +160,7 @@ settings = {
         "change_techniques": ["drop_negatives", "scale", "scale"],
     },
 }
-project = chrisjen.Project(settings, item=[1, -2, 3])
+project = chrisjen.Project(settings, item = [1, -2, 3])
 print(project.apply())
 # [4, 12]
 ```
@@ -190,7 +190,7 @@ settings = {
         "shrink_techniques": ["scale", "halve", "none"],
     },
 }
-project = chrisjen.Project(settings, item=[1, 2, 3])
+project = chrisjen.Project(settings, item = [1, 2, 3])
 print(project.apply())
 # [0.5, 1.0, 1.5]
 contest = project.workflow.retrieve("scaler").contents
@@ -213,7 +213,7 @@ settings = {
         "shrink_techniques": ["scale", "halve"],
     },
 }
-project = chrisjen.Project(settings, item=[-8, 1, 2, 3])
+project = chrisjen.Project(settings, item = [-8, 1, 2, 3])
 project.apply()
 contest = project.workflow.retrieve("scaler").contents
 print(sorted(contest.scores))
@@ -242,7 +242,7 @@ settings = {
     "evens_project": {"evens_workers": "sorter"},
     "sorter": {"sorter_techniques": ["keep_evens", "total"]},
 }
-print(chrisjen.Project(settings, item=[1, 2, 3, 4]).apply())
+print(chrisjen.Project(settings, item = [1, 2, 3, 4]).apply())
 # 6
 ```
 
@@ -265,7 +265,7 @@ settings = {
         "finish_techniques": "root, rounded",
     },
 }
-project = chrisjen.Project(settings, item=[2, 8])
+project = chrisjen.Project(settings, item = [2, 8])
 print(project.apply())
 # 2.2
 ```
@@ -274,7 +274,7 @@ The mean of 2 and 8 is 5.0, its square root is about 2.236, and `round` keeps on
 
 ```python
 settings["rounded_parameters"] = {"ndigits": 3}
-print(chrisjen.Project(settings, item=[2, 8]).apply())
+print(chrisjen.Project(settings, item = [2, 8]).apply())
 # 2.236
 ```
 
@@ -324,7 +324,7 @@ settings = {
     },
     "normal_parameters": {"mu": 2, "sigma": 2},
 }
-print(chrisjen.Project(settings, item=[0, 2, 0, 2]).apply())
+print(chrisjen.Project(settings, item = [0, 2, 0, 2]).apply())
 # 0.5
 ```
 
@@ -340,7 +340,7 @@ class Analyzer(chrisjen.Technique, abc.ABC):
 Analyzer.register("filter", lambda item: [x for x in item if x > 0])
 print(chrisjen.Technique.create("cleaner.filter").complete([0, 1, -1]))
 # [1, -1]
-print(chrisjen.Technique.create("filter", kind="analyzer").complete([0, 1, -1]))
+print(chrisjen.Technique.create("filter", kind = "analyzer").complete([0, 1, -1]))
 # [1]
 print(sorted(chrisjen.Technique.available()["cleaner"]))
 # ['filter']
@@ -375,10 +375,10 @@ import pathlib
 import tempfile
 
 root = pathlib.Path(tempfile.mkdtemp())
-project = chrisjen.Project("report.ini", item=[1, 2, 3], root=root)
+project = chrisjen.Project("report.ini", item = [1, 2, 3], root = root)
 result = project.apply()
-project.clerk.save(result, file_name="result", file_format="pickle")
-print(project.clerk.load(file_name="result", file_format="pickle", folder="output"))
+project.clerk.save(result, file_name = "result", file_format = "pickle")
+print(project.clerk.load(file_name = "result", file_format = "pickle", folder = "output"))
 # 12
 ```
 
@@ -390,7 +390,7 @@ settings = {
     "worker": {"worker_techniques": "total"},
     "files": {"file_encoding": "utf-8"},
 }
-project = chrisjen.Project(settings, root=root)
+project = chrisjen.Project(settings, root = root)
 print(project.clerk.framework.settings["file_encoding"])
 # utf-8
 ```

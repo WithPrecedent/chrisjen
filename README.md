@@ -50,7 +50,7 @@ settings = {
     "summarize": {"summarize_techniques": "total"},
 }
 
-project = chrisjen.Project(settings, item=[3, -1, 4, -1, 5])
+project = chrisjen.Project(settings, item = [3, -1, 4, -1, 5])
 print(project.apply())
 # 24
 ```
@@ -82,7 +82,7 @@ summarize_techniques = total
 ```
 
 ```python
-project = chrisjen.Project("report.ini", item=[3, -1, 4, -1, 5])
+project = chrisjen.Project("report.ini", item = [3, -1, 4, -1, 5])
 print(project.outline.summary)
 # report (waterfall)
 #   prepare (waterfall)
@@ -138,7 +138,7 @@ settings = {
         "scale_techniques": ["double", "halve", "none"],
     },
 }
-project = chrisjen.Project(settings, item=[1, 2, 3])
+project = chrisjen.Project(settings, item = [1, 2, 3])
 print(project.apply())
 # [0.5, 1.0, 1.5]
 contest = project.workflow.retrieve("scaler").contents
@@ -190,7 +190,7 @@ pip install chrisjen
 A technique is an object that wraps a tool. Its `contents` is any callable (or the import path of one). When the technique is applied, the item being worked on is passed to the tool along with any keyword parameters that the tool accepts. Register a technique with `Technique.register` and refer to it by name. Parameters come from a `<name>_parameters` section of your settings:
 
 ```python
-def keep_above(item, minimum=0):
+def keep_above(item, minimum = 0):
     return [x for x in item if x > minimum]
 
 
@@ -201,7 +201,7 @@ settings = {
     "filterer": {"filterer_techniques": "keep_above"},
     "keep_above_parameters": {"minimum": 2},
 }
-print(chrisjen.Project(settings, item=[1, 2, 3, 4]).apply())
+print(chrisjen.Project(settings, item = [1, 2, 3, 4]).apply())
 # [3, 4]
 ```
 
@@ -215,7 +215,7 @@ settings = {
     "average_project": {"average_workers": "averager"},
     "averager": {"averager_techniques": "mean, rounded"},
 }
-print(chrisjen.Project(settings, item=[1, 2, 4]).apply())
+print(chrisjen.Project(settings, item = [1, 2, 4]).apply())
 # 2.3
 ```
 
@@ -236,7 +236,7 @@ settings = {
     "accumulate_project": {"accumulate_workers": "accumulator"},
     "accumulator": {"accumulator_techniques": "running_total"},
 }
-print(chrisjen.Project(settings, item=[1, 2, 3]).apply())
+print(chrisjen.Project(settings, item = [1, 2, 3]).apply())
 # [1, 3, 6]
 ```
 
@@ -270,7 +270,7 @@ settings = {
         "measure_technique_type": "analyzer",
     },
 }
-print(chrisjen.Project(settings, item=[0, 3, 0, 9]).apply())
+print(chrisjen.Project(settings, item = [0, 3, 0, 9]).apply())
 # 9
 print(sorted(Cleaner.registry))
 # ['remove_zeros']
@@ -283,7 +283,7 @@ Naming the type of a step is optional. Without it, a name is looked up in every 
 A project moves through three stages. Creating a `Project` *drafts* it (turns the settings into an `outline`). `publish` builds the `workflow`, and `apply` runs it. Set `automatic=True` to do all three when the project is created.
 
 ```python
-project = chrisjen.Project("report.ini", item=[3, -1, 4, -1, 5])
+project = chrisjen.Project("report.ini", item = [3, -1, 4, -1, 5])
 project.publish()
 print(project.workflow.walk())
 # [['prepare', 'summarize']]
@@ -309,9 +309,9 @@ import pathlib
 import tempfile
 
 root = pathlib.Path(tempfile.mkdtemp())
-project = chrisjen.Project("report.ini", item=[1, 2], root=root)
-project.clerk.save(project.apply(), file_name="total", file_format="pickle")
-print(project.clerk.load(file_name="total", file_format="pickle", folder="output"))
+project = chrisjen.Project("report.ini", item = [1, 2], root = root)
+project.clerk.save(project.apply(), file_name = "total", file_format = "pickle")
+print(project.clerk.load(file_name = "total", file_format = "pickle", folder = "output"))
 # 6
 ```
 
@@ -348,10 +348,6 @@ Contributors are always welcome. Feel free to grab an [issue](https://www.github
 * [jetstream](https://github.com/tgen/jetstream): similar DAG workflow structures in pure Python with a greater emphasis on loading workflows from disk.
 * [luigi](https://github.com/spotify/luigi): Spotify's workflow tool with much greater overhead and support for controlling workflow nodes outside of Python.
 * [pathos](https://github.com/uqfoundation/pathos): supports parallel workflow construction with heterogenuous computing framework. Among other features, it includes drop-in replacements for Python's `pickle` and `multiprocess`, called `dill` and `multiprocessing`, respectively.
-
-## Acknowledgments
-
-`chrisjen` is built on the author's other packages, [bobbie](https://github.com/WithPrecedent/bobbie), [holden](https://github.com/WithPrecedent/holden), [nagata](https://github.com/WithPrecedent/nagata), and [wonka](https://github.com/WithPrecedent/wonka).
 
 ## License
 

@@ -108,25 +108,25 @@ class Outline:
 
     name: str
     design: str = "waterfall"
-    workers: list[str] = dataclasses.field(default_factory=list)
-    designs: dict[str, str] = dataclasses.field(default_factory=dict)
-    steps: dict[str, list[str]] = dataclasses.field(default_factory=dict)
+    workers: list[str] = dataclasses.field(default_factory = list)
+    designs: dict[str, str] = dataclasses.field(default_factory = dict)
+    steps: dict[str, list[str]] = dataclasses.field(default_factory = dict)
     techniques: dict[str, dict[str, list[str]]] = dataclasses.field(
-        default_factory=dict
+        default_factory = dict
     )
     requirements: dict[str, dict[str, list[str]]] = dataclasses.field(
-        default_factory=dict
+        default_factory = dict
     )
-    types: dict[str, dict[str, str]] = dataclasses.field(default_factory=dict)
+    types: dict[str, dict[str, str]] = dataclasses.field(default_factory = dict)
     parameters: dict[str, dict[str, Any]] = dataclasses.field(
-        default_factory=dict
+        default_factory = dict
     )
-    durations: dict[str, float] = dataclasses.field(default_factory=dict)
-    options: dict[str, dict[str, Any]] = dataclasses.field(default_factory=dict)
+    durations: dict[str, float] = dataclasses.field(default_factory = dict)
+    options: dict[str, dict[str, Any]] = dataclasses.field(default_factory = dict)
     initialization: dict[str, dict[str, Any]] = dataclasses.field(
-        default_factory=dict
+        default_factory = dict
     )
-    kinds: dict[str, str] = dataclasses.field(default_factory=dict)
+    kinds: dict[str, str] = dataclasses.field(default_factory = dict)
 
     """ Properties """
 
@@ -169,7 +169,7 @@ class Outline:
         section_name = cls._find_project(idea, name)
         name = section_name.removesuffix("_project")
         section = cls._get_section(idea, section_name)
-        outline = cls(name=name)
+        outline = cls(name = name)
         outline.design = cls._get_design(section, name)
         outline.workers = cls._get_names(
             section, f"{name}_workers", f"the workers of {name!r}"
@@ -320,7 +320,7 @@ class Outline:
                 section,
                 f"{worker}_techniques",
                 f"the techniques of {worker!r}",
-                unique=False,
+                unique = False,
             )
             if not techniques:
                 message = (
@@ -340,7 +340,7 @@ class Outline:
                 section,
                 f"{step}_techniques",
                 f"the techniques of {step!r}",
-                unique=False,
+                unique = False,
             )
             self.techniques[worker][step] = techniques or [step]
             self._add_techniques(self.techniques[worker][step])

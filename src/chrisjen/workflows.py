@@ -78,8 +78,8 @@ class Workflow(holden.Storage, holden.System, wonka.Subclasser, abc.ABC):
     max_iterations: int = 10
     tolerance: float = 0.0
     select: str = "max"
-    durations: dict[str, float] = dataclasses.field(default_factory=dict)
-    results: dict[str, Any] = dataclasses.field(default_factory=dict)
+    durations: dict[str, float] = dataclasses.field(default_factory = dict)
+    results: dict[str, Any] = dataclasses.field(default_factory = dict)
     aliases: ClassVar[dict[str, str]] = {
         "compete": "contest",
         "competition": "contest",
@@ -118,7 +118,7 @@ class Workflow(holden.Storage, holden.System, wonka.Subclasser, abc.ABC):
         """
         key = cls.aliases.get(item, item)
         try:
-            workflow = cls.create(key, parameters=kwargs)
+            workflow = cls.create(key, parameters = kwargs)
         except KeyError as error:
             known = sorted(wonka.options._KEY_NAMER(s) for s in _all(cls))
             message = (
@@ -126,7 +126,7 @@ class Workflow(holden.Storage, holden.System, wonka.Subclasser, abc.ABC):
                 f"{', '.join(known)}"
             )
             raise KeyError(message) from error
-        workflow.populate(contents, requirements=requirements)
+        workflow.populate(contents, requirements = requirements)
         return workflow
 
     """ Properties """
@@ -160,13 +160,13 @@ class Workflow(holden.Storage, holden.System, wonka.Subclasser, abc.ABC):
             duration = self.durations.get(name, 1.0)
             before = max(
                 (best[p] for p in parents[name]),
-                key=lambda option: option[0],
-                default=(0.0, []),
+                key = lambda option: option[0],
+                default = (0.0, []),
             )
             best[name] = (before[0] + duration, [*before[1], name])
         if not best:
             return [], 0.0
-        total, path = max(best.values(), key=lambda option: option[0])
+        total, path = max(best.values(), key = lambda option: option[0])
         return path, total
 
     @abc.abstractmethod
@@ -407,7 +407,7 @@ class Kanban(Workflow):
 
         """
         self.results.clear()
-        return self._apply(item, isolate=True, **kwargs)
+        return self._apply(item, isolate = True, **kwargs)
 
 
 @dataclasses.dataclass
@@ -627,7 +627,7 @@ class Contest(Comparative):
 
     """
 
-    scores: dict[str, Any] = dataclasses.field(default_factory=dict)
+    scores: dict[str, Any] = dataclasses.field(default_factory = dict)
     winner: str | None = None
 
     def execute(self, item: Any, **kwargs: Any) -> Any:
@@ -656,7 +656,7 @@ class Contest(Comparative):
             raise ValueError(message)
         self.scores = {label: criteria(r) for label, r in results.items()}
         choose = max if select == "max" else min
-        self.winner = choose(self.scores, key=lambda label: self.scores[label])
+        self.winner = choose(self.scores, key = lambda label: self.scores[label])
         return results[self.winner]
 
 

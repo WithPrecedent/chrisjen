@@ -64,7 +64,7 @@ def actual_output(text: str) -> list[str]:
     return lines
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse = True)
 def restore_registries() -> Iterator[None]:
     """Removes the techniques and types that the examples register.
 
@@ -87,24 +87,24 @@ def restore_registries() -> Iterator[None]:
     chrisjen.Workflow.criteria_registry.update(criteria)
 
 
-@pytest.mark.parametrize("path", FILES, ids=lambda p: p.name)
+@pytest.mark.parametrize("path", FILES, ids = lambda p: p.name)
 def test_examples_run(
     path: pathlib.Path,
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding = "utf-8")
     monkeypatch.chdir(tmp_path)
     for match in FILE_BLOCK.finditer(text):
         target = tmp_path / match["name"]
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(match["text"], encoding="utf-8")
+        target.parent.mkdir(parents = True, exist_ok = True)
+        target.write_text(match["text"], encoding = "utf-8")
     # The examples run as a real module so that classes defined in them (such
     # as dataclasses) can find their module.
     module = types.ModuleType(f"docs_{path.stem}")
     monkeypatch.setitem(sys.modules, module.__name__, module)
     namespace = module.__dict__
-    for number, match in enumerate(PYTHON_BLOCK.finditer(text), start=1):
+    for number, match in enumerate(PYTHON_BLOCK.finditer(text), start = 1):
         code = match["code"]
         if code.startswith("# skip"):
             continue

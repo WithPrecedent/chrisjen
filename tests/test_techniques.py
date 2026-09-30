@@ -133,24 +133,24 @@ def test_register_with_a_name_and_tool() -> None:
 
 
 def test_register_a_technique() -> None:
-    technique = TtCleaner(name="tt_instance", contents=len)
+    technique = TtCleaner(name = "tt_instance", contents = len)
     assert TtCleaner.register(technique) is technique
     assert TtCleaner.registry["tt_instance"] is technique
-    assert TtCleaner.register(technique, name="tt_alias") is technique
+    assert TtCleaner.register(technique, name = "tt_alias") is technique
     assert TtCleaner.registry["tt_alias"] is technique
 
 
 def test_register_a_subclass_instance() -> None:
-    technique = TtDropNegatives(name="tt_special")
+    technique = TtDropNegatives(name = "tt_special")
     assert TtCleaner.register(technique) is technique
     assert TtCleaner.create("tt_special").complete([1, -1]) == [1]
 
 
 def test_register_rejects_the_wrong_kind_of_item() -> None:
-    with pytest.raises(TypeError, match="TtCleaner instance, not int"):
+    with pytest.raises(TypeError, match = "TtCleaner instance, not int"):
         TtCleaner.register(3)  # type: ignore[arg-type]
-    with pytest.raises(TypeError, match="not TtMunger"):
-        TtCleaner.register(TtMunger(name="tt_wrong"))
+    with pytest.raises(TypeError, match = "not TtMunger"):
+        TtCleaner.register(TtMunger(name = "tt_wrong"))
     assert "tt_wrong" not in TtCleaner.registry
 
 
@@ -215,9 +215,9 @@ def test_names_are_found_in_every_type() -> None:
 
 def test_a_type_only_looks_in_its_own_registry() -> None:
     assert isinstance(TtCleaner.create("tt_clean"), TtCleaner)
-    with pytest.raises(KeyError, match="'tt_mean' is not a known technique"):
+    with pytest.raises(KeyError, match = "'tt_mean' is not a known technique"):
         TtCleaner.create("tt_mean")
-    with pytest.raises(KeyError, match="'tt_clean'"):
+    with pytest.raises(KeyError, match = "'tt_clean'"):
         TtAnalyzer.create("tt_clean")
     # A subclass of a type uses the registry of its type.
     assert isinstance(TtDropNegatives.create("tt_clean"), TtCleaner)
@@ -229,7 +229,7 @@ def test_locate() -> None:
         TtAnalyzer,
         "tt_mean",
     )
-    assert chrisjen.Technique.locate("tt_mean", kind="TT_ANALYZER") == (
+    assert chrisjen.Technique.locate("tt_mean", kind = "TT_ANALYZER") == (
         TtAnalyzer,
         "tt_mean",
     )
@@ -237,18 +237,18 @@ def test_locate() -> None:
 
 
 def test_ambiguous_names() -> None:
-    with pytest.raises(KeyError, match="tt_cleaner, tt_munger"):
+    with pytest.raises(KeyError, match = "tt_cleaner, tt_munger"):
         chrisjen.Technique.create("tt_shared")
-    with pytest.raises(KeyError, match="more than one type"):
+    with pytest.raises(KeyError, match = "more than one type"):
         chrisjen.Technique.locate("tt_shared")
     assert isinstance(
         chrisjen.Technique.create("tt_cleaner.tt_shared"), TtCleaner
     )
     assert isinstance(
-        chrisjen.Technique.create("tt_shared", kind="tt_munger"), TtMunger
+        chrisjen.Technique.create("tt_shared", kind = "tt_munger"), TtMunger
     )
     assert isinstance(
-        chrisjen.Technique.create("tt_shared", kind=TtCleaner), TtCleaner
+        chrisjen.Technique.create("tt_shared", kind = TtCleaner), TtCleaner
     )
     assert isinstance(TtMunger.create("tt_shared"), TtMunger)
 
@@ -256,12 +256,12 @@ def test_ambiguous_names() -> None:
 def test_kind_takes_a_name_or_a_class() -> None:
     for kind in ("tt_analyzer", "TT_Analyzer", TtAnalyzer):
         assert isinstance(
-            chrisjen.Technique.create("tt_mean", kind=kind), TtAnalyzer
+            chrisjen.Technique.create("tt_mean", kind = kind), TtAnalyzer
         )
-    with pytest.raises(KeyError, match="not a type of technique.*tt_cleaner"):
-        chrisjen.Technique.create("tt_mean", kind="nonsense")
-    with pytest.raises(KeyError, match="'tt_mean' is not a known technique"):
-        chrisjen.Technique.create("tt_mean", kind="tt_cleaner")
+    with pytest.raises(KeyError, match = "not a type of technique.*tt_cleaner"):
+        chrisjen.Technique.create("tt_mean", kind = "nonsense")
+    with pytest.raises(KeyError, match = "'tt_mean' is not a known technique"):
+        chrisjen.Technique.create("tt_mean", kind = "tt_cleaner")
 
 
 def test_qualified_names() -> None:
@@ -269,10 +269,10 @@ def test_qualified_names() -> None:
         chrisjen.Technique.create("tt_analyzer.tt_mean"), TtAnalyzer
     )
     assert chrisjen.Technique.create("tt_analyzer.tt_mean").name == "tt_mean"
-    with pytest.raises(KeyError, match="not a known technique"):
+    with pytest.raises(KeyError, match = "not a known technique"):
         chrisjen.Technique.create("tt_analyzer.tt_missing")
     # A name with a dot that does not start with a type is looked up as is.
-    with pytest.raises(KeyError, match="not a known technique"):
+    with pytest.raises(KeyError, match = "not a known technique"):
         chrisjen.Technique.create("nothing.tt_mean")
 
 
@@ -287,7 +287,7 @@ def test_unknown_technique_error_lists_the_known_ones() -> None:
 
 
 def test_produce() -> None:
-    technique = TtMunger(name="a", parameters={"x": 1})
+    technique = TtMunger(name = "a", parameters = {"x": 1})
     result = TtMunger.produce(technique, {"parameters": {"y": 2}, "name": "b"})
     assert result is technique
     assert technique.name == "b"
@@ -302,62 +302,62 @@ def test_produce() -> None:
 
 
 def test_wrap_a_callable() -> None:
-    technique = chrisjen.Technique("length", contents=len)
+    technique = chrisjen.Technique("length", contents = len)
     assert technique.complete([1, 2, 3]) == 3
 
 
 def test_wrap_an_import_path() -> None:
-    technique = chrisjen.Technique("mean", contents="statistics.fmean")
+    technique = chrisjen.Technique("mean", contents = "statistics.fmean")
     assert technique.resolve() is statistics.fmean
     assert technique.complete([1, 2, 3, 4]) == 2.5
-    colon = chrisjen.Technique("mean", contents="statistics:fmean")
+    colon = chrisjen.Technique("mean", contents = "statistics:fmean")
     assert colon.complete([2, 4]) == 3.0
-    method = chrisjen.Technique("upper", contents="builtins.str.upper")
+    method = chrisjen.Technique("upper", contents = "builtins.str.upper")
     assert method.complete("abc") == "ABC"
 
 
 def test_import_paths_are_not_imported_until_they_are_used() -> None:
     technique = TtMunger.register("tt_lazy", "tt_no_such_package.tool")
     assert technique.contents == "tt_no_such_package.tool"
-    with pytest.raises(ImportError, match="tt_no_such_package.tool"):
+    with pytest.raises(ImportError, match = "tt_no_such_package.tool"):
         technique.complete(1)
-    with pytest.raises(ImportError, match="no_attribute"):
-        chrisjen.Technique("x", contents="statistics.no_attribute").complete(1)
+    with pytest.raises(ImportError, match = "no_attribute"):
+        chrisjen.Technique("x", contents = "statistics.no_attribute").complete(1)
 
 
 def test_parameters_are_filtered_for_the_wrapped_tool() -> None:
     technique = chrisjen.Technique(
-        "round", contents=round, parameters={"ndigits": 1, "unused": True}
+        "round", contents = round, parameters = {"ndigits": 1, "unused": True}
     )
     assert technique.complete(3.14159) == 3.1
-    assert chrisjen.Technique("round", contents=round).complete(3.6) == 4
-    assert technique.complete(3.14159, ndigits=3, other=1) == 3.142
+    assert chrisjen.Technique("round", contents = round).complete(3.6) == 4
+    assert technique.complete(3.14159, ndigits = 3, other = 1) == 3.142
 
 
 def test_wrapped_tools_that_are_not_callable_or_missing() -> None:
-    with pytest.raises(TypeError, match="technique 'constant' wraps 5, which"):
-        chrisjen.Technique("constant", contents=5).complete(1)
-    with pytest.raises(TypeError, match="technique 'path' wraps 3.14"):
-        chrisjen.Technique("path", contents="math.pi").complete(1)
-    with pytest.raises(NotImplementedError, match="no tool"):
+    with pytest.raises(TypeError, match = "technique 'constant' wraps 5, which"):
+        chrisjen.Technique("constant", contents = 5).complete(1)
+    with pytest.raises(TypeError, match = "technique 'path' wraps 3.14"):
+        chrisjen.Technique("path", contents = "math.pi").complete(1)
+    with pytest.raises(NotImplementedError, match = "no tool"):
         chrisjen.Technique("empty").complete(1)
 
 
 def test_a_type_can_change_how_tools_are_called() -> None:
     distribution = TtDistribution(
-        name="normal",
-        contents="statistics.NormalDist",
-        parameters={"mu": 10, "sigma": 2},
+        name = "normal",
+        contents = "statistics.NormalDist",
+        parameters = {"mu": 10, "sigma": 2},
     )
     assert distribution.complete(10) == 0.5
-    assert distribution.complete(10, mu=0, sigma=1) == pytest.approx(
-        1.0, abs=1e-6
+    assert distribution.complete(10, mu = 0, sigma = 1) == pytest.approx(
+        1.0, abs = 1e-6
     )
     cdf = TtDistribution(
-        name="pdf",
-        contents=statistics.NormalDist,
-        method="pdf",
-        parameters={"mu": 0, "sigma": 1},
+        name = "pdf",
+        contents = statistics.NormalDist,
+        method = "pdf",
+        parameters = {"mu": 0, "sigma": 1},
     )
     assert cdf.complete(0) == pytest.approx(0.3989422804)
     TtDistribution.register(distribution)
@@ -417,7 +417,7 @@ def test_the_same_technique_in_two_steps_is_independent() -> None:
             "two_techniques": "tt_stateful",
         },
     }
-    assert chrisjen.Project(settings, item=[]).apply() == [1, 1]
+    assert chrisjen.Project(settings, item = []).apply() == [1, 1]
 
 
 """ In projects """
@@ -429,11 +429,11 @@ def project_settings(**worker: Any) -> dict[str, Any]:
 
 def test_projects_find_techniques_in_any_type() -> None:
     settings = project_settings(
-        w_steps=["clean", "summarize"],
-        clean_techniques="tt_drop_negatives",
-        summarize_techniques="tt_mean",
+        w_steps = ["clean", "summarize"],
+        clean_techniques = "tt_drop_negatives",
+        summarize_techniques = "tt_mean",
     )
-    project = chrisjen.Project(settings, item=[4, -1, 2])
+    project = chrisjen.Project(settings, item = [4, -1, 2])
     assert project.apply() == 3
     assert project.outline.types == {}
     steps = project.workflow.retrieve("w").contents
@@ -443,13 +443,13 @@ def test_projects_find_techniques_in_any_type() -> None:
 
 def test_projects_can_name_the_type_of_each_step() -> None:
     settings = project_settings(
-        w_steps=["clean", "munge"],
-        clean_techniques="tt_shared",
-        clean_technique_type="TT_Cleaner",
-        munge_techniques="tt_shared",
-        munge_technique_type="tt_munger",
+        w_steps = ["clean", "munge"],
+        clean_techniques = "tt_shared",
+        clean_technique_type = "TT_Cleaner",
+        munge_techniques = "tt_shared",
+        munge_technique_type = "tt_munger",
     )
-    project = chrisjen.Project(settings, item=[1])
+    project = chrisjen.Project(settings, item = [1])
     assert project.outline.types == {
         "w": {"clean": "tt_cleaner", "munge": "tt_munger"}
     }
@@ -461,22 +461,22 @@ def test_projects_can_name_the_type_of_each_step() -> None:
 
 
 def test_ambiguous_names_need_a_type_in_a_project() -> None:
-    settings = project_settings(w_techniques="tt_shared")
-    project = chrisjen.Project(settings, item=[1])
-    with pytest.raises(KeyError, match="more than one type"):
+    settings = project_settings(w_techniques = "tt_shared")
+    project = chrisjen.Project(settings, item = [1])
+    with pytest.raises(KeyError, match = "more than one type"):
         project.publish()
     settings = project_settings(
-        w_techniques="tt_shared", w_technique_type="tt_munger"
+        w_techniques = "tt_shared", w_technique_type = "tt_munger"
     )
-    assert chrisjen.Project(settings, item=[1]).apply() == [1]
-    assert chrisjen.Project(settings, item=[1]).outline.types == {
+    assert chrisjen.Project(settings, item = [1]).apply() == [1]
+    assert chrisjen.Project(settings, item = [1]).outline.types == {
         "w": {"w": "tt_munger"}
     }
 
 
 def test_projects_accept_qualified_names() -> None:
-    settings = project_settings(w_techniques="tt_munger.tt_shared, tt_length")
-    project = chrisjen.Project(settings, item=[1, 2])
+    settings = project_settings(w_techniques = "tt_munger.tt_shared, tt_length")
+    project = chrisjen.Project(settings, item = [1, 2])
     assert project.apply() == 2
     step = project.workflow.retrieve("w").contents.retrieve("w")
     assert [t.name for t in step.contents] == [
@@ -487,22 +487,22 @@ def test_projects_accept_qualified_names() -> None:
 
 def test_a_technique_type_restricts_the_lookup() -> None:
     settings = project_settings(
-        w_techniques="tt_mean", w_technique_type="tt_cleaner"
+        w_techniques = "tt_mean", w_technique_type = "tt_cleaner"
     )
-    with pytest.raises(KeyError, match="'tt_mean' is not a known technique"):
+    with pytest.raises(KeyError, match = "'tt_mean' is not a known technique"):
         chrisjen.Project(settings).publish()
     settings = project_settings(
-        w_techniques="tt_mean", w_technique_type="nonsense"
+        w_techniques = "tt_mean", w_technique_type = "nonsense"
     )
-    with pytest.raises(KeyError, match="not a type of technique"):
+    with pytest.raises(KeyError, match = "not a type of technique"):
         chrisjen.Project(settings).publish()
 
 
 def test_technique_type_settings_are_not_kept_as_initialization() -> None:
     settings = project_settings(
-        w_techniques="tt_mean",
-        w_technique_type="tt_analyzer",
-        model_type="classify",
+        w_techniques = "tt_mean",
+        w_technique_type = "tt_analyzer",
+        model_type = "classify",
     )
     outline = chrisjen.Project(settings).outline
     assert outline.initialization["w"] == {"model_type": "classify"}
@@ -513,20 +513,20 @@ def test_parameters_reach_typed_techniques() -> None:
         "tt_normal", "statistics.NormalDist", {"mu": 0, "sigma": 1}
     )
     settings = project_settings(
-        w_techniques="tt_normal", w_technique_type="tt_distribution"
+        w_techniques = "tt_normal", w_technique_type = "tt_distribution"
     )
     settings["tt_normal_parameters"] = {"mu": 5, "sigma": 5}
-    assert chrisjen.Project(settings, item=5).apply() == 0.5
+    assert chrisjen.Project(settings, item = 5).apply() == 0.5
     # The registered defaults are used if the settings have nothing.
     del settings["tt_normal_parameters"]
-    assert chrisjen.Project(settings, item=0).apply() == 0.5
+    assert chrisjen.Project(settings, item = 0).apply() == 0.5
 
 
 def test_project_techniques_do_not_change_the_registry() -> None:
     TtMunger.register("tt_registry_check", len, {"a": 1})
-    settings = project_settings(w_techniques="tt_registry_check")
+    settings = project_settings(w_techniques = "tt_registry_check")
     settings["tt_registry_check_parameters"] = {"b": 2}
-    chrisjen.Project(settings, item=[1]).apply()
+    chrisjen.Project(settings, item = [1]).apply()
     assert TtMunger.registry["tt_registry_check"].parameters == {"a": 1}
     assert TtMunger.registry["tt_registry_check"].name == "tt_registry_check"
 
@@ -535,16 +535,16 @@ def test_only_the_tool_may_be_shared_when_it_cannot_be_copied() -> None:
     # Parameters must be copyable, because sharing them would let one use of a
     # technique change another.
     TtMunger.register("tt_bad_parameters", len, {"lock": threading.Lock()})
-    with pytest.raises(TypeError, match="pickle"):
+    with pytest.raises(TypeError, match = "pickle"):
         TtMunger.create("tt_bad_parameters")
 
 
 def test_a_redundant_type_in_a_name_is_accepted_with_kind() -> None:
     created = chrisjen.Technique.create(
-        "tt_cleaner.tt_clean", kind="tt_cleaner"
+        "tt_cleaner.tt_clean", kind = "tt_cleaner"
     )
     assert isinstance(created, TtCleaner)
     assert created.name == "tt_clean"
     assert chrisjen.Technique.locate(
-        "tt_analyzer.tt_mean", kind=TtAnalyzer
+        "tt_analyzer.tt_mean", kind = TtAnalyzer
     ) == (TtAnalyzer, "tt_mean")

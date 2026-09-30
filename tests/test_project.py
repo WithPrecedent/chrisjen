@@ -67,7 +67,7 @@ IDEA = {
 
 
 def test_three_stages() -> None:
-    project = chrisjen.Project(IDEA, item=2)
+    project = chrisjen.Project(IDEA, item = 2)
     assert project.name == "demo"
     assert project.outline is not None
     assert project.workflow is None
@@ -87,11 +87,11 @@ def test_apply_publishes_if_needed_and_accepts_an_item() -> None:
     project = chrisjen.Project.create(IDEA)
     assert project.apply(5) == 13
     assert project.workflow is not None
-    assert project.apply(item=1, amount=10) == 12
+    assert project.apply(item = 1, amount = 10) == 12
 
 
 def test_automatic() -> None:
-    project = chrisjen.Project(IDEA, item=2, automatic=True)
+    project = chrisjen.Project(IDEA, item = 2, automatic = True)
     assert project.result == 7
 
 
@@ -106,7 +106,7 @@ def test_ini_file() -> None:
 def test_json_and_toml_files(tmp_path: pathlib.Path) -> None:
     json_path = tmp_path / "settings.json"
     json_path.write_text(json.dumps(IDEA))
-    assert chrisjen.Project(json_path, item=2).apply() == 7
+    assert chrisjen.Project(json_path, item = 2).apply() == 7
     toml_path = tmp_path / "settings.toml"
     toml_path.write_text(
         "[demo_project]\n"
@@ -115,7 +115,7 @@ def test_json_and_toml_files(tmp_path: pathlib.Path) -> None:
         'prep_steps = ["grow"]\n'
         'grow_techniques = "project_double"\n'
     )
-    assert chrisjen.Project(toml_path, item=4).apply() == 8
+    assert chrisjen.Project(toml_path, item = 4).apply() == 8
 
 
 def test_existing_settings_are_used_as_is() -> None:
@@ -130,7 +130,7 @@ def test_unknown_technique_is_reported_when_publishing() -> None:
         "w": {"w_techniques": ["nonexistent_technique"]},
     }
     project = chrisjen.Project(idea)
-    with pytest.raises(KeyError, match="nonexistent_technique"):
+    with pytest.raises(KeyError, match = "nonexistent_technique"):
         project.publish()
 
 
@@ -144,7 +144,7 @@ def test_worker_without_steps_uses_techniques_directly() -> None:
         "x_project": {"x_workers": ["w"]},
         "w": {"w_techniques": ["project_double", "project_add"]},
     }
-    assert chrisjen.Project(idea, item=3).apply() == 7
+    assert chrisjen.Project(idea, item = 3).apply() == 7
 
 
 def test_project_and_worker_parameters() -> None:
@@ -156,12 +156,12 @@ def test_project_and_worker_parameters() -> None:
         "w_parameters": {"amount": 30},
     }
     # Worker parameters are passed to every node and take precedence.
-    assert chrisjen.Project(idea, item=0).apply() == 30
+    assert chrisjen.Project(idea, item = 0).apply() == 30
     del idea["w_parameters"]
     # A technique's parameters beat its step's.
-    assert chrisjen.Project(idea, item=0).apply() == 20
+    assert chrisjen.Project(idea, item = 0).apply() == 20
     del idea["project_add_parameters"]
-    assert chrisjen.Project(idea, item=0).apply() == 10
+    assert chrisjen.Project(idea, item = 0).apply() == 10
 
 
 def test_durations_and_summary() -> None:
@@ -178,7 +178,7 @@ def test_durations_and_summary() -> None:
         "a_parameters": {"duration": 4},
         "b_parameters": {"duration": 1},
     }
-    project = chrisjen.Project(idea, item=0)
+    project = chrisjen.Project(idea, item = 0)
     project.publish()
     worker = project.workflow.retrieve("w").contents
     assert worker.critical_path() == (["a", "c"], 5.0)
@@ -191,24 +191,24 @@ def test_durations_and_summary() -> None:
 
 
 def test_clerk_creates_folders_and_saves_files(tmp_path: pathlib.Path) -> None:
-    project = chrisjen.Project(IDEA, root=tmp_path, identification="run1")
+    project = chrisjen.Project(IDEA, root = tmp_path, identification = "run1")
     # Nothing is written to disk until the clerk is used.
     assert not (tmp_path / "run1").exists()
     clerk = project.clerk
     assert clerk is project.clerk
     for folder in ("input", "interim", "output"):
         assert (tmp_path / "run1" / folder).is_dir()
-    clerk.save(item="hello", file_name="greeting.txt")
+    clerk.save(item = "hello", file_name = "greeting.txt")
     assert (tmp_path / "run1" / "output" / "greeting.txt").read_text() == (
         "hello"
     )
     assert (
-        clerk.load(file_path=tmp_path / "run1" / "output" / "greeting.txt")
+        clerk.load(file_path = tmp_path / "run1" / "output" / "greeting.txt")
         == "hello"
     )
-    clerk.save(item={"a": 1}, file_name="data", file_format="pickle")
+    clerk.save(item = {"a": 1}, file_name = "data", file_format = "pickle")
     assert clerk.load(
-        file_name="data", file_format="pickle", folder="output"
+        file_name = "data", file_format = "pickle", folder = "output"
     ) == {"a": 1}
 
 
@@ -224,7 +224,7 @@ def test_clerk_uses_file_settings_without_changing_defaults(
 
     idea = {**IDEA, "files": {"file_encoding": "utf-8", "custom": 1}}
     before = dict(nagata.FileFramework.settings)
-    project = chrisjen.Project(idea, root=tmp_path)
+    project = chrisjen.Project(idea, root = tmp_path)
     assert project.clerk.framework.settings["file_encoding"] == "utf-8"
     assert project.clerk.framework.settings["custom"] == 1
     assert nagata.FileFramework.settings == before
@@ -232,7 +232,7 @@ def test_clerk_uses_file_settings_without_changing_defaults(
 
 def test_to_dot_and_mermaid(tmp_path: pathlib.Path) -> None:
     project = chrisjen.Project(IDEA)
-    dot = project.to_dot(path=tmp_path / "flow.dot")
+    dot = project.to_dot(path = tmp_path / "flow.dot")
     assert (tmp_path / "flow.dot").read_text() == dot
     assert dot.startswith('digraph "demo" {')
     assert 'subgraph "cluster_prep"' in dot
@@ -240,6 +240,6 @@ def test_to_dot_and_mermaid(tmp_path: pathlib.Path) -> None:
     assert 'label = "pick (contest)";' in dot
     mermaid = project.to_mermaid()
     assert "prep(prep) --> pick(pick)" in mermaid
-    assert chrisjen.to_dot(project.workflow, name="other").startswith(
+    assert chrisjen.to_dot(project.workflow, name = "other").startswith(
         'digraph "other" {'
     )

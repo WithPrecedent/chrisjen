@@ -42,7 +42,7 @@ def test_how_soon_is_now() -> None:
     assert re.fullmatch(pattern, utilities.how_soon_is_now())
     assert re.fullmatch(
         rf"run_{pattern}\.log",
-        utilities.how_soon_is_now(prefix="run_", suffix=".log"),
+        utilities.how_soon_is_now(prefix = "run_", suffix = ".log"),
     )
 
 
@@ -76,14 +76,14 @@ def test_average_does_not_change_its_items() -> None:
 
 
 def test_average_of_nothing() -> None:
-    with pytest.raises(ValueError, match="empty"):
+    with pytest.raises(ValueError, match = "empty"):
         utilities.average([])
 
 
 def test_average_of_things_that_cannot_be_added() -> None:
-    with pytest.raises(TypeError, match="cannot average results of type str"):
+    with pytest.raises(TypeError, match = "cannot average results of type str"):
         utilities.average(["a", 1])
-    with pytest.raises(TypeError, match="type list.*division by an int"):
+    with pytest.raises(TypeError, match = "type list.*division by an int"):
         utilities.average([[1], [2]])
 
 
@@ -156,13 +156,13 @@ def test_import_object_from_dotted_and_colon_paths() -> None:
 
 
 def test_import_object_errors() -> None:
-    with pytest.raises(ImportError, match="'no_such_module.tool'.*no module"):
+    with pytest.raises(ImportError, match = "'no_such_module.tool'.*no module"):
         utilities.import_object("no_such_module.tool")
-    with pytest.raises(ImportError, match="'no_such_module:tool'.*no module"):
+    with pytest.raises(ImportError, match = "'no_such_module:tool'.*no module"):
         utilities.import_object("no_such_module:tool")
-    with pytest.raises(ImportError, match="'statistics.nope'"):
+    with pytest.raises(ImportError, match = "'statistics.nope'"):
         utilities.import_object("statistics.nope")
-    with pytest.raises(ImportError, match="'statistics:fmean.nope'"):
+    with pytest.raises(ImportError, match = "'statistics:fmean.nope'"):
         utilities.import_object("statistics:fmean.nope")
     # A bare name that is not a module cannot be imported.
     with pytest.raises(ImportError):

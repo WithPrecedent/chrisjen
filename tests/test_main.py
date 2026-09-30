@@ -14,7 +14,7 @@ def test_version_matches_the_package_settings_and_changelog() -> None:
     with (ROOT / "pyproject.toml").open("rb") as file:
         project = tomllib.load(file)["project"]
     assert project["version"] == chrisjen.__version__
-    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding = "utf-8")
     assert f"## {chrisjen.__version__}\n" in changelog
 
 

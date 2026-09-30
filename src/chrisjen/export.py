@@ -55,7 +55,7 @@ def to_dot(
     lines.append("}")
     text = "\n".join(lines) + "\n"
     if path is not None:
-        pathlib.Path(path).write_text(text, encoding="utf-8")
+        pathlib.Path(path).write_text(text, encoding = "utf-8")
     return text
 
 

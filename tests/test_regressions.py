@@ -38,7 +38,7 @@ def reg_largest(result: Any) -> Any:
 
 def write_ini(tmp_path: pathlib.Path, text: str) -> pathlib.Path:
     path = tmp_path / "settings.ini"
-    path.write_text(text, encoding="utf-8")
+    path.write_text(text, encoding = "utf-8")
     return path
 
 
@@ -51,7 +51,7 @@ def test_workers_can_reuse_step_names() -> None:
         "one": {"one_steps": ["clean"], "clean_techniques": "reg_add_one"},
         "two": {"two_steps": ["clean"], "clean_techniques": "reg_times_two"},
     }
-    project = chrisjen.Project(settings, item=5)
+    project = chrisjen.Project(settings, item = 5)
     assert project.apply() == 12
     assert project.outline.techniques == {
         "one": {"clean": ["reg_add_one"]},
@@ -77,7 +77,7 @@ def test_workers_can_reuse_step_names_with_different_requirements() -> None:
             "a_requires": "b",
         },
     }
-    project = chrisjen.Project(settings, item=1)
+    project = chrisjen.Project(settings, item = 1)
     project.publish()
     one = project.workflow.retrieve("one").contents
     two = project.workflow.retrieve("two").contents
@@ -96,7 +96,7 @@ def test_a_worker_and_its_step_and_technique_can_share_a_name() -> None:
             "reg_add_one_techniques": "reg_add_one",
         },
     }
-    assert chrisjen.Project(settings, item=1).apply() == 2
+    assert chrisjen.Project(settings, item = 1).apply() == 2
 
 
 """ Lists in settings files """
@@ -114,7 +114,7 @@ def test_lists_without_spaces_after_commas(tmp_path: pathlib.Path) -> None:
         "a_techniques = reg_times_two,reg_add_one\n"
         "b_techniques = reg_minus_three\n",
     )
-    project = chrisjen.Project(path, item=1)
+    project = chrisjen.Project(path, item = 1)
     assert project.outline.workers == ["one", "two"]
     assert project.outline.techniques["two"] == {
         "a": ["reg_times_two", "reg_add_one"],
@@ -136,7 +136,7 @@ def test_lists_with_extra_spaces_and_trailing_commas(
         "[two]\n"
         "two_techniques = reg_add_one ,\n",
     )
-    project = chrisjen.Project(path, item=0)
+    project = chrisjen.Project(path, item = 0)
     assert project.outline.workers == ["one", "two"]
     assert project.apply() == 2
 
@@ -147,7 +147,7 @@ def test_single_names_and_lists_from_dicts() -> None:
             "x_project": {"x_workers": workers},
             "one": {"one_techniques": ["reg_add_one", "reg_add_one"]},
         }
-        assert chrisjen.Project(settings, item=0).apply() == 2
+        assert chrisjen.Project(settings, item = 0).apply() == 2
 
 
 """ Names that are not case sensitive """
@@ -158,7 +158,7 @@ def test_design_names_ignore_case_and_spaces() -> None:
         "x_project": {"x_workers": ["w"], "design": " Waterfall "},
         "w": {"design": "KANBAN", "w_techniques": "reg_add_one"},
     }
-    project = chrisjen.Project(settings, item=1)
+    project = chrisjen.Project(settings, item = 1)
     assert project.outline.design == "waterfall"
     assert project.outline.designs == {"w": "kanban"}
     assert project.apply() == 2
@@ -177,7 +177,7 @@ def test_select_ignores_case(select: str, expected: int) -> None:
             "w_techniques": ["reg_add_one", "reg_times_two"],
         },
     }
-    assert chrisjen.Project(settings, item=5).apply() == expected
+    assert chrisjen.Project(settings, item = 5).apply() == expected
 
 
 """ Unique names """
@@ -188,7 +188,7 @@ def test_duplicate_workers() -> None:
         "x_project": {"x_workers": ["w", "w"]},
         "w": {"w_techniques": "none"},
     }
-    with pytest.raises(ValueError, match=r"workers of 'x' must be unique.*'w'"):
+    with pytest.raises(ValueError, match = r"workers of 'x' must be unique.*'w'"):
         chrisjen.Project(settings)
 
 
@@ -197,17 +197,17 @@ def test_duplicate_steps() -> None:
         "x_project": {"x_workers": ["w"]},
         "w": {"w_steps": ["a", "a", "b"], "a_techniques": "none"},
     }
-    with pytest.raises(ValueError, match=r"steps of 'w' must be unique.*'a'"):
+    with pytest.raises(ValueError, match = r"steps of 'w' must be unique.*'a'"):
         chrisjen.Project(settings)
 
 
 def test_duplicate_nodes_in_a_workflow() -> None:
     steps = [
-        chrisjen.Step(name="a"),
-        chrisjen.Step(name="b"),
-        chrisjen.Step(name="a"),
+        chrisjen.Step(name = "a"),
+        chrisjen.Step(name = "b"),
+        chrisjen.Step(name = "a"),
     ]
-    with pytest.raises(ValueError, match="unique names.*'a'"):
+    with pytest.raises(ValueError, match = "unique names.*'a'"):
         chrisjen.Workflow.design("waterfall", steps)
 
 
@@ -216,7 +216,7 @@ def test_repeated_techniques_are_allowed() -> None:
         "x_project": {"x_workers": ["w"]},
         "w": {"w_steps": ["s"], "s_techniques": ["reg_add_one"] * 3},
     }
-    assert chrisjen.Project(settings, item=0).apply() == 3
+    assert chrisjen.Project(settings, item = 0).apply() == 3
 
 
 def test_repeated_techniques_are_separate_paths_in_a_contest() -> None:
@@ -229,7 +229,7 @@ def test_repeated_techniques_are_separate_paths_in_a_contest() -> None:
             "s_techniques": ["reg_add_one", "reg_add_one", "reg_times_two"],
         },
     }
-    project = chrisjen.Project(settings, item=5)
+    project = chrisjen.Project(settings, item = 5)
     assert project.apply() == 10
     contest = project.workflow.retrieve("w").contents
     assert list(contest.results) == [
@@ -253,18 +253,18 @@ def test_repeated_techniques_keep_their_weight_in_a_survey() -> None:
             "s_techniques": ["reg_add_one", "reg_add_one", "reg_times_two"],
         },
     }
-    assert chrisjen.Project(settings, item=5).apply() == pytest.approx(22 / 3)
+    assert chrisjen.Project(settings, item = 5).apply() == pytest.approx(22 / 3)
 
 
 """ Bad settings """
 
 
 def test_sections_must_be_mappings() -> None:
-    with pytest.raises(TypeError, match="'x_project' must be a mapping"):
+    with pytest.raises(TypeError, match = "'x_project' must be a mapping"):
         chrisjen.Project({"x_project": "oops"})
-    with pytest.raises(TypeError, match="'w' must be a mapping.*int"):
+    with pytest.raises(TypeError, match = "'w' must be a mapping.*int"):
         chrisjen.Project({"x_project": {"x_workers": "w"}, "w": 3})
-    with pytest.raises(TypeError, match="'w_parameters' must be a mapping"):
+    with pytest.raises(TypeError, match = "'w_parameters' must be a mapping"):
         chrisjen.Project(
             {
                 "x_project": {"x_workers": "w"},
@@ -279,7 +279,7 @@ def test_a_worker_needs_steps_or_techniques() -> None:
         "x_project": {"x_workers": ["w"]},
         "w": {"model_type": "classify"},
     }
-    with pytest.raises(ValueError, match="worker 'w' needs steps"):
+    with pytest.raises(ValueError, match = "worker 'w' needs steps"):
         chrisjen.Project(settings)
 
 
@@ -289,7 +289,7 @@ def test_bad_duration() -> None:
         "w": {"w_techniques": "none"},
         "w_parameters": {"duration": "soon"},
     }
-    with pytest.raises(ValueError, match="soon"):
+    with pytest.raises(ValueError, match = "soon"):
         chrisjen.Project(settings)
 
 
@@ -313,18 +313,18 @@ def circular_settings() -> dict[str, Any]:
 
 
 def test_a_cycle_is_found_when_the_project_is_published() -> None:
-    project = chrisjen.Project(circular_settings(), item=1)
-    with pytest.raises(ValueError, match="cycle"):
+    project = chrisjen.Project(circular_settings(), item = 1)
+    with pytest.raises(ValueError, match = "cycle"):
         project.publish()
-    with pytest.raises(ValueError, match="cycle"):
+    with pytest.raises(ValueError, match = "cycle"):
         project.apply()
 
 
 def test_a_cycle_is_found_when_a_workflow_is_built() -> None:
-    steps = [chrisjen.Step(name="a"), chrisjen.Step(name="b")]
-    with pytest.raises(ValueError, match="cycle"):
+    steps = [chrisjen.Step(name = "a"), chrisjen.Step(name = "b")]
+    with pytest.raises(ValueError, match = "cycle"):
         chrisjen.Workflow.design(
-            "pert", steps, requirements={"a": ["b"], "b": ["a"]}
+            "pert", steps, requirements = {"a": ["b"], "b": ["a"]}
         )
 
 
@@ -340,7 +340,7 @@ def test_requirements_cannot_name_steps_of_other_workers() -> None:
         },
     }
     project = chrisjen.Project(settings)
-    with pytest.raises(KeyError, match="unknown nodes.*'a'"):
+    with pytest.raises(KeyError, match = "unknown nodes.*'a'"):
         project.publish()
 
 
@@ -366,7 +366,7 @@ def test_project_does_not_rely_on_get_for_missing_sections() -> None:
     outline = chrisjen.Outline.create(settings)
     assert outline.workers == ["w"]
     assert outline.parameters == {}
-    project = chrisjen.Project(settings, item=1)
+    project = chrisjen.Project(settings, item = 1)
     assert project.apply() == 2
     # The file manager does not need a "files" section either.
     assert "files" not in project.idea

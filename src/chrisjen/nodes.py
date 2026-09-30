@@ -49,7 +49,7 @@ class Node(holden.Labeled, abc.ABC):
     name: str | None = None
     contents: Any | None = None
     parameters: MutableMapping[str, Any] = dataclasses.field(
-        default_factory=dict
+        default_factory = dict
     )
 
     """ Initialization Methods """
@@ -353,7 +353,7 @@ class Technique(Node, wonka.Registrar):
         if isinstance(item, str):
             key = name or item
             technique = cls(
-                name=key, contents=contents, parameters=dict(parameters or {})
+                name = key, contents = contents, parameters = dict(parameters or {})
             )
         elif isinstance(item, cls):
             key = name or item.name
@@ -514,7 +514,7 @@ class Step(Node):
     """
 
     contents: MutableSequence[Technique] = dataclasses.field(
-        default_factory=list
+        default_factory = list
     )
 
     """ Properties """

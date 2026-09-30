@@ -10,8 +10,8 @@ import chrisjen
 
 def step(name: str, *techniques: str) -> chrisjen.Step:
     return chrisjen.Step(
-        name=name,
-        contents=[
+        name = name,
+        contents = [
             chrisjen.Technique.create(t) for t in techniques or ("none",)
         ],
     )
@@ -22,16 +22,16 @@ def worker(
 ) -> chrisjen.Worker:
     requirements = options.pop("requirements", None)
     return chrisjen.Worker(
-        name=name,
-        contents=chrisjen.Workflow.design(
-            design, steps, requirements=requirements, name=name, **options
+        name = name,
+        contents = chrisjen.Workflow.design(
+            design, steps, requirements = requirements, name = name, **options
         ),
     )
 
 
 def test_plain_workflow() -> None:
     workflow = chrisjen.Workflow.design(
-        "waterfall", [step("a"), step("b")], name="flow"
+        "waterfall", [step("a"), step("b")], name = "flow"
     )
     assert chrisjen.to_dot(workflow) == (
         'digraph "flow" {\n  "a";\n  "b";\n  "a" -> "b";\n}\n'
@@ -41,10 +41,10 @@ def test_plain_workflow() -> None:
 def test_name_argument_and_default_name() -> None:
     workflow = chrisjen.Workflow.design("waterfall", [step("a")])
     assert chrisjen.to_dot(workflow).startswith('digraph "workflow" {')
-    assert chrisjen.to_dot(workflow, name="other").startswith(
+    assert chrisjen.to_dot(workflow, name = "other").startswith(
         'digraph "other" {'
     )
-    named = chrisjen.Workflow.design("waterfall", [step("a")], name="mine")
+    named = chrisjen.Workflow.design("waterfall", [step("a")], name = "mine")
     assert chrisjen.to_dot(named).startswith('digraph "mine" {')
 
 
@@ -56,8 +56,8 @@ def test_empty_workflow() -> None:
 def test_saves_file(tmp_path: pathlib.Path) -> None:
     workflow = chrisjen.Workflow.design("waterfall", [step("a"), step("b")])
     for path in (tmp_path / "one.dot", str(tmp_path / "two.dot")):
-        text = chrisjen.to_dot(workflow, path=path)
-        assert pathlib.Path(path).read_text(encoding="utf-8") == text
+        text = chrisjen.to_dot(workflow, path = path)
+        assert pathlib.Path(path).read_text(encoding = "utf-8") == text
     nothing = chrisjen.to_dot(workflow)
     assert not (tmp_path / "three.dot").exists()
     assert nothing == text
@@ -70,7 +70,7 @@ def test_workers_are_clusters() -> None:
             worker("first", "waterfall", [step("a", "none"), step("b")]),
             worker("second", "contest", [step("c", "none", "null")]),
         ],
-        name="project",
+        name = "project",
     )
     text = chrisjen.to_dot(workflow)
     assert 'subgraph "cluster_first" {' in text
@@ -90,10 +90,10 @@ def test_clusters_with_several_roots_and_endpoints() -> None:
         "parallel",
         "pert",
         [step("r1"), step("r2"), step("e1"), step("e2")],
-        requirements={"e1": ["r1", "r2"], "e2": ["r1", "r2"]},
+        requirements = {"e1": ["r1", "r2"], "e2": ["r1", "r2"]},
     )
     after = worker(
-        "after", "pert", [step("s1"), step("s2")], requirements={"s2": ["s1"]}
+        "after", "pert", [step("s1"), step("s2")], requirements = {"s2": ["s1"]}
     )
     text = chrisjen.to_dot(
         chrisjen.Workflow.design("waterfall", [parallel, after])
@@ -109,7 +109,7 @@ def test_names_are_escaped() -> None:
     workflow = chrisjen.Workflow.design(
         "waterfall", [step('say "hi"'), step("back\\slash")]
     )
-    text = chrisjen.to_dot(workflow, name='a "graph"')
+    text = chrisjen.to_dot(workflow, name = 'a "graph"')
     assert text.startswith('digraph "a \\"graph\\"" {')
     assert '"say \\"hi\\"";' in text
     assert '"back\\\\slash";' in text
@@ -117,7 +117,7 @@ def test_names_are_escaped() -> None:
 
 def test_worker_without_a_workflow_is_a_plain_node() -> None:
     workflow = chrisjen.Workflow.design(
-        "waterfall", [chrisjen.Worker(name="empty"), step("after")]
+        "waterfall", [chrisjen.Worker(name = "empty"), step("after")]
     )
     text = chrisjen.to_dot(workflow)
     assert '"empty";' in text

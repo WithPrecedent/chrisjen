@@ -128,24 +128,24 @@ def test_named_project() -> None:
         "b": {"b_techniques": "none"},
     }
     assert chrisjen.Outline.create(settings).name == "first"
-    assert chrisjen.Outline.create(settings, name="second").name == "second"
-    assert chrisjen.Outline.create(settings, name="second_project").workers == [
+    assert chrisjen.Outline.create(settings, name = "second").name == "second"
+    assert chrisjen.Outline.create(settings, name = "second_project").workers == [
         "b"
     ]
 
 
 def test_no_project_section() -> None:
-    with pytest.raises(ValueError, match="_project"):
+    with pytest.raises(ValueError, match = "_project"):
         chrisjen.Outline.create({"general": {"seed": 1}})
-    with pytest.raises(ValueError, match='"nope_project"'):
-        chrisjen.Outline.create({"a_project": {"a_workers": "w"}}, name="nope")
+    with pytest.raises(ValueError, match = '"nope_project"'):
+        chrisjen.Outline.create({"a_project": {"a_workers": "w"}}, name = "nope")
 
 
 def test_no_workers() -> None:
-    with pytest.raises(ValueError, match="a_workers"):
+    with pytest.raises(ValueError, match = "a_workers"):
         chrisjen.Outline.create({"a_project": {"other": 1}})
 
 
 def test_missing_worker_section() -> None:
-    with pytest.raises(ValueError, match="worker 'w'"):
+    with pytest.raises(ValueError, match = "worker 'w'"):
         chrisjen.Outline.create({"a_project": {"a_workers": "w"}})

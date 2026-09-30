@@ -63,14 +63,14 @@ class Project:
     identification: str | None = None
     root: pathlib.Path | str = "data"
     outline: outlines.Outline | None = dataclasses.field(
-        default=None, init=False, repr=False
+        default = None, init = False, repr = False
     )
     workflow: workflows.Workflow | None = dataclasses.field(
-        default=None, init=False, repr=False
+        default = None, init = False, repr = False
     )
-    result: Any = dataclasses.field(default=None, init=False)
+    result: Any = dataclasses.field(default = None, init = False)
     _clerk: nagata.FileManager | None = dataclasses.field(
-        default=None, init=False, repr=False
+        default = None, init = False, repr = False
     )
 
     """ Initialization Methods """
@@ -82,7 +82,7 @@ class Project:
         self.draft()
         if self.identification is None:
             self.identification = utilities.how_soon_is_now(
-                prefix=f"{self.name}_"
+                prefix = f"{self.name}_"
             )
         if self.automatic:
             self.publish()
@@ -106,7 +106,7 @@ class Project:
             A drafted `Project`.
 
         """
-        return cls(idea=idea, **kwargs)
+        return cls(idea = idea, **kwargs)
 
     """ Properties """
 
@@ -134,11 +134,11 @@ class Project:
                 {"settings": settings},
             )
             self._clerk = nagata.FileManager(
-                root_folder=pathlib.Path(self.root) / self.identification,
-                input_folder="input",
-                interim_folder="interim",
-                output_folder="output",
-                framework=framework,
+                root_folder = pathlib.Path(self.root) / self.identification,
+                input_folder = "input",
+                interim_folder = "interim",
+                output_folder = "output",
+                framework = framework,
             )
         return self._clerk
 
@@ -178,7 +178,7 @@ class Project:
             The `Outline`.
 
         """
-        self.outline = outlines.Outline.create(self.idea, name=self.name)
+        self.outline = outlines.Outline.create(self.idea, name = self.name)
         self.name = self.outline.name
         return self.outline
 
@@ -195,9 +195,9 @@ class Project:
         self.workflow = workflows.Workflow.design(
             plan.design,
             workers,
-            name=plan.name,
-            requirements=plan.requirements.get(plan.name, {}),
-            durations=_pick(plan.durations, names),
+            name = plan.name,
+            requirements = plan.requirements.get(plan.name, {}),
+            durations = _pick(plan.durations, names),
             **plan.options.get(plan.name, {}),
         )
         return self.workflow
@@ -217,7 +217,7 @@ class Project:
         """
         if self.workflow is None:
             self.publish()
-        return export.to_dot(self.workflow, path=path, name=name)
+        return export.to_dot(self.workflow, path = path, name = name)
 
     def to_mermaid(
         self, path: pathlib.Path | str | None = None, name: str | None = None
@@ -234,7 +234,7 @@ class Project:
         """
         if self.workflow is None:
             self.publish()
-        return self.workflow.to_mermaid(path=path, name=name or self.name)
+        return self.workflow.to_mermaid(path = path, name = name or self.name)
 
     """ Private Methods """
 
@@ -245,8 +245,8 @@ class Project:
         parameters = dict(self.outline.parameters.get(name, {}))
         return nodes.Technique.create(
             name,
-            parameters={"name": name, "parameters": parameters},
-            kind=kind,
+            parameters = {"name": name, "parameters": parameters},
+            kind = kind,
         )
 
     def _build_step(
@@ -254,9 +254,9 @@ class Project:
     ) -> nodes.Step:
         """Returns a step with `techniques`."""
         return nodes.Step(
-            name=name,
-            contents=[self._build_technique(t, kind) for t in techniques],
-            parameters=dict(self.outline.parameters.get(name, {})),
+            name = name,
+            contents = [self._build_technique(t, kind) for t in techniques],
+            parameters = dict(self.outline.parameters.get(name, {})),
         )
 
     def _build_worker(self, name: str) -> nodes.Worker:
@@ -273,15 +273,15 @@ class Project:
         workflow = workflows.Workflow.design(
             plan.designs[name],
             steps,
-            requirements=plan.requirements.get(name, {}),
-            name=name,
-            durations=_pick(plan.durations, names),
+            requirements = plan.requirements.get(name, {}),
+            name = name,
+            durations = _pick(plan.durations, names),
             **plan.options.get(name, {}),
         )
         return nodes.Worker(
-            name=name,
-            contents=workflow,
-            parameters=dict(plan.parameters.get(name, {})),
+            name = name,
+            contents = workflow,
+            parameters = dict(plan.parameters.get(name, {})),
         )
 
 

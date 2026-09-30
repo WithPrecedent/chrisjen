@@ -18,8 +18,8 @@ import chrisjen
 SEEDS = range(150)
 TECHNIQUES: dict[str, Callable[[int], int]] = {}
 for amount in range(1, 5):
-    TECHNIQUES[f"prop_add_{amount}"] = lambda item, amount=amount: item + amount
-    TECHNIQUES[f"prop_mul_{amount}"] = lambda item, amount=amount: item * amount
+    TECHNIQUES[f"prop_add_{amount}"] = lambda item, amount = amount: item + amount
+    TECHNIQUES[f"prop_mul_{amount}"] = lambda item, amount = amount: item * amount
 for _name, _function in TECHNIQUES.items():
     chrisjen.Technique.register(_name, _function)
 STEP_NAMES = ["clean", "scale", "fit", "check", "report"]
@@ -34,16 +34,16 @@ def fold(functions: list[Callable[[int], int]], item: int) -> int:
 def make_steps(plan: list[list[str]], names: list[str]) -> list[chrisjen.Step]:
     return [
         chrisjen.Step(
-            name=name,
-            contents=[chrisjen.Technique.create(t) for t in techniques],
+            name = name,
+            contents = [chrisjen.Technique.create(t) for t in techniques],
         )
-        for name, techniques in zip(names, plan, strict=True)
+        for name, techniques in zip(names, plan, strict = True)
     ]
 
 
 def random_plan(random_: random.Random) -> list[list[str]]:
     return [
-        random_.choices(list(TECHNIQUES), k=random_.randint(1, 3))
+        random_.choices(list(TECHNIQUES), k = random_.randint(1, 3))
         for _ in range(random_.randint(1, 4))
     ]
 
@@ -56,7 +56,7 @@ def random_requirements(
 ) -> dict[str, list[str]]:
     """Returns requirements that point only at earlier names, so no cycles."""
     requirements: dict[str, list[str]] = {}
-    for index, name in enumerate(names[1:], start=1):
+    for index, name in enumerate(names[1:], start = 1):
         chosen = [n for n in names[:index] if random_.random() < 0.4]
         if chosen:
             requirements[name] = chosen
@@ -80,13 +80,13 @@ def test_pert_order_and_critical_path(seed: int) -> None:
 
     nodes = [
         chrisjen.Step(
-            name=name,
-            contents=[chrisjen.Technique(name=name, contents=recorder(name))],
+            name = name,
+            contents = [chrisjen.Technique(name = name, contents = recorder(name))],
         )
         for name in names
     ]
     workflow = chrisjen.Workflow.design(
-        "pert", nodes, requirements=requirements, durations=durations
+        "pert", nodes, requirements = requirements, durations = durations
     )
     order = workflow.order()
     assert sorted(order) == sorted(names)
@@ -135,8 +135,8 @@ def test_contest_and_survey_agree_with_brute_force(seed: int) -> None:
         contest = chrisjen.Workflow.design(
             "contest",
             make_steps(plan, names),
-            criteria=lambda r: r,
-            select=select,
+            criteria = lambda r: r,
+            select = select,
         )
         assert contest.execute(item) == choose(results)
         assert sorted(contest.scores.values()) == sorted(results)
@@ -166,8 +166,8 @@ def test_iterative_designs_agree_with_a_plain_loop(seed: int) -> None:
     agile = chrisjen.Workflow.design(
         "agile",
         make_steps(plan, names),
-        criteria=lambda r: r >= target,
-        max_iterations=limit,
+        criteria = lambda r: r >= target,
+        max_iterations = limit,
     )
     assert agile.execute(item) == expected
     assert agile.iterations == passes
@@ -188,12 +188,12 @@ def test_random_projects_agree_with_a_plain_calculation(seed: int) -> None:
         # Workers may reuse the names of steps in other workers.
         names = random_.sample(STEP_NAMES, random_.randint(1, 3))
         plan = [
-            random_.choices(list(TECHNIQUES), k=random_.randint(1, 2))
+            random_.choices(list(TECHNIQUES), k = random_.randint(1, 2))
             for _ in names
         ]
         design = random_.choice(designs)
         section: dict[str, Any] = {f"{worker}_steps": names, "design": design}
-        for name, techniques in zip(names, plan, strict=True):
+        for name, techniques in zip(names, plan, strict = True):
             section[f"{name}_techniques"] = techniques
         if design in {"contest", "survey"}:
             section["criteria"] = "prop_largest"
@@ -211,7 +211,7 @@ def test_random_projects_agree_with_a_plain_calculation(seed: int) -> None:
                 [TECHNIQUES[t] for techniques in plan for t in techniques],
                 expected,
             )
-    project = chrisjen.Project(settings, item=item)
+    project = chrisjen.Project(settings, item = item)
     assert project.outline.workers == worker_names
     for worker in worker_names:
         assert (
@@ -239,8 +239,8 @@ class PropMul(chrisjen.Technique, abc.ABC):
 
 
 for _amount in range(1, 5):
-    PropAdd.register(f"op_{_amount}", lambda item, _a=_amount: item + _a)
-    PropMul.register(f"op_{_amount}", lambda item, _a=_amount: item * _a)
+    PropAdd.register(f"op_{_amount}", lambda item, _a = _amount: item + _a)
+    PropMul.register(f"op_{_amount}", lambda item, _a = _amount: item * _a)
 OPERATIONS = {
     "prop_add": lambda item, amount: item + amount,
     "prop_mul": lambda item, amount: item * amount,
@@ -256,7 +256,7 @@ def test_the_type_of_a_step_chooses_which_technique_is_used(seed: int) -> None:
     expected = item
     for step in steps:
         kind = random_.choice(["prop_add", "prop_mul"])
-        amounts = random_.choices(range(1, 5), k=random_.randint(1, 3))
+        amounts = random_.choices(range(1, 5), k = random_.randint(1, 3))
         section[f"{step}_techniques"] = [f"op_{a}" for a in amounts]
         # Half of the steps write the type in the names instead.
         if random_.random() < 0.5:
@@ -266,7 +266,7 @@ def test_the_type_of_a_step_chooses_which_technique_is_used(seed: int) -> None:
         for amount in amounts:
             expected = OPERATIONS[kind](expected, amount)
     settings = {"prop_project": {"prop_workers": ["w"]}, "w": section}
-    assert chrisjen.Project(settings, item=item).apply() == expected
+    assert chrisjen.Project(settings, item = item).apply() == expected
 
 
 def test_names_in_both_types_need_a_type() -> None:
@@ -274,5 +274,5 @@ def test_names_in_both_types_need_a_type() -> None:
         "prop_project": {"prop_workers": ["w"]},
         "w": {"w_techniques": "op_1"},
     }
-    with pytest.raises(KeyError, match="more than one type"):
-        chrisjen.Project(settings, item=1).publish()
+    with pytest.raises(KeyError, match = "more than one type"):
+        chrisjen.Project(settings, item = 1).publish()

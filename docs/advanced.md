@@ -92,7 +92,7 @@ def drop_negatives(item):
 chrisjen.Technique.register("drop_negatives", drop_negatives)
 
 
-def scale(item, factor=2):
+def scale(item, factor = 2):
     return [x * factor for x in item]
 
 chrisjen.Technique.register("scale", scale)
@@ -136,7 +136,7 @@ settings = {
         "extend_techniques": "add_zero",
     },
 }
-project = chrisjen.Project(settings, item=[3, 1, 2])
+project = chrisjen.Project(settings, item = [3, 1, 2])
 print(project.apply())
 # [1, 2, 3, 0]
 team = project.workflow.retrieve("team").contents
@@ -155,9 +155,9 @@ from chrisjen import Scrum, Step, Technique
 
 sprint = Scrum()
 sprint.populate([
-    Step(name="plan", contents=[Technique(name="plan", contents=lambda x: [*x, "plan"])]),
-    Step(name="build", contents=[Technique(name="build", contents=lambda x: [*x, "build"])]),
-    Step(name="ship", contents=[Technique(name="ship", contents=lambda x: [*x, "ship"])]),
+    Step(name = "plan", contents = [Technique(name = "plan", contents = lambda x: [*x, "plan"])]),
+    Step(name = "build", contents = [Technique(name = "build", contents = lambda x: [*x, "build"])]),
+    Step(name = "ship", contents = [Technique(name = "ship", contents = lambda x: [*x, "ship"])]),
 ])
 item = sprint.advance([])
 print(sprint.upcoming, item)
@@ -197,9 +197,9 @@ duration = 3
 
 ```python
 for name in ["fetch", "parse_a", "parse_b", "merge"]:
-    chrisjen.Technique.register(name, lambda item, name=name: [*item, name])
+    chrisjen.Technique.register(name, lambda item, name = name: [*item, name])
 
-project = chrisjen.Project("build.ini", item=[])
+project = chrisjen.Project("build.ini", item = [])
 print(project.apply())
 # ['fetch', 'parse_a', 'parse_b', 'merge']
 pipeline = project.workflow.retrieve("pipeline").contents
@@ -234,7 +234,7 @@ settings = {
         "grower_techniques": "grow",
     },
 }
-project = chrisjen.Project(settings, item=3)
+project = chrisjen.Project(settings, item = 3)
 print(project.apply())
 # 192
 print(project.workflow.retrieve("grower").contents.iterations)
@@ -266,7 +266,7 @@ settings = {
         "refiner_techniques": "newton_step",
     },
 }
-project = chrisjen.Project(settings, item=1.0)
+project = chrisjen.Project(settings, item = 1.0)
 print(round(project.apply(), 6))
 # 3.162278
 ```
@@ -304,7 +304,7 @@ settings = {
     "slow": {"slow_techniques": "cautious"},
     "fast": {"fast_techniques": "bold"},
 }
-project = chrisjen.Project(settings, item=10)
+project = chrisjen.Project(settings, item = 10)
 print(project.apply())
 # 30
 print(project.workflow.winner, project.workflow.scores)
@@ -347,7 +347,7 @@ def double_all(item):
 chrisjen.Technique.register("enlarge", double_all)
 
 
-project = chrisjen.Project(settings, item=[1, 2, 3])
+project = chrisjen.Project(settings, item = [1, 2, 3])
 print(project.apply())
 # 7.5
 ```
@@ -369,10 +369,10 @@ A `Technique` is an object that wraps a tool. It has three attributes:
 When a technique is applied, its `implement` method is called with the item and all of the parameters. The default `implement` calls the tool with the item as the first argument and passes only the parameters that the tool accepts (unless it takes `**kwargs`, in which case it gets all of them). An import path is only imported when the technique is used (`Technique.resolve()` returns the tool), so a technique can wrap a package that might not be installed, and a mistake in the path raises an `ImportError` when the technique is applied.
 
 ```python
-mean = chrisjen.Technique("mean", contents="statistics.fmean")
+mean = chrisjen.Technique("mean", contents = "statistics.fmean")
 print(mean.complete([1, 2, 3, 6]))
 # 3.0
-rounded = chrisjen.Technique("rounded", contents=round, parameters={"ndigits": 1})
+rounded = chrisjen.Technique("rounded", contents = round, parameters = {"ndigits": 1})
 print(rounded.complete(3.14159))
 # 3.1
 ```
@@ -384,7 +384,7 @@ Techniques are found by name in registries. `Technique.register` creates a techn
 ```python
 chrisjen.Technique.register("square_root", "math.sqrt")
 chrisjen.Technique.register("one_digit", round, {"ndigits": 1})
-chrisjen.Technique.register(chrisjen.Technique("length", contents=len))
+chrisjen.Technique.register(chrisjen.Technique("length", contents = len))
 print(chrisjen.Technique.create("square_root").complete(16))
 # 4.0
 ```
@@ -432,7 +432,7 @@ In settings, a name may also include its type, as in `clean_techniques = cleaner
 Analyzer.register("drop_blanks", lambda item: [x for x in item if not x])
 print(chrisjen.Technique.create("cleaner.drop_blanks").complete([0, 1, 2]))
 # [1, 2]
-print(chrisjen.Technique.create("drop_blanks", kind="analyzer").complete([0, 1, 2]))
+print(chrisjen.Technique.create("drop_blanks", kind = "analyzer").complete([0, 1, 2]))
 # [0]
 ```
 
@@ -451,8 +451,8 @@ A criterion is a function that takes a result and returns a score (or, for `agil
 ```python
 workflow = chrisjen.Workflow.design(
     "contest",
-    [chrisjen.Step(name="s", contents=[chrisjen.Technique(name="up", contents=lambda x: x + 1)])],
-    criteria=lambda result: result,
+    [chrisjen.Step(name = "s", contents = [chrisjen.Technique(name = "up", contents = lambda x: x + 1)])],
+    criteria = lambda result: result,
 )
 print(workflow.execute(1))
 # 2
@@ -468,7 +468,7 @@ Keyword parameters can come from four places. When the same parameter is set in 
 4. Keyword arguments passed to `Project.apply` (or `Workflow.execute`).
 
 ```python
-def add_amount(item, amount=0):
+def add_amount(item, amount = 0):
     return item + amount
 
 chrisjen.Technique.register("add_amount", add_amount)
@@ -480,10 +480,10 @@ settings = {
     "add_parameters": {"amount": 1},
     "add_amount_parameters": {"amount": 2},
 }
-project = chrisjen.Project(settings, item=0)
+project = chrisjen.Project(settings, item = 0)
 print(project.apply())
 # 2
-print(project.apply(amount=5))
+print(project.apply(amount = 5))
 # 5
 ```
 
@@ -494,15 +494,15 @@ You do not have to use settings. Every part can be created directly. `Workflow.d
 ```python
 steps = [
     chrisjen.Step(
-        name="clean",
-        contents=[chrisjen.Technique(name="drop_negatives", contents=drop_negatives)],
+        name = "clean",
+        contents = [chrisjen.Technique(name = "drop_negatives", contents = drop_negatives)],
     ),
     chrisjen.Step(
-        name="resize",
-        contents=[chrisjen.Technique(name="scale", contents=scale, parameters={"factor": 3})],
+        name = "resize",
+        contents = [chrisjen.Technique(name = "scale", contents = scale, parameters = {"factor": 3})],
     ),
 ]
-workflow = chrisjen.Workflow.design("waterfall", steps, name="prepare")
+workflow = chrisjen.Workflow.design("waterfall", steps, name = "prepare")
 print(workflow.execute([1, -1, 2]))
 # [3, 6]
 ```
@@ -510,10 +510,10 @@ print(workflow.execute([1, -1, 2]))
 A `Worker` puts a workflow inside another workflow:
 
 ```python
-prepare = chrisjen.Worker(name="prepare", contents=workflow)
+prepare = chrisjen.Worker(name = "prepare", contents = workflow)
 summarize = chrisjen.Step(
-    name="summarize",
-    contents=[chrisjen.Technique(name="total", contents=total)],
+    name = "summarize",
+    contents = [chrisjen.Technique(name = "total", contents = total)],
 )
 project_workflow = chrisjen.Workflow.design("waterfall", [prepare, summarize])
 print(project_workflow.execute([1, -1, 2]))
@@ -545,7 +545,7 @@ settings = {
     "twice_project": {"twice_workers": "worker"},
     "worker": {"design": "twice_over", "worker_techniques": "scale"},
 }
-print(chrisjen.Project(settings, item=[1, 2]).apply())
+print(chrisjen.Project(settings, item = [1, 2]).apply())
 # [4, 8]
 ```
 
@@ -619,7 +619,7 @@ settings = {
     "frequencies_parameters": {"n": 1},
 }
 text = "  The  cat and THE hat and the bat "
-project = chrisjen.Project(settings, item=text)
+project = chrisjen.Project(settings, item = text)
 print(project.apply())
 # [('the', 3)]
 ```
@@ -642,7 +642,7 @@ settings["analyze"] = {
     "count_techniques": "frequencies, top_two",
     "count_technique_type": "analyzer",
 }
-project = chrisjen.Project(settings, item=text)
+project = chrisjen.Project(settings, item = text)
 print(project.apply())
 # [('the', 3), ('and', 2)]
 print(project.workflow.retrieve("analyze").contents.winner)
@@ -662,7 +662,7 @@ A few practical points for packages:
 A `Workflow` is a [holden](https://WithPrecedent.github.io/holden) `System`, a directed graph, so everything `holden` offers is available. The graph holds only node *names*. The nodes themselves are in `library` and are found with `retrieve`.
 
 ```python
-workflow = chrisjen.Workflow.design("waterfall", steps, name="prepare")
+workflow = chrisjen.Workflow.design("waterfall", steps, name = "prepare")
 print(workflow.contents)
 # {'clean': {'resize'}, 'resize': set()}
 print(workflow.root, workflow.endpoint)
@@ -671,7 +671,7 @@ print(workflow.edges.contents)
 # [('clean', 'resize')]
 print(workflow.retrieve("clean").name)
 # clean
-print(workflow.to_dot(name="prepare"), end="")
+print(workflow.to_dot(name = "prepare"), end = "")
 # digraph prepare {
 # clean -> resize
 # }

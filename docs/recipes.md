@@ -26,7 +26,7 @@ def average(item):
 chrisjen.Technique.register("average", average)
 
 
-def recent_average(item, window=3):
+def recent_average(item, window = 3):
     return {**item, "prediction": statistics.fmean(item["values"][-window:])}
 
 chrisjen.Technique.register("recent_average", recent_average)
@@ -48,7 +48,7 @@ settings = {
     },
 }
 data = {"values": [10, 12, 11, 13, 14, 15], "truth": 16}
-project = chrisjen.Project(settings, item=data)
+project = chrisjen.Project(settings, item = data)
 best = project.apply()
 contest = project.workflow.retrieve("forecaster").contents
 print(contest.winner, best["prediction"])
@@ -68,7 +68,7 @@ for window in (2, 3, 5):
     )
 
 settings["forecaster"]["predict_techniques"] = ["window_2", "window_3", "window_5"]
-project = chrisjen.Project(settings, item=data)
+project = chrisjen.Project(settings, item = data)
 project.apply()
 contest = project.workflow.retrieve("forecaster").contents
 print(contest.winner, contest.scores)
@@ -99,7 +99,7 @@ settings = {
         "estimator_techniques": ["estimate_low", "estimate_high"],
     },
 }
-print(chrisjen.Project(settings, item=[10, 20, 30]).apply())
+print(chrisjen.Project(settings, item = [10, 20, 30]).apply())
 # 60.0
 ```
 
@@ -128,7 +128,7 @@ settings = {
         "shrinker_techniques": "halve_step",
     },
 }
-project = chrisjen.Project(settings, item=1.0)
+project = chrisjen.Project(settings, item = 1.0)
 print(project.apply())
 # 0.0078125
 print(project.workflow.retrieve("shrinker").contents.iterations)
@@ -152,7 +152,7 @@ def drop_negatives(item):
 chrisjen.Technique.register("drop_negatives", drop_negatives)
 
 
-def scale(item, factor=2):
+def scale(item, factor = 2):
     return [x * factor for x in item]
 
 chrisjen.Technique.register("scale", scale)
@@ -165,7 +165,7 @@ for batch in ([1, -1], [2, 3], [-5]):
 # [4, 6]
 # []
 
-print(chrisjen.Project(settings, item=[4, -4], automatic=True).result)
+print(chrisjen.Project(settings, item = [4, -4], automatic = True).result)
 # [8]
 ```
 
@@ -174,7 +174,7 @@ print(chrisjen.Project(settings, item=[4, -4], automatic=True).result)
 Every workflow keeps the result of each of its nodes from the latest run, and a project keeps its workers' workflows:
 
 ```python
-project = chrisjen.Project(settings, item=[1, -2, 3])
+project = chrisjen.Project(settings, item = [1, -2, 3])
 project.apply()
 cleaner = project.workflow.retrieve("cleaner").contents
 print(cleaner.results)
@@ -190,7 +190,7 @@ To add behavior to a design, subclass it. This one records the name of every nod
 ```python
 @dataclasses.dataclass
 class Logged(chrisjen.Waterfall):
-    log: list = dataclasses.field(default_factory=list)
+    log: list = dataclasses.field(default_factory = list)
 
     def execute(self, item, **kwargs):
         self.log.clear()
@@ -209,7 +209,7 @@ settings = {
         "resize_techniques": "scale",
     },
 }
-project = chrisjen.Project(settings, item=[1, -1])
+project = chrisjen.Project(settings, item = [1, -1])
 print(project.apply())
 # [2]
 print(project.workflow.retrieve("worker").contents.log)
@@ -230,7 +230,7 @@ import pandas as pd
 import chrisjen
 
 
-def fill_missing(item, value=0):
+def fill_missing(item, value = 0):
     return item.fillna(value)
 
 chrisjen.Technique.register("fill_missing", fill_missing)
@@ -259,13 +259,13 @@ settings = {
     "fill_missing_parameters": {"value": 0},
 }
 data = pd.DataFrame({"a": [1.0, None, 3.0], "b": [4.0, 5.0, 6.0]})
-project = chrisjen.Project(settings, item=data, root=pathlib.Path(tempfile.mkdtemp()))
+project = chrisjen.Project(settings, item = data, root = pathlib.Path(tempfile.mkdtemp()))
 result = project.apply()
 print(result.round(2))
 #         a    b
 # mean  0.0  0.0
 # std   1.0  1.0
-project.clerk.save(result, file_name="summary.csv")
+project.clerk.save(result, file_name = "summary.csv")
 ```
 
 Because the file name ends in ".csv", the clerk uses its CSV format, which writes the file to the project's `output` folder.
@@ -291,6 +291,6 @@ import chrisjen
 
 import techniques  # noqa: F401  (registers the techniques)
 
-project = chrisjen.Project("settings.ini", item=my_data)
+project = chrisjen.Project("settings.ini", item = my_data)
 project.apply()
 ```
