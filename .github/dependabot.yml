@@ -1,40 +1,14 @@
 # Automatically updates dependency versions using dependabot.
 
-# version: 2
-# updates:
-
-# Maintains dependencies for Python via `pip`
-# - package-ecosystem: pip
-#   directory: "/"
-#   # Always updates to a newer version. If you want a less aggressive strategy,
-#   # change the value to "increase-if-necessary"
-#   versioning-strategy: increase
-#   schedule:
-#     interval: weekly
-#     time: "5:00"
-
-# # Maintains dependencies for GitHub Actions
-# - package-ecosystem: github-actions
-#   directory: "/"
-#   schedule:
-#     interval: "weekly"
-#     time: "6:00"
+# The Python dependencies (including those used to build the documentation)
+# are listed in `pyproject.toml` and locked in `uv.lock`, so they are maintained
+# with the `uv` ecosystem at the root of the repository. The GitHub Actions used
+# by the workflows in `.github/workflows` are maintained separately.
 
 version: 2
 updates:
-  - package-ecosystem: pip
-    directory: "/docs"
-    schedule:
-      interval: daily
-      time: "04:00"
-      timezone: "Europe/Berlin"
-    labels:
-      - "cookiecutter"
-      - "dependencies"
-      - "python"
-    open-pull-requests-limit: 99
-  - package-ecosystem: pip
-    directory: "/.github/workflows"
+  - package-ecosystem: uv
+    directory: "/"
     schedule:
       interval: daily
       time: "04:00"
