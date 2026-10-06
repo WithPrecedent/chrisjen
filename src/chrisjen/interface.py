@@ -84,6 +84,7 @@ class Project:
     def create(
         cls,
         idea: base.Idea | MutableMapping[str, Any] | pathlib.Path | str,
+        *,
         name: str | None = None,
         id: str | None = None,  # noqa: A002
         automatic: bool = True,
@@ -91,6 +92,8 @@ class Project:
         clerk: nagata.FileManager | pathlib.Path | str | None = None,
         **kwargs: Any) -> Project:
         """Creates a project.
+
+        Every argument after `idea` must be passed by keyword.
 
         Args:
             idea: settings that describe the project: an `Idea`, a `dict`, or
@@ -216,7 +219,7 @@ def _validate_id(id: str | None, name: str) -> str:  # noqa: A002
     if id is None:
         # Seconds are included so that two projects created within a minute
         # do not share a folder.
-        id = camina.how_soon_is_now(  # noqa: A001
+        id = camina.how_soon_is_now(
             prefix = f'{name}_', time_format = '%Y-%m-%d_%H-%M-%S')
     return id
 
@@ -260,10 +263,10 @@ def _validate_name(name: str | None, idea: base.Idea) -> str:
 
     """
     if name is None:
-        for key in idea.keys():
+        for key in idea:
             if key.endswith('_project'):
                 return key.removesuffix('_project')
-        for key in idea.keys():
+        for key in idea:
             if key not in options._SPECIAL_SETTINGS:
                 return key
         message = 'A Project name was not given and could not be found in idea'

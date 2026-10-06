@@ -12,15 +12,14 @@ Contents:
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import pathlib
+from collections.abc import Callable
 from typing import Any
 
 import bobbie
 import nagata
 
 from . import utilities
-
 
 _DEFAULT_CLERK: nagata.FileManager = nagata.FileManager
 _DEFAULT_DESIGN: str = 'flow'

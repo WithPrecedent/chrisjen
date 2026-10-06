@@ -17,7 +17,12 @@ import abc
 import dataclasses
 import inspect
 from collections.abc import (
-    Callable, Hashable, Iterator, MutableMapping, Sequence)
+    Callable,
+    Hashable,
+    Iterator,
+    MutableMapping,
+    Sequence,
+)
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 import bobbie

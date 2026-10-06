@@ -321,4 +321,3 @@ class Worker(holden.System, base.Vertex, abc.ABC):
             The result of the workflow.
 
         """
-

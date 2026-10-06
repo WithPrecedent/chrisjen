@@ -118,7 +118,7 @@ class Benchmark(Flow):
 # `eq` is `False` so that the mixin does not set `__hash__` to `None`, which
 # would stop workers that use it from being hashed by name.
 @dataclasses.dataclass(eq = False)
-class Comparator(abc.ABC):
+class Comparator(abc.ABC):  # noqa: B024
     """Mixin for workers that compare every combination of alternatives.
 
     The techniques of each step are alternatives to each other, and the paths

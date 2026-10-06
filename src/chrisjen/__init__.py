@@ -28,7 +28,7 @@ __all__: list[str] = [
 ]
 
 from .base import Criteria, Genre, Idea, Library, Report, Vertex, library
+from .interface import Project
 from .nodes import NullVertex, Step, Technique, Worker
 from .reports import Summary
 from .workers import Benchmark, Comparator, Contest, Flow, Survey
-from .interface import Project
