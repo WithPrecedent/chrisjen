@@ -2,7 +2,8 @@
 
 [project]
 name = "chrisjen"
-description = "Dynamically creates and implements workflows"
+description = """\
+    Dynamically creates and implements workflows from a settings file"""
 authors = [{name = "Corey Rayburn Yung", email = "coreyrayburnyung@gmail.com"}]
 license = {text = "Apache Software License 2.0"}
 readme = "README.md"
@@ -26,9 +27,11 @@ classifiers = [
 keywords = ["workflow", "automation"]
 dependencies = [
     "bobbie>=0.2.1",
+    "camina>=0.2.1",
     "holden>=0.2.2",
-    "nagata",
-    "wonka>=0.2.0"]
+    "miller>=0.2.1",
+    "nagata>=0.2.0",
+    "wonka>=0.2.1"]
 
 [project.optional-dependencies]
 
@@ -120,7 +123,7 @@ lint.ignore = [
     "D401",  # First line of docstring should be in imperative mood
     "D406",  # Section name should end with a newline - bugged for 'Attributes:'
     "D407",  # Missing dashed underline after section ("Args")
-    "D415",  # First line must end in a period, question mark, or exclamation point
+    "D415",  # First line must end in a period, question mark, or exclamation
     "E501",  # Line too long
     "E731",  # Do not assign a `lambda` expression, use a `def`
     "ERA001",  # Commented out code

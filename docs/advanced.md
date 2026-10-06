@@ -1,707 +1,537 @@
 # Advanced User Guide
 
-The [tutorial](tutorial.md) shows how to build a project. This guide describes how `chrisjen` works and everything you can configure. Every example on this page is run by the `chrisjen` unit tests.
+The [tutorial](tutorial.md) shows how to build a project. This guide describes
+how `chrisjen` works and everything you can configure. Every example on this
+page is run by the `chrisjen` unit tests.
 
 ## How the pieces fit together
 
 ```text
-settings ──draft──▶ Outline ──publish──▶ Workflow ──apply──▶ result
-(bobbie)           (the plan)            (holden graph        (your item,
-                                          of Node objects)     changed)
+settings ──create──▶ Idea ──draft──▶ workflow ──apply──▶ result ──▶ report
+(file or dict)     (bobbie        (holden graph of    (your item,
+                    Settings)      Vertex objects)     changed)
 ```
 
-1. **Settings** are loaded by [bobbie](https://github.com/WithPrecedent/bobbie) into a `bobbie.Settings` (a `dict`-like collection of sections). This is `Project.idea`.
-2. **Drafting** turns the settings into an `Outline`, a plain record of the workers, steps, techniques, designs, and parameters. This is `Project.outline`. Nothing has been created yet, and any mistakes in the settings that can be found without running code are reported here.
-3. **Publishing** creates the objects: `Technique`, `Step`, and `Worker` nodes, and a `Workflow` for each worker and for the project. Names are turned into classes and functions by [wonka](https://github.com/WithPrecedent/wonka) factories. This is `Project.workflow`.
-4. **Applying** runs the workflow on an item. The result is stored in `Project.result`.
+1. **Settings** are loaded by [bobbie](https://github.com/WithPrecedent/bobbie)
+   into an `Idea`, a `bobbie.Settings` (a `dict`-like collection of sections)
+   with properties that read the parts of a workflow. This is `Project.idea`.
+2. **Drafting** builds the workflow. The functions in `chrisjen.workshop` turn
+   each name in the settings into a node, using the classes in
+   `chrisjen.library`. This is `Project.workflow`.
+3. **Applying** runs the workflow on an item. The result is stored in
+   `Project.result`, and `Project.report` describes the run.
 
-Files are managed by a [nagata](https://github.com/WithPrecedent/nagata) `FileManager` (`Project.clerk`).
+Files are managed by a [nagata](https://github.com/WithPrecedent/nagata)
+`FileManager` (`Project.clerk`).
 
 | Class | Description |
 | --- | --- |
-| `Project` | Interface for a project. Holds the settings, outline, workflow, and result. |
-| `Outline` | The plan for a project, derived from its settings. |
-| `Workflow` | A directed graph of nodes and the rules for applying them. Its subclasses are the designs. |
-| `Node` | Base class for anything in a workflow. It is hashed and compared by `name`. |
-| `Worker` | A node with a workflow of its own (of steps). |
-| `Step` | A node with techniques. |
-| `Technique` | A single action. It is a function or a subclass with an `implement` method. |
-| `NullNode` | A technique that does nothing. It is called "none". |
-
-## Settings reference
-
-A project's settings need a section named `{name}_project`. The names of workers, steps, and techniques are used to build the names of settings:
-
-| Setting | Section | Meaning |
-| --- | --- | --- |
-| `{name}_workers` | `{name}_project` | Names of the workers. Required. |
-| `design` or `{name}_design` | `{name}_project` | Design that combines the workers. Defaults to `waterfall`. |
-| `design` or `{worker}_design` | `{worker}` | Design that combines the worker's steps. Defaults to `waterfall`. |
-| `{worker}_steps` | `{worker}` | Names of the worker's steps. |
-| `{step}_techniques` | `{worker}` | Names of the techniques of a step. If there is none, the step is its own technique (a technique with the step's name is used). |
-| `{worker}_techniques` | `{worker}` | Techniques of a worker that has no steps. |
-| `{step}_technique_type` | `{worker}` | The type of technique to look in for the techniques of a step, such as `cleaner` (`{worker}_technique_type` for a worker with no steps). Optional. |
-| `{step}_requires` | `{worker}` | Names of steps that must come before a step. See `pert`. |
-| `{worker}_requires` | `{name}_project` | Names of workers that must come before a worker. See `pert`. |
-| `criteria` | project or worker | Name of a criterion (see `@chrisjen.criterion`). Used by `agile`, `lean`, and `contest`. |
-| `max_iterations` | project or worker | The most passes for `agile` and `lean`. Defaults to 10. |
-| `tolerance` | project or worker | The smallest improvement that `lean` counts. Defaults to 0. |
-| `select` | project or worker | `max` (default) or `min`. Whether `contest` keeps the highest or lowest score. |
-| `{name}_parameters` | its own section | Keyword parameters for the worker, step, or technique called `name`. A `duration` parameter is used by `pert`. |
-| `files` | its own section | Settings for the project's file manager. |
-
-Lists are separated by commas (with or without a space after each one). Design names are not case sensitive. Workers, and steps within a worker, must have unique names. Two different workers can each have a step called "clean", with their own techniques. (Parameters are shared by name, so both would use the same `clean_parameters`.) A technique can be listed more than once in a step, in which case it is applied more than once in a sequential design.
-
-Any other setting in a project or worker section is kept in `Outline.initialization` under the name of the section, for your own use:
-
-```python
-import chrisjen
-
-settings = {
-    "example_project": {"example_workers": "worker", "author": "me"},
-    "worker": {"worker_techniques": "none", "model_type": "classify"},
-}
-outline = chrisjen.Project(settings).outline
-print(outline.initialization["worker"])
-# {'model_type': 'classify'}
-print(outline.initialization["example"])
-# {'author': 'me'}
-```
-
-The outline records everything it read, and the [`Outline`](reference/chrisjen/outline.md) reference lists all of its attributes. A few useful ones (`techniques` is a `dict` of each worker's steps and their techniques, and a worker with no steps has one entry named for the worker):
-
-```python
-print(outline.workers, outline.designs)
-# ['worker'] {'worker': 'waterfall'}
-print(outline.techniques)
-# {'worker': {'worker': ['none']}}
-print(outline.kinds)
-# {'worker': 'worker', 'none': 'technique'}
-```
-
-## Designs
-
-Each design is a subclass of `Workflow`. A design decides in what order the nodes are applied and whether the techniques of a step are applied one after another or are alternatives to each other.
-
-The examples in this guide use these techniques, in addition to the ones defined in each example:
-
-```python
-def drop_negatives(item):
-    return [x for x in item if x >= 0]
-
-chrisjen.Technique.register("drop_negatives", drop_negatives)
-
-
-def scale(item, factor = 2):
-    return [x * factor for x in item]
-
-chrisjen.Technique.register("scale", scale)
-
-
-def total(item):
-    return sum(item)
-
-chrisjen.Technique.register("total", total)
-```
-
-### waterfall
-
-The default. Nodes are applied one after another, and every technique of a step is applied in order. `results` holds the result of each node.
-
-### kanban
-
-Like `waterfall`, but each stage gets a deep copy of the previous stage's result. A stage can change its input (for example, sort a list in place) without changing what an earlier stage delivered. Every deliverable is in `results`.
-
-```python
-def sort_in_place(item):
-    item.sort()
-    return item
-
-chrisjen.Technique.register("sort_in_place", sort_in_place)
-
-
-def add_zero(item):
-    item.append(0)
-    return item
-
-chrisjen.Technique.register("add_zero", add_zero)
-
-
-settings = {
-    "board_project": {"board_workers": "team"},
-    "team": {
-        "design": "kanban",
-        "team_steps": ["order", "extend"],
-        "order_techniques": "sort_in_place",
-        "extend_techniques": "add_zero",
-    },
-}
-project = chrisjen.Project(settings, item = [3, 1, 2])
-print(project.apply())
-# [1, 2, 3, 0]
-team = project.workflow.retrieve("team").contents
-print(team.results)
-# {'order': [1, 2, 3], 'extend': [1, 2, 3, 0]}
-print(project.item)
-# [3, 1, 2]
-```
-
-### scrum
-
-Like `waterfall`, but you control the pace. `advance` applies the next node and returns the result, so you can look at it (or change it) first. `upcoming` is the name of the next node and `done` says whether any remain. `execute` finishes whatever is left.
-
-```python
-from chrisjen import Scrum, Step, Technique
-
-sprint = Scrum()
-sprint.populate([
-    Step(name = "plan", contents = [Technique(name = "plan", contents = lambda x: [*x, "plan"])]),
-    Step(name = "build", contents = [Technique(name = "build", contents = lambda x: [*x, "build"])]),
-    Step(name = "ship", contents = [Technique(name = "ship", contents = lambda x: [*x, "ship"])]),
-])
-item = sprint.advance([])
-print(sprint.upcoming, item)
-# build ['plan']
-item = sprint.advance(item)
-print(sprint.execute(item))
-# ['plan', 'build', 'ship']
-```
-
-### pert
-
-Steps can depend on several other steps. List a step's prerequisites in `{step}_requires`. At the project level, where the nodes are workers, list a worker's prerequisites in `{worker}_requires` in the project section. Once any step lists requirements, only the listed requirements connect the steps, so steps with none can start together. If no step lists requirements, the steps run in sequence.
-
-`Workflow.critical_path()` returns the longest chain of steps and its length. A step's length is its `duration` parameter (1 if it has none). The critical path is the shortest time in which the whole project could finish if independent steps ran in parallel. `chrisjen` applies the steps one at a time, in an order that respects the requirements.
-
-<!-- file: build.ini -->
-```ini
-[build_project]
-build_workers = pipeline
-
-[pipeline]
-design = pert
-pipeline_steps = fetch, parse_a, parse_b, merge
-parse_a_requires = fetch
-parse_b_requires = fetch
-merge_requires = parse_a, parse_b
-
-[fetch_parameters]
-duration = 2
-
-[parse_a_parameters]
-duration = 5
-
-[parse_b_parameters]
-duration = 3
-```
-
-```python
-for name in ["fetch", "parse_a", "parse_b", "merge"]:
-    chrisjen.Technique.register(name, lambda item, name = name: [*item, name])
-
-project = chrisjen.Project("build.ini", item = [])
-print(project.apply())
-# ['fetch', 'parse_a', 'parse_b', 'merge']
-pipeline = project.workflow.retrieve("pipeline").contents
-print(sorted(pipeline.walk()))
-# [['fetch', 'parse_a', 'merge'], ['fetch', 'parse_b', 'merge']]
-print(pipeline.critical_path())
-# (['fetch', 'parse_a', 'merge'], 8.0)
-```
-
-### agile
-
-Repeats the whole sequence until the criterion returns a true value, or `max_iterations` passes have been made. `iterations` is the number of passes used.
-
-```python
-def grow(item):
-    return item * 2
-
-chrisjen.Technique.register("grow", grow)
-
-
-@chrisjen.criterion
-def big_enough(result):
-    return result >= 100
-
-
-settings = {
-    "growth_project": {"growth_workers": "grower"},
-    "grower": {
-        "design": "agile",
-        "criteria": "big_enough",
-        "max_iterations": 20,
-        "grower_techniques": "grow",
-    },
-}
-project = chrisjen.Project(settings, item = 3)
-print(project.apply())
-# 192
-print(project.workflow.retrieve("grower").contents.iterations)
-# 6
-```
-
-### lean
-
-Repeats the sequence while the score keeps improving by more than `tolerance`, up to `max_iterations` passes, and returns the best result. The criterion returns a score (higher is better). `score` and `iterations` describe the last run.
-
-```python
-def newton_step(item):
-    return (item + 10 / item) / 2
-
-chrisjen.Technique.register("newton_step", newton_step)
-
-
-@chrisjen.criterion
-def closeness_to_root(result):
-    return -abs(result * result - 10)
-
-
-settings = {
-    "root_project": {"root_workers": "refiner"},
-    "refiner": {
-        "design": "lean",
-        "criteria": "closeness_to_root",
-        "tolerance": 1e-9,
-        "refiner_techniques": "newton_step",
-    },
-}
-project = chrisjen.Project(settings, item = 1.0)
-print(round(project.apply(), 6))
-# 3.162278
-```
-
-### contest
-
-Tries every alternative and keeps the result with the best score. With several steps, an alternative is one technique from each step, so a contest between steps with two and three techniques runs six combinations. Each combination works on a deep copy of the item.
-
-If a design's nodes are workers (for example, at the project level) instead of steps, each worker is an alternative:
-
-```python
-def cautious(item):
-    return item + 1
-
-chrisjen.Technique.register("cautious", cautious)
-
-
-def bold(item):
-    return item * 3
-
-chrisjen.Technique.register("bold", bold)
-
-
-@chrisjen.criterion
-def largest(result):
-    return result
-
-
-settings = {
-    "strategy_project": {
-        "strategy_workers": ["slow", "fast"],
-        "design": "contest",
-        "criteria": "largest",
-    },
-    "slow": {"slow_techniques": "cautious"},
-    "fast": {"fast_techniques": "bold"},
-}
-project = chrisjen.Project(settings, item = 10)
-print(project.apply())
-# 30
-print(project.workflow.winner, project.workflow.scores)
-# fast {'slow': 11, 'fast': 30}
-```
-
-`Contest` records `results` (every combination's result), `scores`, and `winner`. Ties go to the first combination.
-
-### survey
-
-Like `contest`, but instead of choosing one result it returns the mean of all of them. The results must support addition and division by an integer (numbers, `numpy` arrays, and `pandas` objects do).
-
-```python
-settings = {
-    "average_project": {"average_workers": "averager"},
-    "averager": {
-        "design": "survey",
-        "averager_steps": ["scale", "combine"],
-        "scale_techniques": ["enlarge", "halve"],
-        "combine_techniques": "sum_all",
-    },
-}
-
-
-def halve(item):
-    return [x / 2 for x in item]
-
-chrisjen.Technique.register("halve", halve)
-
-
-def sum_all(item):
-    return sum(item)
-
-chrisjen.Technique.register("sum_all", sum_all)
-
-
-def double_all(item):
-    return [x * 2 for x in item]
-
-chrisjen.Technique.register("enlarge", double_all)
-
-
-project = chrisjen.Project(settings, item = [1, 2, 3])
-print(project.apply())
-# 7.5
-```
-
-### Design names
-
-`compete` and `competition` are also accepted for `contest`, and `sequential` for `waterfall`.
-
-## Techniques
-
-A `Technique` is an object that wraps a tool. It has three attributes:
-
-| Attribute | Meaning |
-| --- | --- |
-| `name` | How the technique is referred to in settings and workflows. |
-| `contents` | The tool: any callable, or its import path as a `str` (such as `"statistics.fmean"`, or `"package.module:Class.method"`). |
-| `parameters` | Keyword parameters for the tool. |
-
-When a technique is applied, its `implement` method is called with the item and all of the parameters. The default `implement` calls the tool with the item as the first argument and passes only the parameters that the tool accepts (unless it takes `**kwargs`, in which case it gets all of them). An import path is only imported when the technique is used (`Technique.resolve()` returns the tool), so a technique can wrap a package that might not be installed, and a mistake in the path raises an `ImportError` when the technique is applied.
-
-```python
-mean = chrisjen.Technique("mean", contents = "statistics.fmean")
-print(mean.complete([1, 2, 3, 6]))
-# 3.0
-rounded = chrisjen.Technique("rounded", contents = round, parameters = {"ndigits": 1})
-print(rounded.complete(3.14159))
-# 3.1
-```
-
-### Registering
-
-Techniques are found by name in registries. `Technique.register` creates a technique and registers it, or registers a technique you have built. It returns the technique, and a technique with the same name is replaced.
-
-```python
-chrisjen.Technique.register("square_root", "math.sqrt")
-chrisjen.Technique.register("one_digit", round, {"ndigits": 1})
-chrisjen.Technique.register(chrisjen.Technique("length", contents = len))
-print(chrisjen.Technique.create("square_root").complete(16))
-# 4.0
-```
-
-The techniques in `Technique.registry` are the general ones. Subclasses of `Technique` are registered too, by their snake case class name. To use one, define (or import) it before creating a project.
-
-### Types
-
-Each **type** of technique has its own registry. A type is a subclass of `Technique` that also inherits from `abc.ABC`:
+| `Project` | Interface for a project. Holds the settings, workflow, result, and report. |
+| `Idea` | The settings of a project, with properties for its workers, steps, techniques, designs, criteria, and parameters. |
+| `Library` | Stores every `Genre` class in the hierarchy of its subclasses. `chrisjen.library` is the one that projects use. |
+| `Genre` | Base class for every class that is stored in the library. |
+| `Vertex` | Base class for anything in a workflow. It is hashed and compared by `name` and applied to an item with `apply`. |
+| `Technique` | A single action. It has an `implement` method or wraps a tool (a callable or the import path of one). |
+| `NullVertex` | A technique that does nothing. It is called "none". |
+| `Step` | Wraps one technique or worker, with `begin` and `end` hooks. |
+| `Worker` | A node that is a graph of other nodes. Its subclasses are the designs: `Flow`, `Benchmark`, `Contest`, and `Survey`. |
+| `Criteria` | Scores results, for the designs that need a score or a test. |
+| `Report` | Describes a project after it is applied. `Summary` is the default. |
+
+## The library
+
+Every subclass of `Genre` is added to `chrisjen.library` when it is defined,
+under its snake case name (`DropNegatives` is "drop_negatives"). A subclass
+that also lists `abc.ABC` among its bases is a *genre*: it is a key in the
+library whose value holds its subclasses, and the class itself is not stored.
 
 ```python
 import abc
+import dataclasses
 
+import chrisjen
 
+print(sorted(chrisjen.library["vertex"]))
+# ['none', 'null_vertex', 'step', 'technique', 'worker']
+print(chrisjen.library["vertex"]["worker"])
+# {'flow': <class 'chrisjen.workers.Flow'>, 'benchmark': <class 'chrisjen.workers.Benchmark'>, 'contest': <class 'chrisjen.workers.Contest'>, 'survey': <class 'chrisjen.workers.Survey'>}
+```
+
+A package built on `chrisjen` can add genres of its own. Each is a new layer of
+the library:
+
+```python
 class Cleaner(chrisjen.Technique, abc.ABC):
     """Techniques that clean data."""
 
 
-class Analyzer(chrisjen.Technique, abc.ABC):
-    """Techniques that analyze data."""
+@dataclasses.dataclass
+class DropBlanks(Cleaner):
+    def implement(self, item, **kwargs):
+        return [x for x in item if x]
 
 
-Cleaner.register("drop_blanks", lambda item: [x for x in item if x])
-Analyzer.register("count", len)
-print(chrisjen.Technique.types["cleaner"] is Cleaner)
+print(chrisjen.library["vertex"]["cleaner"])
+# {'drop_blanks': <class 'docs_advanced.DropBlanks'>}
+print(chrisjen.library.classify("drop_blanks"))
+# cleaner
+print("cleaner" in chrisjen.library.genres)
 # True
-print(chrisjen.Technique.available()["cleaner"])
-# ['drop_blanks']
 ```
 
-`Technique.types` is a `dict` of the names of all of the types and the types. (The general `Technique` is one of them, called "technique".) `Technique.available()` lists the registered names of each type. Every other subclass of a type is registered in the registry of that type. A subclass of `Technique` that does not inherit from `abc.ABC` is registered in the general registry.
+`library.all` is a flat `dict` of every stored class, which is how names in
+settings are found. Names should be unique across the library: if two classes
+have the same name, the first one found is used.
 
-### Finding techniques
+## Settings reference
 
-| You write | It looks in |
+A project's settings need a section named `{name}_project` (or a `name` passed
+to `Project.create`). Every other section is a worker, except sections that
+end in `parameters` and the special sections "general" and "files". In each
+worker section (and the project section, which is the worker for the whole
+project), these settings can be written alone or after a name:
+
+| Setting | Meaning |
 | --- | --- |
-| `Technique.create("name")` | Every type. The name must be registered in only one, or a `KeyError` says which types have it. |
-| `Technique.create("cleaner.name")` or `Technique.create("name", kind="cleaner")` | Only the `Cleaner` type. `kind` can be the name or the class. |
-| `Cleaner.create("name")` | Only the `Cleaner` type. |
-| `clean_technique_type = cleaner` in settings | Only the `Cleaner` type, for the techniques of the step "clean". Use `{worker}_technique_type` for a worker with no steps. |
+| `steps` or `{name}_steps` | Names of the steps of the worker or of `name`. |
+| `workers` or `{name}_workers` | The same as `steps`. The project section usually uses `{name}_workers`. |
+| `techniques` or `{name}_techniques` | Names of the techniques of the worker or of `name`. These are used if there are no steps. |
+| `design` or `{name}_design` | Design of the worker or of `name`. Defaults to `flow`. |
+| `criterion` or `{name}_criterion` | Criteria of the worker or of `name`: the name of a `Criteria` subclass or the import path of a scoring function. |
+| Any field of a class, or `{name}_{field}` | Passed to the class that `name` is built with, such as `max_iterations` for a `benchmark`. |
 
-In settings, a name may also include its type, as in `clean_techniques = cleaner.drop_blanks`.
+A setting written alone belongs to the worker of its section, and a setting
+written after a name belongs to that name. Other sections:
+
+| Section | Meaning |
+| --- | --- |
+| `{name}_parameters` | Keyword parameters for the worker, step, or technique called `name`. |
+| `{technique}_{step}_parameters` | Keyword parameters for one technique in one step. |
+| `files` | Arguments for the project's `nagata.FileManager`, such as `output_folder`. |
+| `general` | Ignored by `chrisjen`, for your own use. |
+
+## How a workflow is built
+
+The functions in `chrisjen.workshop` turn the names in the settings into
+nodes, starting from the project's worker:
+
+* **Workers.** A name with a section of its own (or a list of steps) is a
+  worker. Its class is the worker class with its name, if there is one (so a
+  package can define an `Analyst` worker for "analyst"), and otherwise the
+  class of its design.
+* **Steps.** Each technique of a step is wrapped in a `Step` node named
+  "{technique}_{step}". Its class is the `Step` subclass with the step's name,
+  if there is one (such as a `Scale` step for "scale"), and otherwise `Step`.
+  A step without techniques is a node itself.
+* **Techniques.** Any other name is built with the class in the library that
+  has its name, usually a `Technique` subclass.
+
+Each class builds itself with its `build` class method, which passes the
+settings that match its fields to its constructor and adds its parameters. A
+worker's `populate` method then connects its nodes: one after another for a
+`flow` or `benchmark`, or, for a `contest` or `survey`, so that every
+combination of one technique from each step is a path through the graph. The
+nodes in a worker must have unique names. `Library.borrow` finds classes by
+name, with fallbacks:
 
 ```python
-Analyzer.register("drop_blanks", lambda item: [x for x in item if not x])
-print(chrisjen.Technique.create("cleaner.drop_blanks").complete([0, 1, 2]))
-# [1, 2]
-print(chrisjen.Technique.create("drop_blanks", kind = "analyzer").complete([0, 1, 2]))
-# [0]
+print(chrisjen.library.borrow(["analyst", "contest"], genre = "worker"))
+# <class 'chrisjen.workers.Contest'>
 ```
 
-`create` returns a *copy* of the registered technique, so techniques in different steps never share their parameters or state. The `parameters` from your settings are combined with the parameters that the technique was registered with (your settings win). The tool in `contents` is copied too, so a tool with state of its own (such as a model) is not shared, unless the tool cannot be copied (because it holds a lock or a connection, for example), in which case the copies share it.
+`Project.idea` reads these settings with its properties:
 
-`none`, `null`, and `null_node` are three names in the general registry for the built-in `NullNode`, which returns its item unchanged.
+```python
+settings = {
+    "demo_project": {"demo_workers": "prepare, model"},
+    "prepare": {
+        "steps": "clean, scale",
+        "clean_techniques": "drop_blanks, none",
+    },
+    "model": {"design": "contest", "criterion": "statistics.fmean"},
+    "scale_parameters": {"factor": 3},
+}
+idea = chrisjen.Idea.create(settings)
+print(idea.workers.keys())
+# dict_keys(['demo', 'prepare', 'model'])
+print(idea.steps)
+# {'demo': ['prepare', 'model'], 'prepare': ['clean', 'scale']}
+print(idea.techniques)
+# {'clean': ['drop_blanks', 'none']}
+print(idea.designs)
+# {'model': 'contest', 'demo': 'flow', 'prepare': 'flow'}
+print(idea.criteria, idea.parameters)
+# {'model': 'statistics.fmean'} {'scale': {'factor': 3}}
+```
 
-### Calling tools differently
+## Designs
 
-The default `implement` fits functions. A type can override it to fit other kinds of tools. This is how one interface wraps many packages: each type of technique knows how to call the tools of its type, and everything else (the settings, the workflows, the designs) treats them the same. The next section has a complete example.
+Each design is a subclass of `Worker`, which is a
+[holden](https://WithPrecedent.github.io/holden) `System`: a directed graph
+whose nodes are the vertexes themselves. A design decides how its nodes are
+applied. The examples below use these techniques:
+
+```python
+@dataclasses.dataclass
+class AddOne(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return item + 1
+
+
+@dataclasses.dataclass
+class Triple(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return item * 3
+
+
+@dataclasses.dataclass
+class Largest(chrisjen.Criteria):
+    def score(self, item):
+        return item
+```
+
+### flow
+
+The default. The nodes are connected in a sequence and applied one after
+another.
+
+```python
+settings = {"chain_project": {"techniques": "add_one, triple"}}
+print(chrisjen.Project.create(settings, item = 1).result)
+# 6
+```
+
+### benchmark
+
+Repeats the sequence until its criteria's `test` passes (that is, until the
+score is true), or until `max_iterations` passes have been made (if it is set).
+`iterations` is the number of passes made.
+
+```python
+@dataclasses.dataclass
+class BigEnough(chrisjen.Criteria):
+    def score(self, item):
+        return item >= 100
+
+
+settings = {
+    "growth_project": {
+        "design": "benchmark",
+        "criterion": "big_enough",
+        "techniques": "triple",
+    },
+}
+project = chrisjen.Project.create(settings, item = 2)
+print(project.result, project.workflow.iterations)
+# 162 4
+```
+
+Set `max_iterations` in the settings to limit the number of passes:
+
+```python
+settings["growth_project"]["max_iterations"] = 2
+project = chrisjen.Project.create(settings, item = 2)
+print(project.result, project.workflow.iterations)
+# 18 2
+```
+
+### contest
+
+Tries every path through its graph and keeps the result with the highest
+score. A worker without steps has one path for each of its techniques. With
+steps, there is a path for every combination of one technique from each step.
+Each path works on its own deep copy of the item, with its own copies of the
+nodes. `results` has the result of each path, labeled with the names of its
+nodes joined with " > ", and `winner` is the label of the best one. Ties go to
+the first.
+
+```python
+settings = {
+    "strategy_project": {
+        "design": "contest",
+        "criterion": "largest",
+        "techniques": "add_one, triple",
+    },
+}
+project = chrisjen.Project.create(settings, item = 10)
+print(project.result, project.workflow.winner, project.workflow.results)
+# 30 triple {'add_one': 11, 'triple': 30}
+
+combinations = {
+    "strategy_project": {
+        "design": "contest",
+        "criterion": "largest",
+        "steps": "first, second",
+        "first_techniques": "add_one, triple",
+        "second_techniques": "add_one, triple",
+    },
+}
+project = chrisjen.Project.create(combinations, item = 10)
+print(len(project.workflow.results), project.workflow.winner)
+# 4 triple_first > triple_second
+```
+
+To keep the lowest score instead, return a negative score.
+
+### survey
+
+Like `contest`, but returns the mean of the results (also stored in
+`average`). The results must support addition and division by an integer
+(numbers, `numpy` arrays, and `pandas` objects do).
+
+```python
+settings["strategy_project"]["design"] = "survey"
+print(chrisjen.Project.create(settings, item = 10).result)
+# 20.5
+```
 
 ## Criteria
 
-A criterion is a function that takes a result and returns a score (or, for `agile`, a `bool`). Register it with `@chrisjen.criterion` and refer to it with the `criteria` setting. When you build a workflow yourself, you can also pass the function directly:
+`Criteria` scores results. Subclass it and write a `score` method, or wrap a
+scoring function (or its import path) in `contents`. `score` returns the score
+(higher is better) and `test` returns whether the score is true.
 
 ```python
-workflow = chrisjen.Workflow.design(
-    "contest",
-    [chrisjen.Step(name = "s", contents = [chrisjen.Technique(name = "up", contents = lambda x: x + 1)])],
-    criteria = lambda result: result,
-)
-print(workflow.execute(1))
-# 2
+mean = chrisjen.Criteria(contents = "statistics.fmean")
+print(mean.score([1, 2, 6]), mean.test([0, 0]))
+# 3.0 False
 ```
+
+In settings, `criterion` names a `Criteria` subclass in the library. Any other
+name is used as the import path of a scoring function, which is wrapped in a
+`Criteria`. Parameters for it come from a `{criterion}_parameters` section.
 
 ## Parameters and precedence
 
-Keyword parameters can come from four places. When the same parameter is set in more than one place, the later item in this list wins:
+Keyword parameters come from `{name}_parameters` sections and from `apply`. A
+node passes its parameters to everything inside it, so when the same parameter
+is set in more than one place, the outer one wins:
 
-1. The step's parameters (a `{step}_parameters` section).
-2. The technique's parameters (a `{technique}_parameters` section).
-3. The worker's parameters (a `{worker}_parameters` section), which are passed to everything the worker does.
-4. Keyword arguments passed to `Project.apply` (or `Workflow.execute`).
+1. The technique's parameters (lowest).
+2. The parameters of the step that wraps it (`{step}_parameters`, updated with
+   `{technique}_{step}_parameters`).
+3. The parameters of the workers that contain it, from the innermost to the
+   outermost.
+4. Keyword arguments passed to `Project.apply` (highest).
 
 ```python
-def add_amount(item, amount = 0):
-    return item + amount
-
-chrisjen.Technique.register("add_amount", add_amount)
+@dataclasses.dataclass
+class AddAmount(chrisjen.Technique):
+    def implement(self, item, amount = 0, **kwargs):
+        return item + amount
 
 
 settings = {
     "sum_project": {"sum_workers": "adder"},
-    "adder": {"adder_steps": ["add"], "add_techniques": "add_amount"},
-    "add_parameters": {"amount": 1},
-    "add_amount_parameters": {"amount": 2},
+    "adder": {"techniques": "add_amount"},
+    "add_amount_parameters": {"amount": 1},
 }
-project = chrisjen.Project(settings, item = 0)
-print(project.apply())
-# 2
-print(project.apply(amount = 5))
-# 5
+project = chrisjen.Project.create(settings, item = 0)
+print(project.result)
+# 1
+settings["adder_parameters"] = {"amount": 2}
+project = chrisjen.Project.create(settings, item = 0)
+print(project.result, project.apply(0, amount = 5))
+# 2 5
+```
+
+An `implement` method gets only the parameters it accepts (unless it takes
+`**kwargs`). A wrapped tool gets only the parameters that it accepts.
+
+## Techniques and steps
+
+A `Technique` has three attributes:
+
+| Attribute | Meaning |
+| --- | --- |
+| `name` | How the technique is referred to in a workflow. |
+| `contents` | The tool: any callable, or its import path as a `str` (such as `"statistics.fmean"` or `"package.module:Class.method"`). |
+| `parameters` | Keyword parameters for the tool. |
+
+The default `implement` calls the tool with the item as the first argument. An
+import path is only imported when the technique is used, so a technique can
+wrap a package that might not be installed. A subclass can override
+`implement` to call its tool differently.
+
+```python
+mean = chrisjen.Technique(name = "mean", contents = "statistics.fmean")
+print(mean.apply([1, 2, 3, 6]))
+# 3.0
+rounded = chrisjen.Technique(
+    name = "rounded", contents = round, parameters = {"ndigits": 1})
+print(rounded.apply(3.14159))
+# 3.1
+```
+
+A `Step` wraps one technique or worker and adds `begin` and `end` hooks, which
+run before and after it:
+
+```python
+@dataclasses.dataclass
+class Logged(chrisjen.Step):
+    log: list = dataclasses.field(default_factory = list)
+
+    def begin(self, item):
+        self.log.append(f"before: {item}")
+        return item
+
+    def end(self, item):
+        self.log.append(f"after: {item}")
+        return item
+
+
+step = Logged(name = "logged", contents = Triple(name = "triple"))
+print(step.apply(2), step.log)
+# 6 ['before: 2', 'after: 6']
+```
+
+A `Step` subclass named after a step in the settings is used for that step, so
+a package can give a step code that all of its techniques share. A step also
+returns the attributes of its technique that it does not have itself:
+
+```python
+@dataclasses.dataclass
+class Grow(chrisjen.Step):
+    def end(self, item):
+        return item + 100
+
+
+settings = {"growth_project": {"steps": "grow", "grow_techniques": "triple"}}
+project = chrisjen.Project.create(settings, item = 1)
+step = next(iter(project.workflow))
+print(type(step).__name__, step.name, project.result)
+# Grow triple_grow 103
 ```
 
 ## Building workflows in code
 
-You do not have to use settings. Every part can be created directly. `Workflow.design(name, nodes, **options)` creates a design by name and connects the nodes (in the order given, or according to `requirements`).
+You do not have to use settings. Create a design and add nodes with
+`populate`, which connects them in sequence. An item can also be a list of
+alternatives: a `Flow` applies them one after another, and a `Contest` or
+`Survey` tries every combination of one node from each list. Workers can be
+nodes of other workers:
 
 ```python
-steps = [
-    chrisjen.Step(
-        name = "clean",
-        contents = [chrisjen.Technique(name = "drop_negatives", contents = drop_negatives)],
-    ),
-    chrisjen.Step(
-        name = "resize",
-        contents = [chrisjen.Technique(name = "scale", contents = scale, parameters = {"factor": 3})],
-    ),
-]
-workflow = chrisjen.Workflow.design("waterfall", steps, name = "prepare")
-print(workflow.execute([1, -1, 2]))
-# [3, 6]
-```
+inner = chrisjen.Flow(name = "inner")
+inner.populate([AddOne(name = "add_one"), Triple(name = "triple")])
+outer = chrisjen.Flow(name = "outer")
+outer.populate([inner, AddOne(name = "add_one")])
+print(outer.apply(1))
+# 7
 
-A `Worker` puts a workflow inside another workflow:
+bench = chrisjen.Benchmark(
+    name = "bench", criteria = BigEnough(), max_iterations = 2)
+bench.populate([Triple(name = "triple")])
+print(bench.apply(2), bench.iterations)
+# 18 2
 
-```python
-prepare = chrisjen.Worker(name = "prepare", contents = workflow)
-summarize = chrisjen.Step(
-    name = "summarize",
-    contents = [chrisjen.Technique(name = "total", contents = total)],
-)
-project_workflow = chrisjen.Workflow.design("waterfall", [prepare, summarize])
-print(project_workflow.execute([1, -1, 2]))
-# 9
+contest = chrisjen.Contest(name = "contest", criteria = Largest())
+contest.populate([[AddOne(name = "add_one"), Triple(name = "triple")]])
+print(contest.apply(10), contest.winner)
+# 30 triple
 ```
 
 ## Custom designs
 
-To add a design, subclass `Workflow` and write an `execute` method. The subclass is found by its snake case class name. `self.sequence` is the list of nodes in the order they should run, and each node's `complete(item, **kwargs)` applies it.
+To add a design, subclass `Worker` (or one of the designs) and write an
+`implement` method. `self.walk()` returns the paths through the graph, as lists
+of nodes, and each node's `apply(item, **kwargs)` applies it. The class is
+available in settings by its snake case name:
 
 ```python
-import dataclasses
-
-
 @dataclasses.dataclass
-class TwiceOver(chrisjen.Workflow):
+class TwiceOver(chrisjen.Flow):
     """Applies the whole sequence two times."""
 
-    def execute(self, item, **kwargs):
-        self.results.clear()
+    def implement(self, item, **kwargs):
         for _ in range(2):
-            for node in self.sequence:
-                item = node.complete(item, **kwargs)
-                self.results[node.name] = item
+            item = super().implement(item, **kwargs)
         return item
 
 
 settings = {
     "twice_project": {"twice_workers": "worker"},
-    "worker": {"design": "twice_over", "worker_techniques": "scale"},
+    "worker": {"design": "twice_over", "techniques": "triple"},
 }
-print(chrisjen.Project(settings, item = [1, 2]).apply())
-# [4, 8]
+print(chrisjen.Project.create(settings, item = 1).result)
+# 9
 ```
 
-If your design needs criteria, iterations, or a `select` rule, use the attributes that `Workflow` already has: `criteria`, `max_iterations`, `tolerance`, `select`, and `durations`. The `_criteria()` method returns the criteria function (looking up a name if needed). To compare alternatives, subclass `chrisjen.workflows.Comparative` and use its `compare` method, which returns a `dict` of a label and result for every alternative.
+To compare alternatives, mix `chrisjen.Comparator` into a design (before
+`Worker`). Its `populate` method connects the alternatives so that every
+combination is a path, `try_paths` applies every path to copies of the item and
+the nodes, and `compare` scores the results with `criteria`.
 
-## Building a package on chrisjen
+## Custom reports
 
-`chrisjen` provides the structure of a project: settings, workflows, designs, and a registry for each type of technique. A package built on it (for example, a data science package) supplies the types of techniques and the tools that they wrap. The pattern is:
-
-1. **Define a type for each kind of work.** Give each an `implement` method that calls the tools of that type the way they need to be called.
-2. **Register the tools.** Use import paths for tools from packages that may not be installed. Register default parameters with them.
-3. **Register everything when your package is imported,** so that a user only needs to import it and write settings.
-
-This example has three types. Each calls a different kind of tool: a `Cleaner` calls a function, a `Munger` calls a method of the item itself (the tool is the name of the method), and an `Analyzer` builds an object from the item and then calls one of its methods. All of the tools are from the standard library:
+A report is a subclass of `Report` with a `generate` method, which is called
+with the project after each `apply`. Pass an instance as `report`:
 
 ```python
-import dataclasses
-
-from chrisjen import utilities
-
-
-class Cleaner(chrisjen.Technique, abc.ABC):
-    """Calls a function with the item."""
-
-
 @dataclasses.dataclass
-class Munger(chrisjen.Technique, abc.ABC):
-    """Calls the method of the item that is named in `contents`."""
+class History(chrisjen.Report):
+    contents: list = dataclasses.field(default_factory = list)
 
-    def implement(self, item, **kwargs):
-        method = getattr(item, self.contents)
-        return method(**utilities.accepted_arguments(method, kwargs))
-
-
-@dataclasses.dataclass
-class Analyzer(chrisjen.Technique, abc.ABC):
-    """Builds an object from the item and calls one of its methods."""
-
-    method: str = "most_common"
-
-    def implement(self, item, **kwargs):
-        summary = self.resolve()(item.split())
-        method = getattr(summary, self.method)
-        return method(**utilities.accepted_arguments(method, kwargs))
+    def generate(self, project):
+        self.contents.append(project.result)
+        return self.contents
 
 
-Cleaner.register("squeeze", lambda item: " ".join(item.split()))
-Munger.register("strip", "strip")
-Munger.register("lowercase", "lower")
-Analyzer.register("frequencies", "collections.Counter")
+project = chrisjen.Project.create(
+    {"chain_project": {"techniques": "triple"}},
+    report = History(),
+    automatic = False)
+project.apply(1)
+project.apply(2)
+print(project.report.contents)
+# [3, 6]
 ```
-
-The settings say which type each step uses, so all of the `chrisjen` designs and features work with them:
-
-```python
-settings = {
-    "words_project": {"words_workers": ["prepare", "analyze"]},
-    "prepare": {
-        "prepare_steps": ["tidy", "simplify", "spacing"],
-        "tidy_techniques": "strip",
-        "tidy_technique_type": "munger",
-        "simplify_techniques": "lowercase",
-        "simplify_technique_type": "munger",
-        "spacing_techniques": "squeeze",
-        "spacing_technique_type": "cleaner",
-    },
-    "analyze": {
-        "analyze_techniques": "frequencies",
-        "analyze_technique_type": "analyzer",
-    },
-    "frequencies_parameters": {"n": 1},
-}
-text = "  The  cat and THE hat and the bat "
-project = chrisjen.Project(settings, item = text)
-print(project.apply())
-# [('the', 3)]
-```
-
-Because every tool is a registered technique, the same workflow can compare them. This contest between two ways of counting the words is set up with a change of design and a criterion:
-
-```python
-Analyzer.register("top_two", "collections.Counter", {"n": 2})
-
-
-@chrisjen.criterion
-def most_words_covered(result):
-    return sum(count for _, count in result)
-
-
-settings["analyze"] = {
-    "design": "contest",
-    "criteria": "most_words_covered",
-    "analyze_steps": ["count"],
-    "count_techniques": "frequencies, top_two",
-    "count_technique_type": "analyzer",
-}
-project = chrisjen.Project(settings, item = text)
-print(project.apply())
-# [('the', 3), ('and', 2)]
-print(project.workflow.retrieve("analyze").contents.winner)
-# top_two
-```
-
-A few practical points for packages:
-
-* Keep types abstract (inherit from `abc.ABC`), and register tools with `register`, not as subclasses, unless a tool needs its own code. Subclasses are found by their snake case names, and a name must be unique within a type.
-* Use import paths (`"package.module.tool"`) for optional packages. A missing package only raises an `ImportError` if the technique is used.
-* Give tools the parameters they usually need as registered defaults, so that a settings file only lists the changes.
-* Use `Technique.available()` to show users what is registered, and `Technique.types` to find the types.
-* `chrisjen.utilities.accepted_arguments(tool, parameters)` returns the parameters that a tool accepts. Use it in `implement` so that parameters shared by the techniques of a step do not break tools that do not take them.
 
 ## Using the graph
 
-A `Workflow` is a [holden](https://WithPrecedent.github.io/holden) `System`, a directed graph, so everything `holden` offers is available. The graph holds only node *names*. The nodes themselves are in `library` and are found with `retrieve`.
+A worker is a `holden.System`, so everything `holden` offers is available. Its
+nodes are the vertexes themselves, and because vertexes are hashed and compared
+by name, a node's name can be used in its place:
 
 ```python
-workflow = chrisjen.Workflow.design("waterfall", steps, name = "prepare")
-print(workflow.contents)
-# {'clean': {'resize'}, 'resize': set()}
-print(workflow.root, workflow.endpoint)
-# ['clean'] ['resize']
-print(workflow.edges.contents)
-# [('clean', 'resize')]
-print(workflow.retrieve("clean").name)
-# clean
-print(workflow.to_dot(name = "prepare"), end = "")
-# digraph prepare {
-# clean -> resize
+print(inner.contents)
+# {AddOne(contents=None, name='add_one', parameters={}): {Triple(contents=None, name='triple', parameters={})}, Triple(contents=None, name='triple', parameters={}): set()}
+print([node.name for node in inner.root], "triple" in inner)
+# ['add_one'] True
+print(inner.to_dot(), end = "")
+# digraph inner {
+# add_one -> triple
 # }
 ```
 
 ## Using the settings and the clerk
 
-`Project.idea` is a `bobbie.Settings`. It is a `dict`, so you can read any section, and its methods (such as `inject`, which adds settings to an object as attributes) are available. If you already have a `bobbie.Settings`, pass it to `Project` and it is used as is.
+`Project.idea` is a `bobbie.Settings`. It is a `dict`, so you can read any
+section, and its methods (such as `inject`, which adds settings to an object as
+attributes) are available. You can pass an `Idea` to `Project.create` and it is
+used as is.
 
-`Project.clerk` is a `nagata.FileManager`. Its `save` and `load` methods take a `file_name`, an optional `folder` (`input`, `interim`, or `output`), and an optional `file_format` (or use a file name with an extension, such as "results.csv" if `pandas` is installed). The folders are inside `root / identification`, so each run of a project has its own folders.
+`Project.clerk` is a `nagata.FileManager`. Its `save` and `load` methods take a
+`file_name`, an optional `folder`, and an optional `file_format` (or use a file
+name with an extension, such as "results.csv" if `pandas` is installed).
+Without a `clerk` argument, `Project.create` uses `options._DEFAULT_ROOT` as the
+folder.
 
 ## Errors you may see
 
 | Error | Cause |
 | --- | --- |
-| `ValueError: the settings have no section ... "_project"` | The settings need a section named `{name}_project`. |
-| `ValueError: section ... must list workers` | The project section needs a `{name}_workers` setting. |
-| `ValueError: the settings have no section for worker ...` | A worker named in `{name}_workers` has no section. |
-| `ValueError: worker ... needs steps ... or techniques ...` | A worker's section has neither a `{worker}_steps` nor a `{worker}_techniques` setting. |
-| `ValueError: the workers of ... must be unique` | A worker (or step) name is listed twice in the same list. |
-| `TypeError: section ... must be a mapping of settings` | A section in the settings is a single value instead of a group of settings. |
-| `KeyError: ... is not a known technique` | Nothing is registered with that name (in that type, if the type was named). The message lists what is registered. Check that the module that registers it has been imported. |
-| `KeyError: ... is registered in more than one type of technique` | Name the type: `{step}_technique_type`, or write the name as `type.name`. |
-| `KeyError: ... is not a type of technique` | The type named in a `..._technique_type` setting (or `kind`) does not exist. Types are the subclasses of `Technique` that inherit from `abc.ABC`. |
-| `ImportError: cannot import ...` | The import path of a technique's tool is wrong, or its package is not installed. This is raised when the technique is used. |
-| `TypeError: technique ... wraps ..., which is not callable` | The tool is not callable. Wrap a callable, or override `implement` in the type of technique. |
-| `NotImplementedError: technique ... has no tool` | A `Technique` has no `contents` and its type does not override `implement`. |
-| `KeyError: ... is not a known workflow design` | The design name is misspelled, or the custom design has not been defined. |
-| `ValueError: the ... design needs a criteria function` | `agile`, `lean`, and `contest` need a `criteria` setting. |
-| `KeyError: ... is not a registered criterion` | The `criteria` setting names a function that was not registered with `@chrisjen.criterion`. |
-| `ValueError: workflow has a cycle` | The `{step}_requires` settings of a `pert` workflow point in a circle. This is found when the workflow is published. |
+| `ValueError: A Project name was not given and could not be found in idea` | The settings have no worker sections and no `name` was passed. |
+| `KeyError: no class named ... is in the library` | A technique or design name is not the snake case name of a class in the library. Check that the module that defines it has been imported. |
+| `ValueError: ... is already in the composite data structure` | The same name is listed twice in one worker. |
+| `ValueError: benchmark ... needs criteria` | A `benchmark` has no `criterion` setting. |
+| `ValueError: ... needs criteria to compare results` | A `contest` has no `criterion` setting. |
+| `ValueError: ... has no paths to compare` | A `contest` or `survey` has no techniques or steps. |
+| `ImportError: cannot import ...` | The import path of a tool or criterion is wrong, or its package is not installed. This is raised when it is used. |
+| `TypeError: technique ... wraps ..., which is not callable` | The tool is not callable. Wrap a callable, or override `implement`. |
+| `NotImplementedError: technique ... has no tool` | A `Technique` has no `contents` and does not override `implement`. |
+| `ValueError: step ... has no technique or workflow in contents` | A `Step` was applied without `contents`. |
 
-Names in ini files that look like booleans or numbers (`yes`, `no`, `true`, `false`, `1`) are converted by the ini loader before `chrisjen` sees them, so avoid them as names of workers, steps, or techniques.
+Names in ini files that look like booleans or numbers (`yes`, `no`, `true`,
+`false`, `1`) are converted by the ini loader before `chrisjen` sees them, so
+avoid them as names of workers, steps, or techniques.

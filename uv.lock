@@ -115,6 +115,15 @@ wheels = [
 ]
 
 [[package]]
+name = "camina"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/f1/fb15ee7951510938ae2a011310776cf92c1e892fde9a3ecde36d88aeb215/camina-0.2.1.tar.gz", hash = "sha256:165132148bc65e452c09110d98331c1cca8e95fe9a59cd5605ff0618a95c4cbb", size = 124131, upload-time = "2026-09-29T19:31:11.248Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9d/db/2607ce99c16d63896c61d5afb751aea01a44c8821c743badc1467fece8e9/camina-0.2.1-py3-none-any.whl", hash = "sha256:ea6f354e100aff50d9177c83b517e7600521315c470e515d09b2ef151a0e7a1a", size = 20393, upload-time = "2026-09-29T19:31:10.427Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.7.22"
 source = { registry = "https://pypi.org/simple" }
@@ -285,6 +294,7 @@ version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "bobbie" },
+    { name = "camina" },
     { name = "holden" },
     { name = "nagata" },
     { name = "wonka" },
@@ -324,9 +334,10 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "bobbie", specifier = ">=0.2.1" },
+    { name = "camina", specifier = ">=0.2.1" },
     { name = "holden", specifier = ">=0.2.2" },
-    { name = "nagata" },
-    { name = "wonka", specifier = ">=0.2.0" },
+    { name = "nagata", specifier = ">=0.2.0" },
+    { name = "wonka", specifier = ">=0.2.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -1610,9 +1621,9 @@ wheels = [
 
 [[package]]
 name = "wonka"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8a/88/237e029ddca86d6eaefe2739d914b6e513ddc25d3102e02f8dee8163e1cd/wonka-0.2.0.tar.gz", hash = "sha256:1f4928fbb23345f5207e7219f19b0c62ee4d3c98cce61352f2b86f3b023e9164", size = 801052, upload-time = "2026-06-18T19:57:48.093Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/b9/d954b94bc71ce98ea924dbd4fc116f57da2ef3b46aded3ef08cfda1af086/wonka-0.2.1.tar.gz", hash = "sha256:7839ba8bd8e1f463e162b8b642ffdc0b96030dbeb143e597640f06397a1cb138", size = 782815, upload-time = "2026-10-01T18:16:35.579Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/a9/85e0d265e0b9c7fbabf6e06a21ffefb8688d8ff3895c512ac8ee9ab45818/wonka-0.2.0-py3-none-any.whl", hash = "sha256:6d1fecf8af5cc60ef4e49ba6517e0bc64f7932bc8cf2701f7d2de344b4824713", size = 34319, upload-time = "2026-06-18T19:57:49.267Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/69/8cb6af5818e019ef5f9e627e9494b61dab41b7fbd97296f10718bbd00add/wonka-0.2.1-py3-none-any.whl", hash = "sha256:b3f7bce5189693716edbeb1382992640f72385fbe95790c6b19e13208813d10a", size = 27154, upload-time = "2026-10-01T18:16:34.253Z" },
 ]

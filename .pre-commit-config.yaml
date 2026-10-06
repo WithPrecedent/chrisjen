@@ -29,4 +29,9 @@ repos:
   rev: 0.10.1
   hooks:
     - id: pydoclint
-      args: [--style=google, --check-return-types=False, --arg-type-hints-in-docstring=False, --check-class-attributes=False, --skip-checking-raises=True]
+      args:
+        - --style=google
+        - --check-return-types=False
+        - --arg-type-hints-in-docstring=False
+        - --check-class-attributes=False
+        - --skip-checking-raises=True

@@ -18,40 +18,45 @@
 <img src="https://media.giphy.com/media/EUdtBgPPKP3F7U6yBh/giphy.gif" height="300"/>
 </p>
 
-Named after Earth's unflappable leader in *The Expanse*, who knew how to get things done, `chrisjen` builds and runs project workflows from a plain settings file (or a Python `dict`). You list the steps of your project and the techniques for each step. `chrisjen` connects them into a workflow, applies it to your data, and, if you ask it to, compares alternatives and picks the best.
+Named after Earth's unflappable leader in *The Expanse*, who knew how to get
+things done, `chrisjen` builds and runs project workflows from a plain settings
+file (or a Python `dict`). You list the parts of your project and the
+techniques that each part uses. `chrisjen` connects them into a workflow,
+applies it to your data, and, if you ask it to, compares alternatives and picks
+the best.
 
 ```python
+import dataclasses
+
 import chrisjen
 
 
-def drop_negatives(item):
-    return [x for x in item if x >= 0]
+@dataclasses.dataclass
+class DropNegatives(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return [x for x in item if x >= 0]
 
 
-def double(item):
-    return [x * 2 for x in item]
+@dataclasses.dataclass
+class Double(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return [x * 2 for x in item]
 
 
-def total(item):
-    return sum(item)
-
-
-for function in (drop_negatives, double, total):
-    chrisjen.Technique.register(function.__name__, function)
+@dataclasses.dataclass
+class Total(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return sum(item)
 
 
 settings = {
-    "report_project": {"report_workers": ["prepare", "summarize"]},
-    "prepare": {
-        "prepare_steps": ["clean", "scale"],
-        "clean_techniques": "drop_negatives",
-        "scale_techniques": "double",
-    },
-    "summarize": {"summarize_techniques": "total"},
+    "report_project": {"report_workers": "prepare, summarize"},
+    "prepare": {"techniques": "drop_negatives, double"},
+    "summarize": {"techniques": "total"},
 }
 
-project = chrisjen.Project(settings, item = [3, -1, 4, -1, 5])
-print(project.apply())
+project = chrisjen.Project.create(settings, item = [3, -1, 4, -1, 5])
+print(project.result)
 # 24
 ```
 
@@ -59,13 +64,13 @@ print(project.apply())
 
 ### Intuitive
 
-A `chrisjen` project has three parts, which are named the same way in every project:
+A `chrisjen` project is made of **techniques**, the actual actions, which are
+grouped into **workers**, the parts of a project (for example, "prepare" and
+"summarize"). A worker can also have **steps**, each with techniques of its
+own.
 
-* **Workers** are the big parts of a project (for example, "prepare" and "summarize").
-* **Steps** are the stages of a worker (for example, "clean" and "scale").
-* **Techniques** are the actual actions in a step. They wrap Python tools, usually functions.
-
-You describe them in an ini, toml, json, yaml, xml, or Python file (or a `dict`), and a `Project` does the rest. The same example as a file:
+You describe them in an ini, toml, json, yaml, xml, or Python file (or a
+`dict`), and a `Project` does the rest. The same example as a file:
 
 <!-- file: report.ini -->
 ```ini
@@ -73,28 +78,20 @@ You describe them in an ini, toml, json, yaml, xml, or Python file (or a `dict`)
 report_workers = prepare, summarize
 
 [prepare]
-prepare_steps = clean, scale
-clean_techniques = drop_negatives
-scale_techniques = double
+techniques = drop_negatives, double
 
 [summarize]
-summarize_techniques = total
+techniques = total
 ```
 
 ```python
-project = chrisjen.Project("report.ini", item = [3, -1, 4, -1, 5])
-print(project.outline.summary)
-# report (waterfall)
-#   prepare (waterfall)
-#     clean: drop_negatives
-#     scale: double
-#   summarize (waterfall)
-#     total
-print(project.apply())
+project = chrisjen.Project.create("report.ini", item = [3, -1, 4, -1, 5])
+print(project.result)
 # 24
 ```
 
-`chrisjen` has no scripting language to learn. The settings file only names things. What those things do is plain Python.
+`chrisjen` has no scripting language to learn. The settings file only names
+things. What those things do is plain Python.
 
 ### Powerful
 
@@ -102,51 +99,48 @@ print(project.apply())
 <img src="https://media.giphy.com/media/69qwCZtG4arIgMuL6b/giphy.gif" width="300" height="300"/>
 </p>
 
-Each worker (and the project itself) has a `design` that decides how its parts are put together. The default is the sequential `waterfall`. The other designs are especially useful for projects where you want to find the best strategy, or average across several:
+Each worker (and the project itself) has a `design` that decides how its parts
+are applied:
 
 | Design | What it does |
 | --- | --- |
-| `waterfall` | Applies nodes one after another. This is the default. |
-| `kanban` | Like `waterfall`, but each stage works on an isolated copy and leaves a deliverable. |
-| `scrum` | Like `waterfall`, but you advance one node at a time and can step in between. |
-| `pert` | Nodes can depend on more than one other node, and the critical path is calculated. |
-| `agile` | Repeats the sequence until a criterion is met. |
-| `lean` | Repeats the sequence for as long as the result keeps improving. |
-| `contest` | Tries every combination of the techniques and keeps the best result. |
-| `survey` | Tries every combination of the techniques and averages the results. |
+| `flow` | Applies its parts one after another. This is the default. |
+| `benchmark` | Repeats its parts until a criterion is met. |
+| `contest` | Tries every combination of alternatives and keeps the best result. |
+| `survey` | Tries every combination of alternatives and averages the results. |
 
-For example, to try three ways of scaling and keep whichever has the smallest spread, list the techniques and change the design to `contest`:
+For example, to try three ways of scaling and keep whichever has the smallest
+spread, make the project a `contest` and name a criterion:
 
 ```python
-def halve(item):
-    return [x / 2 for x in item]
+@dataclasses.dataclass
+class Halve(chrisjen.Technique):
+    def implement(self, item, **kwargs):
+        return [x / 2 for x in item]
 
-chrisjen.Technique.register("halve", halve)
 
-
-@chrisjen.criterion
-def smallest_spread(item):
-    return -(max(item) - min(item))
+@dataclasses.dataclass
+class SmallestSpread(chrisjen.Criteria):
+    def score(self, item):
+        return -(max(item) - min(item))
 
 
 settings = {
-    "compare_project": {"compare_workers": "scaler"},
-    "scaler": {
+    "compare_project": {
         "design": "contest",
-        "criteria": "smallest_spread",
-        "scaler_steps": ["scale"],
-        "scale_techniques": ["double", "halve", "none"],
+        "criterion": "smallest_spread",
+        "techniques": "double, halve, none",
     },
 }
-project = chrisjen.Project(settings, item = [1, 2, 3])
-print(project.apply())
+project = chrisjen.Project.create(settings, item = [1, 2, 3])
+print(project.result)
 # [0.5, 1.0, 1.5]
-contest = project.workflow.retrieve("scaler").contents
-print(contest.winner)
+print(project.workflow.winner)
 # halve
-print(contest.scores)
-# {'double': -4, 'halve': -1.0, 'none': -2}
 ```
+
+`none` is a built-in technique that does nothing, which is useful for testing
+whether a technique helps at all.
 
 ### Flexible
 
@@ -154,22 +148,31 @@ print(contest.scores)
 <img src="https://media.giphy.com/media/GnepwAlt5FG3ASUvRB/giphy.gif" />
 </p>
 
-`chrisjen` is built from small libraries that each do one job, and you can use any of them on its own:
+`chrisjen` is built from small libraries that each do one job, and you can use
+any of them on its own:
 
 | Library | What `chrisjen` uses it for |
 | --- | --- |
 | [bobbie](https://github.com/WithPrecedent/bobbie) | Loading settings from files and `dict` types. |
 | [holden](https://github.com/WithPrecedent/holden) | The graph data structure of a workflow, including exports to Graphviz and mermaid. |
 | [nagata](https://github.com/WithPrecedent/nagata) | Loading and saving a project's files. |
-| [wonka](https://github.com/WithPrecedent/wonka) | The registries that techniques (one for each type of technique) and workflow designs are created from by name. |
+| [camina](https://github.com/WithPrecedent/camina) | Small helpers, such as naming each run of a project. |
 
-A technique is an object that wraps any callable (or the import path of one), so a single interface can drive tools from many packages. You can define your own types of techniques and your own workflow designs. Everything is found by name, so a new technique or design is available in settings files as soon as it is registered.
+A technique is an object that wraps any callable (or the import path of one),
+so a single interface can drive tools from many packages. Every class you
+define (techniques, designs, criteria, and reports) is added to a `library`
+under its snake case name as soon as it is defined, so it can be used in
+settings right away.
 
 ## Getting started
 
 ### Requirements
 
-`chrisjen` requires Python 3.11 or later. It runs on Linux, macOS, and Windows. Its dependencies (`bobbie`, `holden`, `nagata`, and `wonka`) are installed automatically. If you want to load `yaml` or `xml` settings or use `pandas` file formats, also install the optional dependencies of those packages (for example, `pip install pyyaml xmltodict pandas`).
+`chrisjen` requires Python 3.11 or later. It runs on Linux, macOS, and Windows.
+Its dependencies are installed automatically. If you want to load `yaml` or
+`xml` settings or use `pandas` file formats, also install the optional
+dependencies of those packages (for example, `pip install pyyaml xmltodict
+pandas`).
 
 ### Installation
 
@@ -187,137 +190,93 @@ pip install chrisjen
 
 #### Techniques
 
-A technique is an object that wraps a tool. Its `contents` is any callable (or the import path of one). When the technique is applied, the item being worked on is passed to the tool along with any keyword parameters that the tool accepts. Register a technique with `Technique.register` and refer to it by name. Parameters come from a `<name>_parameters` section of your settings:
+A technique is a subclass of `chrisjen.Technique`. Either write an `implement`
+method, or set `contents` to the tool that the technique wraps: a callable, or
+its import path (which is only imported when the technique is used). The item
+is passed to the tool along with any keyword parameters that the tool accepts.
+Parameters come from a `{name}_parameters` section of your settings:
 
 ```python
-def keep_above(item, minimum = 0):
-    return [x for x in item if x > minimum]
-
-
-chrisjen.Technique.register("keep_above", keep_above)
-
-settings = {
-    "filter_project": {"filter_workers": "filterer"},
-    "filterer": {"filterer_techniques": "keep_above"},
-    "keep_above_parameters": {"minimum": 2},
-}
-print(chrisjen.Project(settings, item = [1, 2, 3, 4]).apply())
-# [3, 4]
-```
-
-Techniques can wrap tools from other packages. Give the import path of the tool instead of the tool. It is only imported when the technique is used, so a project can wrap optional packages. A registered technique can also have default parameters:
-
-```python
-chrisjen.Technique.register("mean", "statistics.fmean")
-chrisjen.Technique.register("rounded", round, {"ndigits": 1})
-
-settings = {
-    "average_project": {"average_workers": "averager"},
-    "averager": {"averager_techniques": "mean, rounded"},
-}
-print(chrisjen.Project(settings, item = [1, 2, 4]).apply())
-# 2.3
-```
-
-For techniques that need more than a call, subclass `chrisjen.Technique` and write an `implement` method. The subclass is registered by its snake case name (`RunningTotal` is "running_total").
-
-```python
-import dataclasses
-import itertools
+@dataclasses.dataclass
+class Mean(chrisjen.Technique):
+    contents: str = "statistics.fmean"
 
 
 @dataclasses.dataclass
-class RunningTotal(chrisjen.Technique):
-    def implement(self, item, **kwargs):
-        return list(itertools.accumulate(item))
+class Rounded(chrisjen.Technique):
+    contents: object = round
 
 
 settings = {
-    "accumulate_project": {"accumulate_workers": "accumulator"},
-    "accumulator": {"accumulator_techniques": "running_total"},
+    "average_project": {"techniques": "mean, rounded"},
+    "rounded_parameters": {"ndigits": 1},
 }
-print(chrisjen.Project(settings, item = [1, 2, 3]).apply())
-# [1, 3, 6]
+print(chrisjen.Project.create(settings, item = [1, 2, 4]).result)
+# 2.3
 ```
 
-#### Types of techniques
+#### Workers and steps
 
-Packages built on `chrisjen` often have several *types* of techniques (for example, techniques for cleaning, for analyzing, and for visualizing data), which wrap different tools in different ways. Create a type by subclassing `Technique` and `abc.ABC`. Each type has its own registry (a [wonka](https://github.com/WithPrecedent/wonka) `Registrar`), so the same name can be used in more than one type:
+A worker lists its techniques or its steps, and each step lists its techniques.
+In the default `flow` design, they are applied in order. In a `contest` or a
+`survey`, the techniques of each step are alternatives, and every combination of
+one technique from each step is tried:
 
 ```python
-import abc
-
-
-class Cleaner(chrisjen.Technique, abc.ABC):
-    """Techniques that clean data."""
-
-
-class Analyzer(chrisjen.Technique, abc.ABC):
-    """Techniques that analyze data."""
-
-
-Cleaner.register("remove_zeros", lambda item: [x for x in item if x != 0])
-Analyzer.register("largest", max)
-
 settings = {
-    "stats_project": {"stats_workers": ["tidy", "measure"]},
-    "tidy": {
-        "tidy_techniques": "remove_zeros",
-        "tidy_technique_type": "cleaner",
-    },
-    "measure": {
-        "measure_techniques": "largest",
-        "measure_technique_type": "analyzer",
+    "numbers_project": {"numbers_workers": "prepare"},
+    "prepare": {
+        "steps": "clean, resize",
+        "clean_techniques": "drop_negatives",
+        "resize_techniques": "double, halve",
     },
 }
-print(chrisjen.Project(settings, item = [0, 3, 0, 9]).apply())
-# 9
-print(sorted(Cleaner.registry))
-# ['remove_zeros']
-```
-
-Naming the type of a step is optional. Without it, a name is looked up in every type, and you only need to name the type (or write the name as `cleaner.remove_zeros`) if the same name is registered in more than one.
-
-#### The three stages of a project
-
-A project moves through three stages. Creating a `Project` *drafts* it (turns the settings into an `outline`). `publish` builds the `workflow`, and `apply` runs it. Set `automatic=True` to do all three when the project is created.
-
-```python
-project = chrisjen.Project("report.ini", item = [3, -1, 4, -1, 5])
-project.publish()
-print(project.workflow.walk())
-# [['prepare', 'summarize']]
-print(project.apply())
-# 24
+project = chrisjen.Project.create(settings, item = [1, -2, 3])
 print(project.result)
-# 24
+# [1.0, 3.0]
 ```
 
-You can pass a different item (and keyword parameters for your techniques) to `apply`, so one project can be run on many inputs:
+#### Running a project
+
+`Project.create` reads the settings, builds the `workflow`, and (unless
+`automatic = False`) applies it to `item`. The result is stored in `result`,
+and a `report` summarizes the run. `apply` runs the project again, on a new
+item if you pass one. Each run has an `id`, which is the name of the project
+and the date and time unless you pass one:
 
 ```python
-print(project.apply([1, 2, 3]))
-# 12
+project = chrisjen.Project.create(
+    "report.ini", id = "first_run", automatic = False)
+print(project.apply([3, -1, 4]))
+# 14
+print(project.report.contents)
+# project: report
+# id: first_run
+# paths: prepare > summarize
+# result: 14
 ```
 
 #### Files
 
-Every project has a `clerk`, a `nagata.FileManager` with `input`, `interim`, and `output` folders. They are created in a folder named for the project's `identification` (its name plus the date and time) inside `root`, which is "data" by default. Any settings in a "files" section, such as `file_encoding`, are applied to the clerk.
+Every project has a `clerk`, a `nagata.FileManager`. Pass the folder for the
+project's files as `clerk` (or pass a `FileManager` of your own):
 
 ```python
 import pathlib
 import tempfile
 
 root = pathlib.Path(tempfile.mkdtemp())
-project = chrisjen.Project("report.ini", item = [1, 2], root = root)
-project.clerk.save(project.apply(), file_name = "total", file_format = "pickle")
-print(project.clerk.load(file_name = "total", file_format = "pickle", folder = "output"))
+project = chrisjen.Project.create("report.ini", item = [1, 2], clerk = root)
+project.clerk.save(project.result, file_name = "total", file_format = "pickle")
+print(project.clerk.load(file_name = "total", file_format = "pickle"))
 # 6
 ```
 
 #### Export a workflow
 
-`Project.to_dot` and `Project.to_mermaid` describe a workflow in [Graphviz](https://graphviz.org/) or [mermaid](https://mermaid.js.org/) text. In the dot export, each worker is drawn as a cluster of its steps.
+`Project.to_dot` and `Project.to_mermaid` describe the workflow in
+[Graphviz](https://graphviz.org/) or [mermaid](https://mermaid.js.org/) text.
+Both are made by [holden](https://github.com/WithPrecedent/holden).
 
 ```python
 print(project.to_mermaid())
@@ -328,7 +287,11 @@ print(project.to_mermaid())
 #     prepare(prepare) --> summarize(summarize)
 ```
 
-There is much more to `chrisjen`, including all eight designs, custom designs, parameters, and how the pieces fit together. See the [documentation](https://WithPrecedent.github.io/chrisjen), especially the [tutorial](https://WithPrecedent.github.io/chrisjen/tutorial/) and the [advanced user guide](https://WithPrecedent.github.io/chrisjen/advanced/).
+There is more to `chrisjen`, including criteria, custom designs, building
+workflows in code, and how the pieces fit together. See the
+[documentation](https://WithPrecedent.github.io/chrisjen), especially the
+[tutorial](https://WithPrecedent.github.io/chrisjen/tutorial/) and the [advanced
+user guide](https://WithPrecedent.github.io/chrisjen/advanced/).
 
 ## Contributing
 
@@ -336,7 +299,12 @@ There is much more to `chrisjen`, including all eight designs, custom designs, p
 <img src="https://media.giphy.com/media/romyCgNP7rvHEg8YDy/giphy.gif?cid=ecf05e47exxatrd0hj3ath92evolpmg8qlq1e30zygvv1sb7&ep=v1_gifs_search&rid=giphy.gif&ct=g" />
 </p>
 
-Contributors are always welcome. Feel free to grab an [issue](https://www.github.com/WithPrecedent/chrisjen/issues) to work on or make a suggested improvement. If you wish to contribute, please read the [Contribution Guide](https://www.github.com/WithPrecedent/chrisjen/contributing.md) and [Code of Conduct](https://www.github.com/WithPrecedent/chrisjen/code_of_conduct.md).
+Contributors are always welcome. Feel free to grab an
+[issue](https://www.github.com/WithPrecedent/chrisjen/issues) to work on or make
+a suggested improvement. If you wish to contribute, please read the
+[Contribution
+Guide](https://www.github.com/WithPrecedent/chrisjen/contributing.md) and [Code
+of Conduct](https://www.github.com/WithPrecedent/chrisjen/code_of_conduct.md).
 
 ## Similar Projects
 
@@ -344,11 +312,21 @@ Contributors are always welcome. Feel free to grab an [issue](https://www.github
 <img src="https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWc4bHg3cXI4MHRwZmxvczc3NWJmdGoxbjRwbXYybzJsdmphdGVjbCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/lVnvuUxN6D7bkXPPFm/giphy.gif" />
 </p>
 
-* [airflow](https://github.com/apache/airflow): Apache's workflow tool that is likely the market leader. It requires substantial overhead and has a learning curve but offers the greatest extensibility for non-Python workflow components and support for continuous, always-on workflows.
-* [jetstream](https://github.com/tgen/jetstream): similar DAG workflow structures in pure Python with a greater emphasis on loading workflows from disk.
-* [luigi](https://github.com/spotify/luigi): Spotify's workflow tool with much greater overhead and support for controlling workflow nodes outside of Python.
-* [pathos](https://github.com/uqfoundation/pathos): supports parallel workflow construction with heterogenuous computing framework. Among other features, it includes drop-in replacements for Python's `pickle` and `multiprocess`, called `dill` and `multiprocessing`, respectively.
+* [airflow](https://github.com/apache/airflow): Apache's workflow tool that is
+  likely the market leader. It requires substantial overhead and has a learning
+  curve but offers the greatest extensibility for non-Python workflow components
+  and support for continuous, always-on workflows.
+* [jetstream](https://github.com/tgen/jetstream): similar DAG workflow
+  structures in pure Python with a greater emphasis on loading workflows from
+  disk.
+* [luigi](https://github.com/spotify/luigi): Spotify's workflow tool with much
+  greater overhead and support for controlling workflow nodes outside of Python.
+* [pathos](https://github.com/uqfoundation/pathos): supports parallel workflow
+  construction with heterogenuous computing framework. Among other features, it
+  includes drop-in replacements for Python's `pickle` and `multiprocess`, called
+  `dill` and `multiprocessing`, respectively.
 
 ## License
 
-Use of this repository is authorized under the [Apache Software License 2.0](https://www.github.com/WithPrecedent/chrisjen/blob/main/LICENSE).
+Use of this repository is authorized under the [Apache Software License
+2.0](https://www.github.com/WithPrecedent/chrisjen/blob/main/LICENSE).
