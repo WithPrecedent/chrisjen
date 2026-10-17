@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## 0.2.1
+
+* Updated to the `snickerdoodle` 0.4.0 template
+* Made `ruff` prefer single quotes
+* Made `ruff` ignore boolean default positional arguments (`FBT002`)
+* Excluded `uv.lock` from the large file check
+* Fixed typos in the contributing guide and noted that the project does not use a code formatter
+
 ## 0.2.0
 
 * Rebuilt the core of `chrisjen` on `bobbie` (settings), `holden` (workflow
