@@ -8,7 +8,7 @@ Environment Setup
 
 Follow this basic process:
 
-1. Fork and clone the repositor.
+1. Fork and clone the repository.
 2. Create a new branch: `git checkout -b feature-or-bugfix-name`.
 3. Edit the code.
 4. If you added functionality or features, update the documentation accordingly.
@@ -53,7 +53,7 @@ notable exceptions:
 1. It always adds spaces around "=". This not only violates the Google guide, it
    violates [PEP8](https://peps.python.org/pep-0008/), the foundational Python
    style guide from which all other resources are derived. I defy this strong,
-   long-standign norm because I find it more readable. My brain and eyes have
+   long-standing norm because I find it more readable. My brain and eyes have
    trouble seeing two separate objects when an equal sign is in the middle. I
    imagine that I am not alone in this accessibility issue. Further, as PEP8
    itself notes, required spaces around equal signs are becoming increasing
@@ -66,3 +66,6 @@ notable exceptions:
    Style Guide because such code is often more difficult for others to read. To
    address that concern, I try to document and comment as to what the code is
    doing whenever I used any of the "power features" of Python.
+
+Because of the first exception, the project does not use a code formatter (such
+as `ruff format`), which would remove those spaces.
