@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
-## Unreleased
+## 0.3.0
 
 * Renamed the method that every node writes from `implement` to `apply`. A
   subclass of `Vertex` now writes `apply`, which is wrapped when the subclass
