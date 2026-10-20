@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## Unreleased
+
+* Renamed the method that every node writes from `implement` to `apply`. A
+  subclass of `Vertex` now writes `apply`, which is wrapped when the subclass
+  is defined, so that a call to it still adds the node's `parameters` to the
+  keyword arguments (as `apply` did when it called `implement`). A call to
+  the `apply` of a parent class through `super()` is not wrapped again, so it
+  gets its keyword arguments exactly as they are passed. Subclasses can
+  override `_call_apply` to change what happens around every `apply`. This
+  is a breaking change: a subclass that wrote `implement` must rename it to
+  `apply`.
+
 ## 0.2.1
 
 * Updated to the `snickerdoodle` 0.4.0 template

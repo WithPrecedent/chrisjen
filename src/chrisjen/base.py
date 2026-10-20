@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+import functools
 import inspect
 from collections.abc import (
     Callable,
@@ -43,6 +44,8 @@ Layer: TypeAlias = MutableMapping[str, Any]
 # Criteria are named by the "criterion" setting and built separately.
 _NOT_SETTINGS: tuple[str, ...] = (
     'name', 'contents', 'parameters', 'criteria', 'default_factory')
+# Attribute that marks an `apply` method that `_wrap_apply` has wrapped.
+_WRAPPED: str = '_chrisjen_wrapped'
 
 
 @dataclasses.dataclass
@@ -599,19 +602,37 @@ class Vertex(holden.Labeled, holden.Node, Genre, abc.ABC):
     `apply` and can be built from a project's settings with `build`. The
     subclasses are in the `nodes` and `workers` modules.
 
+    A subclass writes `apply`. When the subclass is defined, its `apply` is
+    wrapped so that each call to it goes through `_call_apply`, which adds
+    `parameters` to the keyword arguments. A call to the `apply` of a parent
+    class (through `super()`) is not wrapped again: it gets the keyword
+    arguments exactly as they are passed.
+
     Args:
         contents: item(s) to be applied to the `item` passed to `apply`.
             Defaults to `None`.
         name: name used to refer to the node in a workflow. Defaults to `None`,
             in which case the name is inferred from the class or `contents`.
-        parameters: keyword arguments passed to `implement` by `apply`.
-            Defaults to an empty `dict`.
+        parameters: keyword arguments passed to `apply`. Defaults to an empty
+            `dict`.
 
     """
 
     contents: Any | None = None
     name: str | None = None
     parameters: GenericDict = dataclasses.field(default_factory = dict)
+
+    """ Initialization Methods """
+
+    @classmethod
+    def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
+        """Wraps the `apply` method of each subclass (see `_call_apply`)."""
+        super().__init_subclass__(*args, **kwargs)
+        # The method is found on the class, rather than in its own namespace,
+        # so that an `apply` from a mixin that is not a vertex is wrapped too.
+        method = cls.apply
+        if not getattr(method, _WRAPPED, False):
+            setattr(cls, 'apply', _wrap_apply(method))  # noqa: B010
 
     """ Class Methods """
 
@@ -652,35 +673,48 @@ class Vertex(holden.Labeled, holden.Node, Genre, abc.ABC):
         vertex.parameters.update(parameters or {})
         return vertex
 
-    """ Public Methods """
+    """ Required Methods """
 
+    @abc.abstractmethod
     def apply(self, item: Any, **kwargs: Any) -> Any:
         """Applies this node to `item`.
 
         Args:
             item: data or object (often the result of the previous node) to
                 which this node should be applied.
-            **kwargs: keyword arguments for `implement` that take precedence
-                over `parameters`.
+            **kwargs: keyword arguments, which take precedence over
+                `parameters`.
 
         Returns:
             The result of applying this node to `item`.
 
         """
-        return self.implement(item, **{**self.parameters, **kwargs})
 
-    @abc.abstractmethod
-    def implement(self, item: Any, **kwargs: Any) -> Any:
-        """Applies `contents` to `item`.
+    """ Private Methods """
+
+    def _call_apply(
+        self,
+        method: Callable[..., Any],
+        item: Any,
+        /,
+        **kwargs: Any) -> Any:
+        """Calls `method`, the `apply` of this node's class, with `parameters`.
+
+        Every call to `apply` goes through this method, except one made from a
+        subclass through `super()`. Subclasses can override it to prepare the
+        item or the result in the same way for every `apply`.
 
         Args:
-            item: data or object to which `contents` should be applied.
-            **kwargs: parameters for the implementation.
+            method: the `apply` method, before it was wrapped.
+            item: data or object to which this node should be applied.
+            **kwargs: keyword arguments, which take precedence over
+                `parameters`.
 
         Returns:
-            The result of applying `contents` to `item`.
+            The result of `method`.
 
         """
+        return method(self, item, **{**self.parameters, **kwargs})
 
 
 @dataclasses.dataclass
@@ -766,3 +800,29 @@ class Report(Genre, abc.ABC):
 
         """
         raise NotImplementedError
+
+
+def _wrap_apply(method: Callable[..., Any]) -> Callable[..., Any]:
+    """Returns `method` wrapped so that calls to it go through `_call_apply`.
+
+    A call is only passed to `_call_apply` if `method` is the `apply` of the
+    vertex's own class. Otherwise, it was called through `super()` by the
+    `apply` of a subclass (which already went through `_call_apply`), so it is
+    passed straight to `method`.
+
+    Args:
+        method: the `apply` method of a `Vertex` subclass.
+
+    Returns:
+        The wrapped method.
+
+    """
+
+    @functools.wraps(method)
+    def apply(self: Vertex, item: Any, **kwargs: Any) -> Any:
+        if type(self).apply is not apply:
+            return method(self, item, **kwargs)
+        return self._call_apply(method, item, **kwargs)
+
+    setattr(apply, _WRAPPED, True)
+    return apply

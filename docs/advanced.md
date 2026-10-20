@@ -31,7 +31,7 @@ Files are managed by a [nagata](https://github.com/WithPrecedent/nagata)
 | `Library` | Stores every `Genre` class in the hierarchy of its subclasses. `chrisjen.library` is the one that projects use. |
 | `Genre` | Base class for every class that is stored in the library. |
 | `Vertex` | Base class for anything in a workflow. It is hashed and compared by `name` and applied to an item with `apply`. |
-| `Technique` | A single action. It has an `implement` method or wraps a tool (a callable or the import path of one). |
+| `Technique` | A single action. It has an `apply` method or wraps a tool (a callable or the import path of one). |
 | `NullVertex` | A technique that does nothing. It is called "none". |
 | `Step` | Wraps one technique or worker, with `begin` and `end` hooks. |
 | `Worker` | A node that is a graph of other nodes. Its subclasses are the designs: `Flow`, `Benchmark`, `Contest`, and `Survey`. |
@@ -67,7 +67,7 @@ class Cleaner(chrisjen.Technique, abc.ABC):
 
 @dataclasses.dataclass
 class DropBlanks(Cleaner):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x for x in item if x]
 
 
@@ -174,13 +174,13 @@ applied. The examples below use these techniques:
 ```python
 @dataclasses.dataclass
 class AddOne(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return item + 1
 
 
 @dataclasses.dataclass
 class Triple(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return item * 3
 
 
@@ -317,7 +317,7 @@ is set in more than one place, the outer one wins:
 ```python
 @dataclasses.dataclass
 class AddAmount(chrisjen.Technique):
-    def implement(self, item, amount = 0, **kwargs):
+    def apply(self, item, amount = 0, **kwargs):
         return item + amount
 
 
@@ -335,7 +335,7 @@ print(project.result, project.apply(0, amount = 5))
 # 2 5
 ```
 
-An `implement` method gets only the parameters it accepts (unless it takes
+An `apply` method gets only the parameters it accepts (unless it takes
 `**kwargs`). A wrapped tool gets only the parameters that it accepts.
 
 ## Techniques and steps
@@ -348,10 +348,10 @@ A `Technique` has three attributes:
 | `contents` | The tool: any callable, or its import path as a `str` (such as `"statistics.fmean"` or `"package.module:Class.method"`). |
 | `parameters` | Keyword parameters for the tool. |
 
-The default `implement` calls the tool with the item as the first argument. An
+The default `apply` calls the tool with the item as the first argument. An
 import path is only imported when the technique is used, so a technique can
 wrap a package that might not be installed. A subclass can override
-`implement` to call its tool differently.
+`apply` to call its tool differently.
 
 ```python
 mean = chrisjen.Technique(name = "mean", contents = "statistics.fmean")
@@ -434,7 +434,7 @@ print(contest.apply(10), contest.winner)
 ## Custom designs
 
 To add a design, subclass `Worker` (or one of the designs) and write an
-`implement` method. `self.walk()` returns the paths through the graph, as lists
+`apply` method. `self.walk()` returns the paths through the graph, as lists
 of nodes, and each node's `apply(item, **kwargs)` applies it. The class is
 available in settings by its snake case name:
 
@@ -443,9 +443,9 @@ available in settings by its snake case name:
 class TwiceOver(chrisjen.Flow):
     """Applies the whole sequence two times."""
 
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         for _ in range(2):
-            item = super().implement(item, **kwargs)
+            item = super().apply(item, **kwargs)
         return item
 
 
@@ -528,8 +528,8 @@ folder.
 | `ValueError: ... needs criteria to compare results` | A `contest` has no `criterion` setting. |
 | `ValueError: ... has no paths to compare` | A `contest` or `survey` has no techniques or steps. |
 | `ImportError: cannot import ...` | The import path of a tool or criterion is wrong, or its package is not installed. This is raised when it is used. |
-| `TypeError: technique ... wraps ..., which is not callable` | The tool is not callable. Wrap a callable, or override `implement`. |
-| `NotImplementedError: technique ... has no tool` | A `Technique` has no `contents` and does not override `implement`. |
+| `TypeError: technique ... wraps ..., which is not callable` | The tool is not callable. Wrap a callable, or override `apply`. |
+| `NotImplementedError: technique ... has no tool` | A `Technique` has no `contents` and does not override `apply`. |
 | `ValueError: step ... has no technique or workflow in contents` | A `Step` was applied without `contents`. |
 
 Names in ini files that look like booleans or numbers (`yes`, `no`, `true`,

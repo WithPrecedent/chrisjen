@@ -19,7 +19,7 @@ becomes the input of the next.
 
 ## 1. Write techniques
 
-A technique is a subclass of `chrisjen.Technique` with an `implement` method
+A technique is a subclass of `chrisjen.Technique` with an `apply` method
 that takes the item and returns the changed item. Its other keyword arguments
 are its parameters:
 
@@ -31,19 +31,19 @@ import chrisjen
 
 @dataclasses.dataclass
 class DropNegatives(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x for x in item if x >= 0]
 
 
 @dataclasses.dataclass
 class Scale(chrisjen.Technique):
-    def implement(self, item, factor = 2, **kwargs):
+    def apply(self, item, factor = 2, **kwargs):
         return [x * factor for x in item]
 
 
 @dataclasses.dataclass
 class Total(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return sum(item)
 ```
 
@@ -165,7 +165,7 @@ print(project.apply([3, -1, 4, -1, 5], factor = 1))
 # 12
 ```
 
-Only the parameters that an `implement` method (or a wrapped tool) accepts are
+Only the parameters that an `apply` method (or a wrapped tool) accepts are
 passed to it, so a parameter meant for one technique does not break the others.
 
 ## 6. Compare alternatives
@@ -179,7 +179,7 @@ with the best score. A score comes from a **criterion**, a subclass of
 ```python
 @dataclasses.dataclass
 class Halve(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x / 2 for x in item]
 
 
@@ -241,7 +241,7 @@ numbers do:
 ```python
 @dataclasses.dataclass
 class Largest(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return max(item)
 
 
@@ -257,7 +257,7 @@ print(chrisjen.Project.create(settings, item = [2, 4]).result)
 
 ## 7. Wrap tools from other packages
 
-A technique can wrap a tool instead of having an `implement` method. Set
+A technique can wrap a tool instead of having an `apply` method. Set
 `contents` to the tool, or to its import path as a `str`. A path is only
 imported when the technique is used, so techniques can wrap optional packages:
 

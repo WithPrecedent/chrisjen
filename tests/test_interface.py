@@ -25,17 +25,17 @@ def techniques() -> Iterator[None]:
 
     @dataclasses.dataclass
     class DropNegatives(chrisjen.Technique):
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             return [x for x in item if x >= 0]
 
     @dataclasses.dataclass
     class Scale(chrisjen.Technique):
-        def implement(self, item: Any, factor: int = 1, **kwargs: Any) -> Any:
+        def apply(self, item: Any, factor: int = 1, **kwargs: Any) -> Any:
             return [x * factor for x in item]
 
     @dataclasses.dataclass
     class Halve(chrisjen.Technique):
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             return [x / 2 for x in item]
 
     # A scoring function that settings can name by its import path.

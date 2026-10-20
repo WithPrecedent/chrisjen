@@ -20,19 +20,19 @@ import chrisjen
 
 @dataclasses.dataclass
 class LastValue(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return {**item, "prediction": item["values"][-1]}
 
 
 @dataclasses.dataclass
 class Average(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return {**item, "prediction": statistics.fmean(item["values"])}
 
 
 @dataclasses.dataclass
 class RecentAverage(chrisjen.Technique):
-    def implement(self, item, window = 3, **kwargs):
+    def apply(self, item, window = 3, **kwargs):
         recent = item["values"][-window:]
         return {**item, "prediction": statistics.fmean(recent)}
 
@@ -94,13 +94,13 @@ one:
 ```python
 @dataclasses.dataclass
 class EstimateLow(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return sum(item) * 0.9
 
 
 @dataclasses.dataclass
 class EstimateHigh(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return sum(item) * 1.1
 
 
@@ -121,7 +121,7 @@ print(round(chrisjen.Project.create(settings, item = [10, 20, 30]).result, 6))
 ```python
 @dataclasses.dataclass
 class HalveStep(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return item / 2
 
 
@@ -150,13 +150,13 @@ A project's workflow is built once. `apply` can be called again with new items:
 ```python
 @dataclasses.dataclass
 class DropNegatives(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x for x in item if x >= 0]
 
 
 @dataclasses.dataclass
 class Scale(chrisjen.Technique):
-    def implement(self, item, factor = 2, **kwargs):
+    def apply(self, item, factor = 2, **kwargs):
         return [x * factor for x in item]
 
 
@@ -179,7 +179,7 @@ node before applying it. The new design is available as `logged` in settings:
 class Logged(chrisjen.Flow):
     log: list = dataclasses.field(default_factory = list)
 
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         self.log.clear()
         for path in self.walk():
             for node in path:
@@ -218,19 +218,19 @@ import chrisjen
 
 @dataclasses.dataclass
 class FillMissing(chrisjen.Technique):
-    def implement(self, item, value = 0, **kwargs):
+    def apply(self, item, value = 0, **kwargs):
         return item.fillna(value)
 
 
 @dataclasses.dataclass
 class Standardize(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return (item - item.mean()) / item.std()
 
 
 @dataclasses.dataclass
 class SummarizeColumns(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return item.describe().loc[["mean", "std"]]
 
 
@@ -269,7 +269,7 @@ import chrisjen
 
 @dataclasses.dataclass
 class Clean(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         ...
 
 

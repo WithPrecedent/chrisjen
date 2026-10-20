@@ -2,7 +2,7 @@
 
 A worker is a directed graph (a `holden.System`) of nodes. Each design is a
 subclass with its own rules for how the nodes are connected (`populate`) and
-applied to an item (`implement`). Designs are found by their snake case names,
+applied to an item (`apply`). Designs are found by their snake case names,
 which are used for the "design" setting.
 
 Contents:
@@ -43,7 +43,7 @@ class Flow(nodes.Worker):
 
     """ Public Methods """
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Applies each node, in order, to `item`.
 
         Args:
@@ -87,7 +87,7 @@ class Benchmark(Flow):
 
     """ Public Methods """
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Repeats the sequence until `criteria` is met.
 
         Args:
@@ -108,7 +108,7 @@ class Benchmark(Flow):
         while (
             self.max_iterations is None
             or self.iterations < self.max_iterations):
-            item = super().implement(item, **kwargs)
+            item = super().apply(item, **kwargs)
             self.iterations += 1
             if self.criteria.test(item):
                 break
@@ -246,7 +246,7 @@ class Contest(Comparator, nodes.Worker):
 
     """ Public Methods """
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Returns the result of the path with the best score.
 
         Args:
@@ -290,7 +290,7 @@ class Survey(Comparator, nodes.Worker):
 
     """ Public Methods """
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Returns the mean of the results of every path.
 
         Args:

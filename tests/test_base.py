@@ -271,7 +271,7 @@ def test_vertexes_are_hashed_and_compared_by_name() -> None:
 def test_apply_merges_parameters() -> None:
     @dataclasses.dataclass
     class Adder(chrisjen.Vertex):
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             return item + kwargs.get('amount', 0)
 
     vertex = Adder(name = 'a', parameters = {'amount': 2})
@@ -279,6 +279,82 @@ def test_apply_merges_parameters() -> None:
     assert vertex.apply(1, amount = 10) == 11
     with pytest.raises(TypeError):
         chrisjen.Vertex()
+
+
+def test_apply_called_through_super_is_not_wrapped_again() -> None:
+    @dataclasses.dataclass
+    class Adder(chrisjen.Vertex):
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return item + kwargs.get('amount', 0)
+
+    @dataclasses.dataclass
+    class Doubler(Adder):
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            # Uses up "amount", which the parent class must not get back from
+            # `parameters`.
+            amount = kwargs.pop('amount', 0)
+            return super().apply(item * 2, **kwargs) + amount
+
+    @dataclasses.dataclass
+    class Inheritor(Doubler):
+        pass
+
+    vertex = Doubler(name = 'd', parameters = {'amount': 3})
+    assert vertex.apply(1) == 5
+    assert vertex.apply(1, amount = 10) == 12
+    assert Inheritor(name = 'i', parameters = {'amount': 3}).apply(1) == 5
+    assert Adder(name = 'a', parameters = {'amount': 3}).apply(1) == 4
+
+
+def test_apply_accepts_a_parameter_named_method() -> None:
+    @dataclasses.dataclass
+    class Chooser(chrisjen.Vertex):
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return kwargs['method']
+
+    vertex = Chooser(name = 'c', parameters = {'method': 'mean'})
+    assert vertex.apply(1) == 'mean'
+    assert vertex.apply(1, method = 'median') == 'median'
+
+
+def test_apply_from_a_mixin_is_wrapped() -> None:
+    class Mixin:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return item + kwargs.get('amount', 0)
+
+    @dataclasses.dataclass
+    class Adder(Mixin, chrisjen.Vertex):
+        pass
+
+    assert Adder(name = 'a', parameters = {'amount': 2}).apply(1) == 3
+
+
+def test_call_apply_can_be_overridden() -> None:
+    @dataclasses.dataclass
+    class Logged(chrisjen.Vertex):
+        calls: list[Any] = dataclasses.field(default_factory = list)
+
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return item + 1
+
+        def _call_apply(
+            self,
+            method: Any,
+            item: Any,
+            /,
+            **kwargs: Any) -> Any:
+            result = super()._call_apply(method, item, **kwargs)
+            self.calls.append(result)
+            return result
+
+    @dataclasses.dataclass
+    class Twice(Logged):
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return super().apply(super().apply(item))
+
+    vertex = Twice(name = 't')
+    assert vertex.apply(0) == 2
+    assert vertex.calls == [2]
 
 
 def test_build_passes_settings_to_the_constructor() -> None:

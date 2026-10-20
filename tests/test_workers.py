@@ -136,7 +136,7 @@ def test_each_path_uses_its_own_copies_of_the_nodes() -> None:
     class Counter(chrisjen.Technique):
         calls: int = 0
 
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             self.calls += 1
             return self.calls
 

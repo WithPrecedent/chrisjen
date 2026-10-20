@@ -46,10 +46,10 @@ def test_technique_errors() -> None:
         chrisjen.Technique(name = 'x', contents = 'no_such_package.x').apply(1)
 
 
-def test_technique_subclasses_override_implement() -> None:
+def test_technique_subclasses_override_apply() -> None:
     @dataclasses.dataclass
     class Cube(chrisjen.Technique):
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             return item**3
 
     assert Cube(name = 'cube').apply(2) == 8
@@ -130,7 +130,7 @@ def test_step_returns_the_attributes_of_its_contents() -> None:
     class Model(chrisjen.Technique):
         kind: str = 'forest'
 
-        def implement(self, item: Any, **kwargs: Any) -> Any:
+        def apply(self, item: Any, **kwargs: Any) -> Any:
             return item
 
     step = chrisjen.Step(name = 's', contents = Model(name = 'm'))

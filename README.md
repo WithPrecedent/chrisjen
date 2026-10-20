@@ -33,19 +33,19 @@ import chrisjen
 
 @dataclasses.dataclass
 class DropNegatives(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x for x in item if x >= 0]
 
 
 @dataclasses.dataclass
 class Double(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x * 2 for x in item]
 
 
 @dataclasses.dataclass
 class Total(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return sum(item)
 
 
@@ -115,7 +115,7 @@ spread, make the project a `contest` and name a criterion:
 ```python
 @dataclasses.dataclass
 class Halve(chrisjen.Technique):
-    def implement(self, item, **kwargs):
+    def apply(self, item, **kwargs):
         return [x / 2 for x in item]
 
 
@@ -190,7 +190,7 @@ pip install chrisjen
 
 #### Techniques
 
-A technique is a subclass of `chrisjen.Technique`. Either write an `implement`
+A technique is a subclass of `chrisjen.Technique`. Either write an `apply`
 method, or set `contents` to the tool that the technique wraps: a callable, or
 its import path (which is only imported when the technique is used). The item
 is passed to the tool along with any keyword parameters that the tool accepts.

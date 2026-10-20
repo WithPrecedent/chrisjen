@@ -30,7 +30,7 @@ class Technique(base.Vertex):
     wraps: any callable, or the import path of one, such as
     `statistics.fmean`. A path is only imported when the technique is first
     used, so techniques can wrap optional packages. A subclass can set a
-    default `contents` or override `implement` instead. Subclasses are stored
+    default `contents` or override `apply` instead. Subclasses are stored
     in the library under their snake case names, which is how settings refer
     to them.
 
@@ -38,7 +38,7 @@ class Technique(base.Vertex):
         name: name used to refer to the technique in a workflow.
         contents: the tool to wrap: a callable or the import path of one.
             Defaults to `None`, which is only useful for subclasses that
-            override `implement`.
+            override `apply`.
         parameters: keyword arguments passed to the tool. Defaults to an empty
             `dict`.
 
@@ -51,7 +51,7 @@ class Technique(base.Vertex):
 
     """ Public Methods """
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Calls the wrapped tool with `item`.
 
         Override this method to call a tool differently (for example, to build
@@ -79,13 +79,13 @@ class Technique(base.Vertex):
         if tool is None:
             message = (
                 f'technique {self.name!r} has no tool: pass a callable or '
-                f'import path as contents or override implement in a subclass'
+                f'import path as contents or override apply in a subclass'
             )
             raise NotImplementedError(message)
         if not callable(tool):
             message = (
                 f'technique {self.name!r} wraps {tool!r}, which is not '
-                f'callable: override implement to use it'
+                f'callable: override apply to use it'
             )
             raise TypeError(message)
         return tool(item, **utilities.accepted_arguments(tool, kwargs))
@@ -136,7 +136,7 @@ class NullVertex(base.Vertex):
 
     name: str = dataclasses.field(default = 'none')
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Returns `item` unchanged.
 
         Args:
@@ -172,7 +172,7 @@ class Step(base.Vertex, abc.ABC):
     Args:
         name: name used to refer to the step in a workflow.
         contents: the technique or worker to wrap. Defaults to `None`, which
-            is only useful for subclasses that override `implement`.
+            is only useful for subclasses that override `apply`.
         parameters: keyword arguments for the step to use. Defaults to an empty
             `dict`.
 
@@ -208,7 +208,7 @@ class Step(base.Vertex, abc.ABC):
         """
         return item
 
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Applies the technique or worker in `contents` to `item`.
 
         Parameter priority, from lowest to highest, is the `parameters` of
@@ -264,7 +264,7 @@ class Worker(holden.System, base.Vertex, abc.ABC):
 
     A worker is a directed graph (a `holden.System`) whose nodes are vertexes.
     Each subclass is a design with its own rules for how the nodes are
-    connected (`populate`) and applied to an item (`implement`). Workers are
+    connected (`populate`) and applied to an item (`apply`). Workers are
     hashed and compared by name, like other vertexes, so a worker can be a
     node in another worker.
 
@@ -310,7 +310,7 @@ class Worker(holden.System, base.Vertex, abc.ABC):
                 previous = node
 
     @abc.abstractmethod
-    def implement(self, item: Any, **kwargs: Any) -> Any:
+    def apply(self, item: Any, **kwargs: Any) -> Any:
         """Applies the nodes to `item`, so that the worker can be a node.
 
         Args:
