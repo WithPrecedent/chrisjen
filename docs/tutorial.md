@@ -165,8 +165,11 @@ print(project.apply([3, -1, 4, -1, 5], factor = 1))
 # 12
 ```
 
-Only the parameters that an `apply` method (or a wrapped tool) accepts are
-passed to it, so a parameter meant for one technique does not break the others.
+A wrapped tool gets only the parameters that it accepts, but an `apply` method
+gets every parameter that reaches it, including those meant for other
+techniques (a worker's parameters reach everything in the worker). End each
+`apply` with `**kwargs`, as the techniques here do, so that a parameter meant
+for another technique does not break it.
 
 ## 6. Compare alternatives
 

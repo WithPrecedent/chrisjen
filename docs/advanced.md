@@ -335,8 +335,9 @@ print(project.result, project.apply(0, amount = 5))
 # 2 5
 ```
 
-An `apply` method gets only the parameters it accepts (unless it takes
-`**kwargs`). A wrapped tool gets only the parameters that it accepts.
+A wrapped tool gets only the parameters that it accepts. An `apply` method gets
+every parameter that reaches it, so it should take `**kwargs`: one that does
+not raises a `TypeError` when it gets a parameter meant for another node.
 
 ## Techniques and steps
 
