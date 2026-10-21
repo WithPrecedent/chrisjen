@@ -590,15 +590,15 @@ wheels = [
 
 [[package]]
 name = "holden"
-version = "0.2.3"
+version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bunches" },
     { name = "wonka" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f6/e1/e9c284a975c8e1506bbf40b59ba25092a18ed2a25dc27e05a8e37e4af01f/holden-0.2.3.tar.gz", hash = "sha256:46d9015ab0eb8a84b06540b9ecf547dedaf708b00cd12ab0746fb01a79ade046", size = 177935, upload-time = "2026-10-06T01:34:33.073Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9b/93/f846a890e29053102af022621cb12807b96603339df96b801a84c1ce6f02/holden-0.2.4.tar.gz", hash = "sha256:85e58f04386bffebc03242f2afc45eb697d8c1d546cdbd568f76db562b4946a5", size = 178259, upload-time = "2026-10-17T16:53:52.716Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/45/fa24bf474bbec88bf72d577097328359c87e9ad87a9f70b2e68b4814e1d3/holden-0.2.3-py3-none-any.whl", hash = "sha256:7f6e0bf1e95aebdcaf3d03c0a927a97035036aaecbd73b24b01a17acef02dcd3", size = 40757, upload-time = "2026-10-06T01:34:31.788Z" },
+    { url = "https://files.pythonhosted.org/packages/5b/62/da96ba6ec977ba8c4ed3b3edd0f2bbd2d2dead9309939d45f394fbf712d9/holden-0.2.4-py3-none-any.whl", hash = "sha256:45c9a93277469106f9881412ce7accafcc2729be3adda96f55a609e75e3e3ebf", size = 40756, upload-time = "2026-10-17T16:53:51.564Z" },
 ]
 
 [[package]]
