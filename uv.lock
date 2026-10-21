@@ -888,11 +888,11 @@ wheels = [
 
 [[package]]
 name = "miller"
-version = "0.2.1"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7b/bb/39a788de4419665a6395e25f7d01f138fbf1e67d45b102e6e101526392a9/miller-0.2.1.tar.gz", hash = "sha256:cb94067e9c7db3935bb66e88e134894dbe255ffec8ee228881d31cef908d5a3b", size = 124579, upload-time = "2026-09-29T19:32:07.609Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/39/ff31263f605d415fb48adaf867db829c7ac69ba3041fc4fe1448970c6a47/miller-0.2.2.tar.gz", hash = "sha256:1c4f53862924df5e143d70bdc64c64da165834738d6ea4b3d238db5e9f85c136", size = 125074, upload-time = "2026-10-17T16:52:34.542Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/ec/4e7d45a9a3e5642cf13bc50b6988dd3a3308d4c2031d64c627b3530a22f5/miller-0.2.1-py3-none-any.whl", hash = "sha256:1fa116237a9cf7757037d099f1abeb9644927a07e3989a52acfa13253cea7db1", size = 26503, upload-time = "2026-09-29T19:32:06.754Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/97/b3a20b32e21d11efa160ff43170a5a61bcd1936894f6b0717ef433f58b72/miller-0.2.2-py3-none-any.whl", hash = "sha256:8493944313ac11e5bb1f439958df10637ff6fb64f23d77ea681233d66883829a", size = 26529, upload-time = "2026-10-17T16:52:33.353Z" },
 ]
 
 [[package]]
