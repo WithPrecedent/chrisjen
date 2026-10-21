@@ -1632,9 +1632,9 @@ wheels = [
 
 [[package]]
 name = "wonka"
-version = "0.2.1"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/12/b9/d954b94bc71ce98ea924dbd4fc116f57da2ef3b46aded3ef08cfda1af086/wonka-0.2.1.tar.gz", hash = "sha256:7839ba8bd8e1f463e162b8b642ffdc0b96030dbeb143e597640f06397a1cb138", size = 782815, upload-time = "2026-10-01T18:16:35.579Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/65/129152c9952695835e213741a671160faa31c2670c24f0f9969c9de1b810/wonka-0.2.2.tar.gz", hash = "sha256:e263062dbfd9d94285820233662222ffe9c71912a721011e59e2eb0c88abfc3e", size = 783214, upload-time = "2026-10-17T16:53:17.779Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/69/8cb6af5818e019ef5f9e627e9494b61dab41b7fbd97296f10718bbd00add/wonka-0.2.1-py3-none-any.whl", hash = "sha256:b3f7bce5189693716edbeb1382992640f72385fbe95790c6b19e13208813d10a", size = 27154, upload-time = "2026-10-01T18:16:34.253Z" },
+    { url = "https://files.pythonhosted.org/packages/67/a8/8aaf53a074073c355049e079f91f32a1de42a3b1df4f132b2be9f114a13d/wonka-0.2.2-py3-none-any.whl", hash = "sha256:4eeb5f804d3dcf8cea076bfb86ac7546c5bcab2c80c4adef0e4f842a7107a1fd", size = 27163, upload-time = "2026-10-17T16:53:16.705Z" },
 ]
