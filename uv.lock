@@ -116,11 +116,11 @@ wheels = [
 
 [[package]]
 name = "camina"
-version = "0.2.1"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/99/f1/fb15ee7951510938ae2a011310776cf92c1e892fde9a3ecde36d88aeb215/camina-0.2.1.tar.gz", hash = "sha256:165132148bc65e452c09110d98331c1cca8e95fe9a59cd5605ff0618a95c4cbb", size = 124131, upload-time = "2026-09-29T19:31:11.248Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/d2/43ec153b55dfb96ff809370284212fe4632992fa3e40521ae22a16c8f3a7/camina-0.2.3.tar.gz", hash = "sha256:a38595403417af11ca2bd97eec28902879c804d00b114a6bc2cb04f4725a2675", size = 124748, upload-time = "2026-10-17T17:18:49.307Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9d/db/2607ce99c16d63896c61d5afb751aea01a44c8821c743badc1467fece8e9/camina-0.2.1-py3-none-any.whl", hash = "sha256:ea6f354e100aff50d9177c83b517e7600521315c470e515d09b2ef151a0e7a1a", size = 20393, upload-time = "2026-09-29T19:31:10.427Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/51/8712d40222898957828cb6b20dc87ad6a9942cc50f49c53858525c22d060/camina-0.2.3-py3-none-any.whl", hash = "sha256:d88734909f582949e57d014d82e041bc5807589d1f9dc4b0fa77cc5b2d083f90", size = 20495, upload-time = "2026-10-17T17:18:48.249Z" },
 ]
 
 [[package]]
