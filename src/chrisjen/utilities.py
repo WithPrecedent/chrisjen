@@ -16,7 +16,7 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
 
 
 def accepted_arguments(
@@ -156,11 +156,13 @@ def _apply_path(path: Sequence[Any], item: Any, **kwargs: Any) -> Any:
     return item
 
 
-def _average(items: Sequence[Any]) -> Any:
+def _average(items: Iterable[Any]) -> Any:
     """Returns the mean of `items`.
 
     This works for numbers and for any objects that support addition and
-    division by an `int` (e.g., `numpy` arrays or `pandas` objects).
+    division by an `int` (e.g., `numpy` arrays or `pandas` objects). The items
+    are added up one at a time, so `items` can be a generator whose items are
+    made only as they are needed.
 
     Args:
         items: results to average.
@@ -174,17 +176,19 @@ def _average(items: Sequence[Any]) -> Any:
         The mean of `items`.
 
     """
-    if not items:
-        message = 'cannot average an empty sequence'
-        raise ValueError(message)
+    total: Any = None
+    count = 0
     try:
-        total = items[0]
-        for item in items[1:]:
-            total = total + item
-        return total / len(items)
+        for item in items:
+            total = item if count == 0 else total + item
+            count += 1
+        if count == 0:
+            message = 'cannot average an empty sequence'
+            raise ValueError(message)
+        return total / count
     except TypeError as error:
         message = (
-            f'cannot average results of type {type(items[0]).__name__}: they '
+            f'cannot average results of type {type(total).__name__}: they '
             f'must support addition and division by an int'
         )
         raise TypeError(message) from error

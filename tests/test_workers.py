@@ -173,6 +173,89 @@ def test_contest_does_not_change_the_input() -> None:
     assert original == []
 
 
+def test_contest_scores_every_path() -> None:
+    contest = worker(
+        chrisjen.Contest,
+        [[technique('half', lambda x: x / 2), chrisjen.NullVertex()]],
+        criteria = chrisjen.Criteria(contents = lambda x: -x))
+    assert contest.apply(10) == 5.0
+    assert contest.scores == {'half': -5.0, 'none': -10}
+
+
+def test_contest_that_conserves_memory_keeps_only_the_winner() -> None:
+    contest = worker(
+        chrisjen.Contest,
+        [[
+            technique('half', lambda x: x / 2),
+            chrisjen.NullVertex(),
+            technique('third', lambda x: x / 3),
+        ]],
+        criteria = chrisjen.Criteria(contents = lambda x: x),
+        conserve_memory = True)
+    assert contest.apply(12) == 12
+    assert contest.winner == 'none'
+    assert contest.results == {'none': 12}
+    assert contest.scores == {'half': 6.0, 'none': 12, 'third': 4.0}
+
+
+def test_a_design_can_observe_each_result_before_it_is_dropped() -> None:
+    @dataclasses.dataclass
+    class Noting(chrisjen.Contest):
+        notes: dict[str, Any] = dataclasses.field(default_factory = dict)
+
+        def _observe(self, label: str, result: Any) -> None:
+            self.notes[label] = (result, self.scores[label])
+
+    contest = worker(
+        Noting,
+        [[technique('half', lambda x: x / 2), chrisjen.NullVertex()]],
+        criteria = chrisjen.Criteria(contents = lambda x: -x),
+        conserve_memory = True)
+    assert contest.apply(10) == 5.0
+    assert contest.results == {'half': 5.0}
+    assert contest.notes == {'half': (5.0, -5.0), 'none': (10, -10)}
+
+
+class Big:
+    """A result that counts how many of its kind are in memory."""
+
+    alive = 0
+    most = 0
+
+    def __init__(self, size: int) -> None:
+        self.size = size
+        Big.alive += 1
+        Big.most = max(Big.most, Big.alive)
+
+    def __del__(self) -> None:
+        Big.alive -= 1
+
+    def __add__(self, other: Big) -> Big:
+        return Big(self.size + other.size)
+
+    def __truediv__(self, count: int) -> float:
+        return self.size / count
+
+
+def most_in_memory(design: type, conserve_memory: bool, **kwargs: Any) -> int:
+    built = worker(
+        design,
+        [[technique(str(n), lambda x, n = n: Big(n)) for n in range(6)]],
+        conserve_memory = conserve_memory,
+        **kwargs)
+    Big.alive = Big.most = 0
+    built.apply(0)
+    return Big.most
+
+
+def test_conserving_memory_drops_results_as_paths_are_applied() -> None:
+    criteria = chrisjen.Criteria(contents = lambda x: x.size % 4)
+    assert most_in_memory(chrisjen.Contest, False, criteria = criteria) == 6
+    assert most_in_memory(chrisjen.Contest, True, criteria = criteria) == 2
+    # The running total and the newest result.
+    assert most_in_memory(chrisjen.Survey, True) <= 3
+
+
 def test_contest_errors() -> None:
     with pytest.raises(ValueError, match = 'no paths'):
         chrisjen.Contest(name = 'c').apply(1)
@@ -191,6 +274,15 @@ def test_survey_averages_the_paths() -> None:
     assert survey.apply(4) == 3.0
     assert survey.average == 3.0
     assert survey.results == {'half': 2.0, 'none': 4}
+
+
+def test_survey_that_conserves_memory_keeps_no_results() -> None:
+    survey = worker(
+        chrisjen.Survey,
+        [[technique('half', lambda x: x / 2), chrisjen.NullVertex()]],
+        conserve_memory = True)
+    assert survey.apply(4) == 3.0
+    assert survey.results == {}
 
 
 def test_survey_of_paths_with_several_nodes() -> None:

@@ -3,11 +3,11 @@
 | | |
 | --- | --- |
 | Version | [![PyPI Latest Release](https://img.shields.io/pypi/v/chrisjen.svg?style=for-the-badge&color=steelblue&label=PyPI&logo=PyPI&logoColor=yellow)](https://pypi.org/project/chrisjen/) [![GitHub Latest Release](https://img.shields.io/github/v/tag/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=GitHub&logo=github)](https://github.com/WithPrecedent/chrisjen/releases)
-| Status | [![Build Status](https://img.shields.io/github/actions/workflow/status/WithPrecedent/chrisjen/ci.yml?branch=main&style=for-the-badge&color=cadetblue&label=Tests&logo=pytest)](https://github.com/WithPrecedent/chrisjen/actions/workflows/ci.yml?query=branch%3Amain) [![Development Status](https://img.shields.io/badge/Development-Active-seagreen?style=for-the-badge&logo=git)](https://www.repostatus.org/#active) [![Project Stability](https://img.shields.io/pypi/status/chrisjen?style=for-the-badge&logo=pypi&label=Stability&logoColor=yellow)](https://pypi.org/project/chrisjen/)
+| Status | [![Build Status](https://img.shields.io/github/actions/workflow/status/WithPrecedent/chrisjen/ci.yml?branch=main&style=for-the-badge&color=cadetblue&label=Tests&logo=pytest)](https://github.com/WithPrecedent/chrisjen/actions/workflows/ci.yml?query=branch%3Amain) [![Code Coverage](https://img.shields.io/codecov/c/github/WithPrecedent/chrisjen?style=for-the-badge&color=cadetblue&label=Coverage&logo=codecov)](https://app.codecov.io/gh/WithPrecedent/chrisjen) [![Development Status](https://img.shields.io/badge/Development-Active-seagreen?style=for-the-badge&logo=git)](https://www.repostatus.org/#active) [![Project Stability](https://img.shields.io/pypi/status/chrisjen?style=for-the-badge&logo=pypi&label=Stability&logoColor=yellow)](https://pypi.org/project/chrisjen/)
 | Documentation | [![Hosted By](https://img.shields.io/badge/Hosted_by-Github_Pages-blue?style=for-the-badge&color=navy&logo=github)](https://WithPrecedent.github.io/chrisjen)
-| Tools | [![Documentation](https://img.shields.io/badge/MkDocs-magenta?style=for-the-badge&color=deepskyblue&logo=markdown&labelColor=gray)](https://squidfunk.github.io/mkdocs-material/) [![Linter](https://img.shields.io/endpoint?style=for-the-badge&url=https://raw.githubusercontent.com/charliermarsh/Ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/Ruff) [![Dependency Manager](https://img.shields.io/badge/uv-mediumpurple?style=for-the-badge&logo=uv&labelColor=gray)](https://docs.astral.sh/uv/) [![Pre-commit](https://img.shields.io/badge/pre--commit-darkolivegreen?style=for-the-badge&logo=pre-commit&logoColor=white&labelColor=gray)](https://github.com/TezRomacH/python-package-template/blob/master/.pre-commit-config.yaml) [![CI](https://img.shields.io/badge/GitHub_Actions-navy?style=for-the-badge&logo=githubactions&labelColor=gray&logoColor=white)](https://github.com/features/actions) [![Editor Settings](https://img.shields.io/badge/Editor_Config-paleturquoise?style=for-the-badge&logo=editorconfig&labelColor=gray)](https://editorconfig.org/) [![Repository Template](https://img.shields.io/badge/snickerdoodle-bisque?style=for-the-badge&logo=cookiecutter&labelColor=gray)](https://www.github.com/WithPrecedent/chrisjen) [![Dependency Maintainer](https://img.shields.io/badge/dependabot-navy?style=for-the-badge&logo=dependabot&logoColor=white&labelColor=gray)](https://github.com/dependabot)
-| Compatibility | [![Compatible Python Versions](https://img.shields.io/pypi/pyversions/chrisjen?style=for-the-badge&color=steelblue&label=Python&logo=python&logoColor=yellow)](https://pypi.python.org/pypi/chrisjen/) [![Linux](https://img.shields.io/badge/Linux-lightseagreen?style=for-the-badge&logo=linux&labelColor=gray&logoColor=white)](https://www.linux.org/) [![MacOS](https://img.shields.io/badge/MacOS-snow?style=for-the-badge&logo=apple&labelColor=gray)](https://www.apple.com/macos/) [![Windows](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=Windows&labelColor=gray&color=orangered)](https://www.microsoft.com/en-us/windows?r=1)
-| Stats | [![PyPI Download Rate (per month)](https://img.shields.io/pypi/dm/chrisjen?style=for-the-badge&color=steelblue&label=Downloads%20💾&logo=pypi&logoColor=yellow)](https://pypi.org/project/chrisjen) [![GitHub Stars](https://img.shields.io/github/stars/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Stars%20⭐&logo=github)](https://github.com/WithPrecedent/chrisjen/stargazers) [![GitHub Contributors](https://img.shields.io/github/contributors/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Contributors%20🙋&logo=github)](https://github.com/WithPrecedent/chrisjen/graphs/contributors) [![GitHub Issues](https://img.shields.io/github/issues/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Issues%20📘&logo=github)](https://github.com/WithPrecedent/chrisjen/graphs/contributors) [![GitHub Forks](https://img.shields.io/github/forks/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Forks%20🍴&logo=github)](https://github.com/WithPrecedent/chrisjen/forks)
+| Tools | [![Documentation](https://img.shields.io/badge/MkDocs-magenta?style=for-the-badge&color=deepskyblue&logo=markdown&labelColor=gray)](https://squidfunk.github.io/mkdocs-material/) [![Linter](https://img.shields.io/endpoint?style=for-the-badge&url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Dependency Manager](https://img.shields.io/badge/uv-mediumpurple?style=for-the-badge&logo=uv&labelColor=gray)](https://docs.astral.sh/uv/) [![Pre-commit](https://img.shields.io/badge/pre--commit-darkolivegreen?style=for-the-badge&logo=pre-commit&logoColor=white&labelColor=gray)](https://pre-commit.com/) [![CI](https://img.shields.io/badge/GitHub_Actions-navy?style=for-the-badge&logo=githubactions&labelColor=gray&logoColor=white)](https://github.com/features/actions) [![Editor Settings](https://img.shields.io/badge/Editor_Config-paleturquoise?style=for-the-badge&logo=editorconfig&labelColor=gray)](https://editorconfig.org/) [![Repository Template](https://img.shields.io/badge/snickerdoodle-bisque?style=for-the-badge&logo=cookiecutter&labelColor=gray)](https://www.github.com/WithPrecedent/snickerdoodle) [![Dependency Maintainer](https://img.shields.io/badge/dependabot-navy?style=for-the-badge&logo=dependabot&logoColor=white&labelColor=gray)](https://github.com/dependabot)
+| Compatibility | [![Compatible Python Versions](https://img.shields.io/pypi/pyversions/chrisjen?style=for-the-badge&color=steelblue&label=Python&logo=python&logoColor=yellow)](https://pypi.org/project/chrisjen/) [![Linux](https://img.shields.io/badge/Linux-lightseagreen?style=for-the-badge&logo=linux&labelColor=gray&logoColor=white)](https://www.linux.org/) [![MacOS](https://img.shields.io/badge/MacOS-snow?style=for-the-badge&logo=apple&labelColor=gray)](https://www.apple.com/macos/) [![Windows](https://img.shields.io/badge/Windows-blue?style=for-the-badge&logo=Windows&labelColor=gray&color=orangered)](https://www.microsoft.com/en-us/windows?r=1)
+| Stats | [![PyPI Download Rate (per month)](https://img.shields.io/pypi/dm/chrisjen?style=for-the-badge&color=steelblue&label=Downloads%20💾&logo=pypi&logoColor=yellow)](https://pypi.org/project/chrisjen) [![GitHub Stars](https://img.shields.io/github/stars/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Stars%20⭐&logo=github)](https://github.com/WithPrecedent/chrisjen/stargazers) [![GitHub Contributors](https://img.shields.io/github/contributors/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Contributors%20🙋&logo=github)](https://github.com/WithPrecedent/chrisjen/graphs/contributors) [![GitHub Issues](https://img.shields.io/github/issues/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Issues%20📘&logo=github)](https://github.com/WithPrecedent/chrisjen/issues) [![GitHub Forks](https://img.shields.io/github/forks/WithPrecedent/chrisjen?style=for-the-badge&color=navy&label=Forks%20🍴&logo=github)](https://github.com/WithPrecedent/chrisjen/forks)
 | | |
 
 
@@ -215,6 +215,22 @@ print(chrisjen.Project.create(settings, item = [1, 2, 4]).result)
 # 2.3
 ```
 
+To use a technique more than once with different parameters, add a number to
+its name. Unless a class has that name, "rounded1" and "rounded2" are built
+with the class named without the number (`Rounded`), and each has its own
+parameters section:
+
+```python
+settings = {
+    "rounding_project": {"techniques": "rounded1, rounded2"},
+    "rounded1_parameters": {"ndigits": 2},
+    "rounded2_parameters": {"ndigits": 1},
+}
+project = chrisjen.Project.create(settings, automatic = False)
+print([technique.apply(3.14159) for technique in project.workflow])
+# [3.14, 3.1]
+```
+
 #### Workers and steps
 
 A worker lists its techniques or its steps, and each step lists its techniques.
@@ -303,8 +319,8 @@ Contributors are always welcome. Feel free to grab an
 [issue](https://www.github.com/WithPrecedent/chrisjen/issues) to work on or make
 a suggested improvement. If you wish to contribute, please read the
 [Contribution
-Guide](https://www.github.com/WithPrecedent/chrisjen/contributing.md) and [Code
-of Conduct](https://www.github.com/WithPrecedent/chrisjen/code_of_conduct.md).
+Guide](https://www.github.com/WithPrecedent/chrisjen/blob/main/CONTRIBUTING.md) and [Code
+of Conduct](https://www.github.com/WithPrecedent/chrisjen/blob/main/CODE_OF_CONDUCT.md).
 
 ## Similar Projects
 

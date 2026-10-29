@@ -12,10 +12,15 @@ import chrisjen
 ROOT = pathlib.Path(__file__).parent.parent
 
 
-def test_version_matches_the_package_settings_and_changelog() -> None:
+def test_version_is_read_from_the_package_and_is_in_the_changelog() -> None:
     with (ROOT / 'pyproject.toml').open('rb') as file:
-        project = tomllib.load(file)['project']
-    assert project['version'] == chrisjen.__version__
+        settings = tomllib.load(file)
+    # The version is not repeated in pyproject.toml: it is read from
+    # `__version__` when the package is built.
+    assert 'version' not in settings['project']
+    assert 'version' in settings['project']['dynamic']
+    path = ROOT / settings['tool']['hatch']['version']['path']
+    assert path == ROOT / 'src' / 'chrisjen' / '__init__.py'
     changelog = (ROOT / 'CHANGELOG.md').read_text(encoding = 'utf-8')
     assert f'## {chrisjen.__version__}\n' in changelog
 

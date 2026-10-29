@@ -108,7 +108,7 @@ written after a name belongs to that name. Other sections:
 | `{name}_parameters` | Keyword parameters for the worker, step, or technique called `name`. |
 | `{technique}_{step}_parameters` | Keyword parameters for one technique in one step. |
 | `files` | Arguments for the project's `nagata.FileManager`, such as `output_folder`. |
-| `general` | Ignored by `chrisjen`, for your own use. |
+| `general` | Settings for every worker that has a field of the same name, unless its own section sets it. Only `conserve_memory` is passed on (add others to `chrisjen.options._GENERAL_SETTINGS`); the rest are for your own use. |
 
 ## How a workflow is built
 
@@ -125,6 +125,13 @@ nodes, starting from the project's worker:
   A step without techniques is a node itself.
 * **Techniques.** Any other name is built with the class in the library that
   has its name, usually a `Technique` subclass.
+* **Numbered names.** A technique or step whose name ends in a number (such as
+  "logit2") and is not the name of a class itself uses the class named without
+  the number ("logit"). Its settings and parameters are its own (from
+  "logit2_parameters", for example), so one technique can be tried with
+  several sets of parameters, as in "logit1, logit2, logit3" or "logit, logit2".
+  The number can follow an underscore ("logit_2"), which numbers a name that
+  ends in a digit itself ("sha256_2").
 
 Each class builds itself with its `build` class method, which passes the
 settings that match its fields to its constructor and adds its parameters. A
@@ -242,8 +249,8 @@ score. A worker without steps has one path for each of its techniques. With
 steps, there is a path for every combination of one technique from each step.
 Each path works on its own deep copy of the item, with its own copies of the
 nodes. `results` has the result of each path, labeled with the names of its
-nodes joined with " > ", and `winner` is the label of the best one. Ties go to
-the first.
+nodes joined with " > ", `scores` has the score of each path, and `winner` is
+the label of the best one. Ties go to the first.
 
 ```python
 settings = {
@@ -273,11 +280,25 @@ print(len(project.workflow.results), project.workflow.winner)
 
 To keep the lowest score instead, return a negative score.
 
+Each result is scored as soon as its path is applied. If `conserve_memory` is
+true (in the worker's section, or in the "general" section for every worker),
+a contest keeps only the best result so far, so no more than two results are
+in memory at once, however many paths there are. `results` then has only the
+winner, but `scores` still has every path.
+
+```python
+conserving = {"general": {"conserve_memory": True}, **combinations}
+project = chrisjen.Project.create(conserving, item = 10)
+print(list(project.workflow.results), len(project.workflow.scores))
+# ['triple_first > triple_second'] 4
+```
+
 ### survey
 
 Like `contest`, but returns the mean of the results (also stored in
 `average`). The results must support addition and division by an integer
-(numbers, `numpy` arrays, and `pandas` objects do).
+(numbers, `numpy` arrays, and `pandas` objects do). They are added up as each
+path is applied, so if `conserve_memory` is true, a survey keeps none of them.
 
 ```python
 settings["strategy_project"]["design"] = "survey"
@@ -461,7 +482,10 @@ print(chrisjen.Project.create(settings, item = 1).result)
 To compare alternatives, mix `chrisjen.Comparator` into a design (before
 `Worker`). Its `populate` method connects the alternatives so that every
 combination is a path, `try_paths` applies every path to copies of the item and
-the nodes, and `compare` scores the results with `criteria`.
+the nodes, and `compare` scores the results with `criteria`. `each_path` yields
+the label and result of each path one at a time, without keeping them, so a
+design that honors `conserve_memory` can drop each result once it is done with
+it.
 
 ## Custom reports
 
@@ -523,7 +547,7 @@ folder.
 | Error | Cause |
 | --- | --- |
 | `ValueError: A Project name was not given and could not be found in idea` | The settings have no worker sections and no `name` was passed. |
-| `KeyError: no class named ... is in the library` | A technique or design name is not the snake case name of a class in the library. Check that the module that defines it has been imported. |
+| `KeyError: no class named ... is in the library` | A technique or design name is not the snake case name of a class in the library (nor, if it ends in a number, is the name without the number). Check that the module that defines it has been imported. |
 | `ValueError: ... is already in the composite data structure` | The same name is listed twice in one worker. |
 | `ValueError: benchmark ... needs criteria` | A `benchmark` has no `criterion` setting. |
 | `ValueError: ... needs criteria to compare results` | A `contest` has no `criterion` setting. |

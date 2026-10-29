@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## Unreleased
+
+* Added a `conserve_memory` option to `Contest` and `Survey` (and any design
+  that mixes in `Comparator`), so that a worker with many paths does not keep
+  every path's result in memory until the end. A contest scores each result as
+  soon as its path is applied and keeps only the best so far (`results` then
+  has only the winner), and a survey adds each result to a running total and
+  keeps none. Added `Comparator.each_path`, which applies the paths one at a
+  time without keeping their results; `Comparator._observe`, which a design
+  can override to keep a summary of each result before it is dropped; and
+  `Contest.scores`, the score of each path.
+* Settings in the "general" section that are listed in
+  `options._GENERAL_SETTINGS` (for now only `conserve_memory`) now reach every
+  node with a field of the same name, unless the node's own section sets it.
+* Added numbered names for techniques and steps. A name that ends in a number
+  (such as "logit2", or "logit_2") and is not the name of a class itself is
+  built with the class named without the number ("logit"), with its own
+  settings and parameters (such as "logit2_parameters"). So one technique can
+  be tried with several sets of parameters, as in
+  "model_techniques = logit1, logit2, logit3".
+* Updated to the `snickerdoodle` 0.5.0 template
+* Added support for Python 3.15
+* Ran the tests on Linux, macOS, and Windows (the `ci` Action only ran them on
+  Linux) and uploaded their coverage to Codecov
+* Ran the `pre-commit` hooks once instead of in every test job, ran the `ci`
+  Action only on pushes to `main` and pull requests, and only deployed the
+  documentation from `main`
+* Replaced the deprecated release Action with the GitHub CLI, which uses the
+  released version's entry in CHANGELOG.md as the release notes, and only made
+  releases from `main` after the tests and linters pass
+* Added a coverage report page to the documentation and a coverage badge to
+  the README
+* Read the version from `__version__` in `__init__.py` instead of repeating it
+  in `pyproject.toml`, and used an SPDX license expression (PEP 639)
+* Made `dependabot` update the `uv` dependencies and GitHub Actions weekly
+* Renamed the misnamed `,python-version` file to `.python-version` and stopped
+  ignoring it
+* Added environment setup instructions to the contributing guide and fixed
+  broken links in the README
+
 ## 0.3.0
 
 * Renamed the method that every node writes from `implement` to `apply`. A

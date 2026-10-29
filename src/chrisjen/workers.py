@@ -20,7 +20,7 @@ from __future__ import annotations
 import abc
 import copy
 import dataclasses
-from collections.abc import Hashable, MutableMapping, Sequence
+from collections.abc import Hashable, Iterator, MutableMapping, Sequence
 from typing import Any
 
 from . import base, nodes, utilities
@@ -126,6 +126,12 @@ class Comparator(abc.ABC):  # noqa: B024
     (see `populate`). A worker without steps has one path for each of its
     techniques. List the mixin before `Worker` in the bases of a design.
 
+    If `conserve_memory` is true, a design keeps only the results that it
+    still needs (such as the best one so far) while it tries the paths, so
+    that a worker with many paths, or large results, does not have every
+    result in memory at once. It can be set for every worker in the "general"
+    section of the settings (see `options._GENERAL_SETTINGS`).
+
     Args:
         contents: the graph of nodes. Defaults to an empty `dict`.
         name: name used to refer to the worker in a workflow. Defaults to
@@ -134,10 +140,14 @@ class Comparator(abc.ABC):  # noqa: B024
             empty `dict`.
         criteria: the criteria used to score the result of each path.
             Defaults to `None`.
+        conserve_memory: whether to keep only the results that the design
+            still needs, rather than the result of every path, in `results`.
+            Defaults to `False`.
 
     Attributes:
         results: the result of each path in the most recent call, by the
-            names of the nodes in the path (joined by " > ").
+            names of the nodes in the path (joined by " > "). If
+            `conserve_memory` is true, only the results that the design kept.
 
     """
     contents: MutableMapping[Hashable, set[Hashable]] = dataclasses.field(
@@ -145,6 +155,7 @@ class Comparator(abc.ABC):  # noqa: B024
     name: str | None = dataclasses.field(default = None)
     parameters: base.GenericDict = dataclasses.field(default_factory = dict)
     criteria: base.Criteria | None = None
+    conserve_memory: bool = False
     results: dict[str, Any] = dataclasses.field(default_factory = dict)
 
     """ Public Methods """
@@ -190,11 +201,44 @@ class Comparator(abc.ABC):  # noqa: B024
                     self.connect((before, node))
             previous = layer
 
-    def try_paths(self, item: Any, **kwargs: Any) -> dict[str, Any]:
-        """Applies every path to its own copy of `item`.
+    def each_path(
+        self,
+        item: Any,
+        **kwargs: Any) -> Iterator[tuple[str, Any]]:
+        """Applies each path to its own copy of `item`, one at a time.
 
         Each path also uses its own copies of its nodes, so that nothing they
         store (such as a fitted model) carries over from one path to another.
+        Nothing is kept: a path is applied only when the next result is asked
+        for, so a design can drop each result once it is done with it.
+
+        Args:
+            item: data or object to change. It is not changed itself.
+            **kwargs: keyword arguments passed to the nodes.
+
+        Raises:
+            ValueError: if there are no paths.
+
+        Yields:
+            tuple[str, Any]: the label of each path (the names of its nodes,
+                joined by " > ") and its result.
+
+        """
+        paths = self.walk()
+        if not paths:
+            message = f'{self.name!r} has no paths to compare'
+            raise ValueError(message)
+        for path in paths:
+            label = ' > '.join(node.name for node in path)
+            copies = [copy.deepcopy(node) for node in path]
+            yield label, utilities._apply_path(
+                copies, copy.deepcopy(item), **kwargs)
+
+    def try_paths(self, item: Any, **kwargs: Any) -> dict[str, Any]:
+        """Applies every path to its own copy of `item`.
+
+        Unlike `each_path`, this keeps the result of every path, whether or
+        not `conserve_memory` is true.
 
         Args:
             item: data or object to change. It is not changed itself.
@@ -207,17 +251,26 @@ class Comparator(abc.ABC):  # noqa: B024
             The result of each path, which is also stored in `results`.
 
         """
-        paths = self.walk()
-        if not paths:
-            message = f'{self.name!r} has no paths to compare'
-            raise ValueError(message)
         self.results = {}
-        for path in paths:
-            label = ' > '.join(node.name for node in path)
-            copies = [copy.deepcopy(node) for node in path]
-            self.results[label] = utilities._apply_path(
-                copies, copy.deepcopy(item), **kwargs)
+        for label, result in self.each_path(item, **kwargs):
+            self.results[label] = result
         return self.results
+
+    """ Private Methods """
+
+    def _observe(self, label: str, result: Any) -> None:  # noqa: B027
+        """Notes what a design needs from the result of a path.
+
+        `Contest` and `Survey` call this with each result as soon as its path
+        is applied (and, in a contest, scored), before the result may be
+        dropped if `conserve_memory` is true. It does nothing by default:
+        subclasses can override it to keep a summary of each result.
+
+        Args:
+            label: the label of the path.
+            result: the result of the path.
+
+        """
 
 
 @dataclasses.dataclass
@@ -226,7 +279,9 @@ class Contest(Comparator, nodes.Worker):
 
     Each path (every combination of one technique from each step) is applied
     to its own copy of the item, and the result with the highest score from
-    `criteria` is kept.
+    `criteria` is kept. Each result is scored as soon as its path is applied,
+    so if `conserve_memory` is true, only the best result so far is kept:
+    at most two results are in memory at once, however many paths there are.
 
     Args:
         name: name used to refer to the worker in a workflow.
@@ -235,13 +290,17 @@ class Contest(Comparator, nodes.Worker):
             empty `dict`.
         criteria: the criteria used to score each result. Higher scores are
             better. Defaults to `None`.
+        conserve_memory: whether to keep only the best result in `results`.
+            Defaults to `False`.
 
     Attributes:
+        scores: the score of each path in the most recent call.
         winner: label of the path with the best result in the most recent
             call.
 
     """
 
+    scores: dict[str, Any] = dataclasses.field(default_factory = dict)
     winner: str | None = None
 
     """ Public Methods """
@@ -260,11 +319,24 @@ class Contest(Comparator, nodes.Worker):
             The best result. Ties go to the first path.
 
         """
-        results = self.try_paths(item, **kwargs)
-        scores = self.compare(list(results.values()))
-        best = scores.index(max(scores))
-        self.winner = list(results)[best]
-        return results[self.winner]
+        self.results = {}
+        self.scores = {}
+        winner, best = None, None
+        for label, result in self.each_path(item, **kwargs):
+            self.scores[label] = self.compare([result])[0]
+            self._observe(label, result)
+            if winner is None or self.scores[label] > self.scores[winner]:
+                if self.conserve_memory:
+                    self.results.clear()
+                winner, best = label, result
+                self.results[label] = result
+            elif not self.conserve_memory:
+                self.results[label] = result
+            # Lets a result that was not kept go before the next path makes
+            # its own.
+            del result
+        self.winner = winner
+        return best
 
 
 @dataclasses.dataclass
@@ -274,12 +346,16 @@ class Survey(Comparator, nodes.Worker):
     Each path (every combination of one technique from each step) is applied
     to its own copy of the item. The results must support addition and
     division by an `int`, as numbers, `numpy` arrays, and `pandas` objects do.
+    Each result is added to a running total as soon as its path is applied,
+    so if `conserve_memory` is true, no result is kept.
 
     Args:
         name: name used to refer to the worker in a workflow.
         contents: the graph of nodes. Defaults to an empty `dict`.
         parameters: keyword arguments for the worker to use. Defaults to an
             empty `dict`.
+        conserve_memory: whether to leave `results` empty. Defaults to
+            `False`.
 
     Attributes:
         average: the average result of the most recent call.
@@ -304,6 +380,15 @@ class Survey(Comparator, nodes.Worker):
             The average result.
 
         """
-        results = self.try_paths(item, **kwargs)
-        self.average = utilities._average(list(results.values()))
+        self.results = {}
+
+        def kept(label: str, result: Any) -> Any:
+            self._observe(label, result)
+            if not self.conserve_memory:
+                self.results[label] = result
+            return result
+
+        self.average = utilities._average(
+            kept(label, result)
+            for label, result in self.each_path(item, **kwargs))
         return self.average

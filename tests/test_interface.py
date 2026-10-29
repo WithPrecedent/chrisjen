@@ -300,6 +300,110 @@ def test_steps_wrap_their_techniques(tmp_path: pathlib.Path) -> None:
     assert project.result == [1.5, 4.5]
 
 
+def test_numbered_techniques_use_the_class_without_the_number(
+    tmp_path: pathlib.Path,
+) -> None:
+    project = chrisjen.Project.create(
+        {
+            'demo_project': {
+                'design': 'contest',
+                'criterion': 'chrisjen_test_scores.total',
+                'techniques': 'scale, scale1, scale_2',
+            },
+            'scale_parameters': {'factor': 2},
+            'scale1_parameters': {'factor': 4},
+            'scale_2_parameters': {'factor': 3},
+        },
+        item = [1],
+        clerk = tmp_path)
+    techniques = {node.name: node for node in project.workflow}
+    scale = chrisjen.library.all['scale']
+    assert all(type(node) is scale for node in techniques.values())
+    # Each numbered technique has its own parameters.
+    assert techniques['scale1'].parameters == {'factor': 4}
+    assert project.workflow.results == {
+        'scale': [2], 'scale1': [4], 'scale_2': [3]}
+    assert project.workflow.winner == 'scale1'
+
+
+def test_numbered_techniques_in_an_ini_file(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / 'settings.ini'
+    path.write_text(
+        '[demo_project]\n'
+        'demo_workers = model\n'
+        '[model]\n'
+        'design = contest\n'
+        'criterion = chrisjen_test_scores.total\n'
+        'steps = fit\n'
+        'fit_techniques = scale1, scale2, scale3\n'
+        '[scale1_parameters]\n'
+        'factor = 1\n'
+        '[scale2_parameters]\n'
+        'factor = 5\n'
+        '[scale3_parameters]\n'
+        'factor = 2\n',
+        encoding = 'utf-8')
+    project = chrisjen.Project.create(path, item = [1], clerk = tmp_path)
+    model = next(iter(project.workflow))
+    assert sorted(paths(model)) == [
+        ['scale1_fit'], ['scale2_fit'], ['scale3_fit']]
+    assert model.winner == 'scale2_fit'
+    assert project.result == [5]
+
+
+def test_a_class_with_the_numbered_name_is_used_first(
+    tmp_path: pathlib.Path,
+) -> None:
+    @dataclasses.dataclass
+    class Scale2(chrisjen.Technique):
+        def apply(self, item: Any, **kwargs: Any) -> Any:
+            return item
+
+    project = create(tmp_path, automatic = False)
+    assert type(workshop.build_node('scale2', project)) is Scale2
+    scale3 = workshop.build_node('scale3', project)
+    assert type(scale3) is chrisjen.library.all['scale']
+    assert scale3.name == 'scale3'
+    with pytest.raises(
+        KeyError, match = r"no class named \['nothing2', 'nothing'\]"):
+        workshop.build_node('nothing2', project)
+
+
+def test_numbered_steps_use_the_step_class_without_the_number(
+    tmp_path: pathlib.Path,
+) -> None:
+    @dataclasses.dataclass
+    class Resize(chrisjen.Step):
+        def end(self, item: Any) -> Any:
+            return [x + 1 for x in item]
+
+    settings = {
+        'demo_project': {
+            'steps': 'resize1, resize2',
+            'resize1_techniques': 'scale',
+            'resize2_techniques': 'halve',
+        },
+        'scale_parameters': {'factor': 3},
+    }
+    project = chrisjen.Project.create(settings, item = [1], clerk = tmp_path)
+    assert paths(project.workflow) == [['scale_resize1', 'halve_resize2']]
+    assert all(isinstance(node, Resize) for node in project.workflow)
+    assert project.result == [3.0]
+
+
+@pytest.mark.parametrize(
+    ('name', 'names'),
+    [
+        ('logit', 'logit'),
+        ('logit2', ['logit2', 'logit']),
+        ('logit12', ['logit12', 'logit']),
+        ('logit_2', ['logit_2', 'logit']),
+        ('sha256_2', ['sha256_2', 'sha256']),
+    ])
+def test_class_names_drop_a_number(name: str, names: str | list[str]) -> None:
+    assert workshop._class_names(name) == names
+
+
 def test_build_criteria_from_the_library(tmp_path: pathlib.Path) -> None:
     @dataclasses.dataclass
     class Positive(chrisjen.Criteria):

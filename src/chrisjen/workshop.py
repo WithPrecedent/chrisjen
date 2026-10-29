@@ -15,6 +15,7 @@ Contents:
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from . import base, nodes, options
@@ -47,7 +48,10 @@ def build_node(name: str, project: interface.Project) -> base.Vertex:
 
     A name is a worker if it has a section of its own or a list of steps (see
     `build_worker`). Otherwise, it is built with the class in the library that
-    has its name (usually a `Technique` subclass).
+    has its name (usually a `Technique` subclass). If there is none and the
+    name ends in a number (such as "logit2"), the class named without the
+    number ("logit") is used, so that one technique can be used more than once
+    with different settings (such as "logit2_parameters").
 
     Args:
         name: name of the node.
@@ -55,7 +59,7 @@ def build_node(name: str, project: interface.Project) -> base.Vertex:
 
     Raises:
         KeyError: if `name` is not a worker and no class in the library has
-            its name.
+            its name (or, if it ends in a number, its name without it).
 
     Returns:
         The built node.
@@ -64,7 +68,7 @@ def build_node(name: str, project: interface.Project) -> base.Vertex:
     idea = project.idea
     if name in idea.workers or name in idea.steps:
         return build_worker(name, project)
-    return project.library.borrow(name).build(name, project)
+    return project.library.borrow(_class_names(name)).build(name, project)
 
 
 def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
@@ -72,9 +76,11 @@ def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
 
     A step with techniques has one node for each of them: a `Step` that wraps
     the technique and is named "{technique}_{step}". The class of the step is
-    the `Step` subclass named `name`, if there is one. Its parameters come from
-    the "{step}_parameters" section of the settings and, for one technique in
-    that step, the "{technique}_{step}_parameters" section. A step without
+    the `Step` subclass named `name`, if there is one. As with techniques (see
+    `build_node`), a step such as "scale2" can use the `Step` subclass named
+    "scale". Its parameters come from the "{step}_parameters" section of the
+    settings and, for one technique in that step, the
+    "{technique}_{step}_parameters" section. A step without
     techniques (or that is a worker) is a node itself (see `build_node`).
 
     Args:
@@ -89,7 +95,7 @@ def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
     if name in idea.workers or name not in idea.techniques:
         return [build_node(name, project)]
     try:
-        kind = project.library.borrow(name, genre = 'step')
+        kind = project.library.borrow(_class_names(name), genre = 'step')
     except KeyError:
         kind = nodes.Step
     alternatives = []
@@ -152,3 +158,29 @@ def build_workflow(project: interface.Project) -> nodes.Worker:
 
     """
     return build_worker(project.name, project)
+
+
+""" Private Functions """
+
+
+def _class_names(name: str) -> str | list[str]:
+    """Returns the names of the classes that the node `name` can be built with.
+
+    A name that ends in a number, such as "logit2", can be built with the class
+    named without the number ("logit"). The number can follow an underscore
+    ("logit_2"), which numbers a name that ends in a digit itself ("sha256_2"
+    is "sha256", but "sha2562" would be "sha").
+
+    Args:
+        name: name of a node in the settings.
+
+    Returns:
+        `name`, if it does not end in a number. Otherwise, a `list` of `name`
+            and `name` without the number (and an underscore before it), in
+            the order to look for them with `Library.borrow`.
+
+    """
+    numbered = re.fullmatch(r'(?P<base>.+?)_?\d+', name)
+    if numbered is None:
+        return name
+    return [name, numbered['base']]

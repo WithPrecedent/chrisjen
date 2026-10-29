@@ -549,7 +549,10 @@ class Idea(bobbie.Settings, Genre):
 
         A setting belongs to `name` if it is in the section for `name` or if
         it is named "{name}_{key}" in any worker section. This is how settings
-        such as "max_iterations" reach the class that `name` is built from.
+        such as "max_iterations" reach the class that `name` is built from. A
+        key in `options._GENERAL_SETTINGS` (such as "conserve_memory") that
+        does not belong to `name` is taken from the "general" section, if it
+        is there.
 
         Args:
             name: name of a worker, step, or technique.
@@ -559,11 +562,14 @@ class Idea(bobbie.Settings, Genre):
             A `dict` mapping each key in `keys` that is found to its value.
 
         """
+        general = self.contents.get('general', {})
         found = {}
         for key in keys:
             settings = self._find_settings(key)
             if name in settings:
                 found[key] = settings[name]
+            elif key in options._GENERAL_SETTINGS and key in general:
+                found[key] = general[key]
         return found
 
     """ Private Methods """

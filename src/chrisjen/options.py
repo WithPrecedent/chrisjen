@@ -30,6 +30,12 @@ _DEFAULT_ROOT: pathlib.Path = pathlib.Path('../project')
 _DEFAULT_SETTINGS: bobbie.Settings = bobbie.Settings
 # Default naming function for non-str objects.
 _KEY_NAMER: Callable[[Any], str] = utilities._namify
+# Settings in the "general" section that reach every node with a field of the
+# same name, unless the node has its own setting (see `Vertex.build`). Only
+# these are passed on, so that a general setting meant for something else
+# does not reach a class that happens to have a field with its name. A
+# package built on `chrisjen` can add its own.
+_GENERAL_SETTINGS: list[str] = ['conserve_memory']
 # Sections of settings that are not workers.
 _SPECIAL_SETTINGS: list[str] = ['general', 'files']
 # Whether to return more elaborate error messages and feedback.

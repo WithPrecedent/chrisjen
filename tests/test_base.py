@@ -375,6 +375,21 @@ def test_build_passes_settings_to_the_constructor() -> None:
     assert bench.parameters == {'factor': 5}
 
 
+def test_build_takes_general_settings_that_are_shared() -> None:
+    class Holder:
+        idea = chrisjen.Idea.create({
+            'general': {'conserve_memory': True, 'max_iterations': 3},
+            'race_project': {'design': 'contest'},
+            'keep_project': {'design': 'contest', 'conserve_memory': False},
+        })
+
+    assert chrisjen.Contest.build('race', Holder()).conserve_memory
+    # A worker's own setting wins over the general one.
+    assert not chrisjen.Contest.build('keep', Holder()).conserve_memory
+    # Only the settings in options._GENERAL_SETTINGS are shared.
+    assert chrisjen.Benchmark.build('race', Holder()).max_iterations is None
+
+
 """ Criteria """
 
 
