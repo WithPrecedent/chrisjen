@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
-## Unreleased
+## 0.4.0
 
 * Added a `conserve_memory` option to `Contest` and `Survey` (and any design
   that mixes in `Comparator`), so that a worker with many paths does not keep
