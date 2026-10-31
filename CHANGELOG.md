@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## 0.4.2
+
+* Added the `py.typed` marker so that type checkers use the type hints in
+  `chrisjen`.
+
 ## 0.4.1
 
 * Raised the minimum versions of the dependencies to the latest on PyPI:
