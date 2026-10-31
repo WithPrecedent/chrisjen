@@ -17,14 +17,8 @@ import abc
 import dataclasses
 import functools
 import inspect
-from collections.abc import (
-    Callable,
-    Hashable,
-    Iterator,
-    MutableMapping,
-    Sequence,
-)
-from typing import TYPE_CHECKING, Any, TypeAlias
+from collections.abc import Callable, Iterator, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, Self, TypeAlias
 
 import bobbie
 import camina
@@ -36,7 +30,8 @@ if TYPE_CHECKING:
     from . import interface
 
 
-GenericDict: TypeAlias = MutableMapping[Hashable, Any]
+# Keyword arguments, such as the `parameters` of a node.
+GenericDict: TypeAlias = MutableMapping[str, Any]
 # A layer of `Library.contents`: names of genres (abstract classes) map to
 # nested layers and names of other classes map to the classes.
 Layer: TypeAlias = MutableMapping[str, Any]
@@ -95,7 +90,7 @@ class Library(MutableMapping[str, Any]):
     @property
     def plurals(self) -> list[str]:
         """Returns a list of pluralized names of genres."""
-        return camina.add_suffix_to_list(self.genres, 's')
+        return list(camina.add_suffix_to_list(self.genres, 's'))
 
     @property
     def all(self) -> dict[str, type]:
@@ -201,11 +196,13 @@ class Library(MutableMapping[str, Any]):
                 that it is in.
 
         """
+        genre: str | None
         if isinstance(item, str):
-            genre = utilities._find_genre(self.contents, item)
-            if genre is utilities._MISSING:
+            found = utilities._find_genre(self.contents, item)
+            if found is utilities._MISSING:
                 message = f'{item!r} is not in the library'
                 raise ValueError(message)
+            genre = found if isinstance(found, str) else None
         else:
             if not inspect.isclass(item):
                 item = item.__class__
@@ -300,7 +297,10 @@ class Library(MutableMapping[str, Any]):
             The name for `item`.
 
         """
-        return name or options._KEY_NAMER(item)
+        return (
+            name
+            or options._KEY_NAMER(item)
+            or utilities._snakify(item.__name__))
 
     """ Dunder Methods """
 
@@ -463,8 +463,9 @@ class Idea(bobbie.Settings, Genre):
         """
         parameters = {}
         for key, section in self.contents.items():
-            # Skips settings that are not sections.
-            if not isinstance(section, MutableMapping):
+            # Skips settings that are not sections or not named by a `str`.
+            if not isinstance(key, str) or not isinstance(
+                section, MutableMapping):
                 continue
             # Stores each parameters section under the name before
             # "_parameters".
@@ -516,7 +517,7 @@ class Idea(bobbie.Settings, Genre):
         return techniques
 
     @property
-    def workers(self) -> dict[str, dict[str, Any]]:
+    def workers(self) -> dict[str, MutableMapping[str, Any]]:
         """Returns the worker sections of the settings.
 
         The project section (whose name ends in "_project") is included under
@@ -531,8 +532,9 @@ class Idea(bobbie.Settings, Genre):
         """
         workers = {}
         for key, section in self.contents.items():
-            # Skips settings that are not sections.
-            if not isinstance(section, MutableMapping):
+            # Skips settings that are not sections or not named by a `str`.
+            if not isinstance(key, str) or not isinstance(
+                section, MutableMapping):
                 continue
             # Skips parameters sections and special sections (such as "files").
             if key.endswith('parameters') or key in options._SPECIAL_SETTINGS:
@@ -648,7 +650,7 @@ class Vertex(holden.Labeled, holden.Node, Genre, abc.ABC):
         name: str,
         project: interface.Project,
         parameters: GenericDict | None = None,
-        **kwargs: Any) -> Vertex:
+        **kwargs: Any) -> Self:
         """Builds an instance named `name` from the settings of `project`.
 
         Settings that belong to `name` (see `Idea.get_settings`) and match a

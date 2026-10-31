@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## 0.4.1
+
+* Raised the minimum versions of the dependencies to the latest on PyPI:
+  `bobbie` 0.3.1, `camina` 0.2.4, `holden` 0.2.6, `miller` 0.2.3, `nagata`
+  0.2.1, and `wonka` 0.3.0. All of them now include the `py.typed` marker, so
+  `mypy` checks the code against their type hints
+* Fixed the type errors that `mypy` found with the typed dependencies.
+  `parameters` are now typed with `str` keys (they are keyword arguments),
+  `Vertex.build` is typed to return an instance of the class it is called on,
+  and `Idea.workers` is typed to return `MutableMapping` sections (which it
+  always did)
+* `Project.apply`, `Project.to_dot`, and `Project.to_mermaid` raise a
+  `ValueError` if the project has no workflow, `Project.apply` skips the
+  report if `report` is `None`, and `Summary` lists no paths for a project
+  without a workflow (each of these raised an `AttributeError` before)
+* Upgraded every package in `uv.lock` to its latest version
+* Updated the `pre-commit` hooks to `ruff` 0.17.3, `uv` 0.13.6, and
+  `pydoclint` 0.12.0
+
 ## 0.4.0
 
 * Added a `conserve_memory` option to `Contest` and `Survey` (and any design

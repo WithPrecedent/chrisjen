@@ -10,7 +10,7 @@ from __future__ import annotations
 import dataclasses
 from typing import TYPE_CHECKING
 
-from . import base
+from . import base, utilities
 
 if TYPE_CHECKING:
     from . import interface
@@ -35,14 +35,16 @@ class Summary(base.Report):
             The text of the summary.
 
         """
+        workflow = project.workflow
         paths = [
-            ' > '.join(node.name for node in path)
-            for path in project.workflow.walk()]
+            utilities._label_path(path)
+            for path in (workflow.walk() if workflow is not None else [])]
         lines = [
             f'project: {project.name}',
             f'id: {project.id}',
             f'paths: {"; ".join(paths) or "none"}',
             f'result: {project.result!r}',
         ]
-        self.contents = '\n'.join(lines)
-        return self.contents
+        text = '\n'.join(lines)
+        self.contents = text
+        return text

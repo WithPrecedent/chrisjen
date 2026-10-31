@@ -28,12 +28,12 @@ classifiers = [
     "Topic :: Software Development"]
 keywords = ["workflow", "automation"]
 dependencies = [
-    "bobbie>=0.2.1",
-    "camina>=0.2.1",
-    "holden>=0.2.3",
-    "miller>=0.2.1",
-    "nagata>=0.2.0",
-    "wonka>=0.2.1"]
+    "bobbie>=0.3.1",
+    "camina>=0.2.4",
+    "holden>=0.2.6",
+    "miller>=0.2.3",
+    "nagata>=0.2.1",
+    "wonka>=0.3.0"]
 
 [project.optional-dependencies]
 

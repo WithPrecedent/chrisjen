@@ -16,7 +16,7 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
 
 
 def accepted_arguments(
@@ -65,8 +65,8 @@ def import_object(path: str) -> Any:
 
     """
     if ':' in path:
-        module_name, _, attributes = path.partition(':')
-        candidates = [(module_name, attributes.split('.'))]
+        module_name, _, attribute_path = path.partition(':')
+        candidates = [(module_name, attribute_path.split('.'))]
     else:
         parts = path.split('.')
         candidates = [
@@ -393,6 +393,20 @@ def _namify(item: Any, default: str | None = None) -> str | None:
                 return _snakify(item.__class__.__name__)
             else:
                 return default
+
+
+def _label_path(path: Sequence[Hashable]) -> str:
+    """Returns the label of `path`: the names of its nodes, joined by " > ".
+
+    Args:
+        path: nodes in a path through a worker.
+
+    Returns:
+        The label of `path`. A node without a `name` is labeled by its `str`
+            form.
+
+    """
+    return ' > '.join(str(getattr(node, 'name', node)) for node in path)
 
 
 def _snakify(item: str) -> str:

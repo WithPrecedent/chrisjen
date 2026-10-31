@@ -11,7 +11,7 @@ import dataclasses
 import inspect
 import pathlib
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, cast
 
 import camina
 import nagata
@@ -141,8 +141,9 @@ class Project:
         """
         if item is None:
             item = self.item
-        self.result = self.workflow.apply(item, **kwargs)
-        self.report.generate(self)
+        self.result = self._get_drafted_workflow().apply(item, **kwargs)
+        if self.report is not None:
+            self.report.generate(self)
         return self.result
 
     def draft(self) -> None:
@@ -163,7 +164,8 @@ class Project:
             The dot text.
 
         """
-        return self.workflow.to_dot(path = path, name = name or self.name)
+        return self._get_drafted_workflow().to_dot(
+            path = path, name = name or self.name)
 
     def to_mermaid(
         self,
@@ -179,7 +181,25 @@ class Project:
             The mermaid text.
 
         """
-        return self.workflow.to_mermaid(path = path, name = name or self.name)
+        return self._get_drafted_workflow().to_mermaid(
+            path = path, name = name or self.name)
+
+    """ Private Methods """
+
+    def _get_drafted_workflow(self) -> nodes.Worker:
+        """Returns `workflow`, which `draft` builds.
+
+        Raises:
+            ValueError: if the project has no workflow.
+
+        Returns:
+            The workflow of the project.
+
+        """
+        if self.workflow is None:
+            message = f'{self.name!r} has no workflow: call draft first'
+            raise ValueError(message)
+        return self.workflow
 
 """ Private Functions """
 
@@ -240,7 +260,9 @@ def _validate_idea(
         return idea
     if inspect.isclass(idea) and issubclass(idea, base.Idea):
         return idea()
-    return base.Idea.create(idea)
+    # `bobbie.Settings.create` is annotated to return a `Settings`, but it
+    # returns an instance of the class it is called on.
+    return cast('base.Idea', base.Idea.create(idea))
 
 
 def _validate_name(name: str | None, idea: base.Idea) -> str:
@@ -264,10 +286,10 @@ def _validate_name(name: str | None, idea: base.Idea) -> str:
     """
     if name is None:
         for key in idea:
-            if key.endswith('_project'):
+            if isinstance(key, str) and key.endswith('_project'):
                 return key.removesuffix('_project')
         for key in idea:
-            if key not in options._SPECIAL_SETTINGS:
+            if isinstance(key, str) and key not in options._SPECIAL_SETTINGS:
                 return key
         message = 'A Project name was not given and could not be found in idea'
         raise ValueError(message)

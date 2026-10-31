@@ -16,7 +16,7 @@ Contents:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from . import base, nodes, options
 
@@ -37,7 +37,8 @@ def build_criteria(name: str, project: interface.Project) -> base.Criteria:
 
     """
     parameters = project.idea.parameters.get(name, {})
-    criteria = project.library.all.get(name)
+    criteria = cast(
+        'type[base.Criteria] | None', project.library.all.get(name))
     if criteria is None:
         return base.Criteria(contents = name, parameters = parameters)
     return criteria(parameters = parameters)
@@ -68,7 +69,9 @@ def build_node(name: str, project: interface.Project) -> base.Vertex:
     idea = project.idea
     if name in idea.workers or name in idea.steps:
         return build_worker(name, project)
-    return project.library.borrow(_class_names(name)).build(name, project)
+    kind = cast('type[base.Vertex]', project.library.borrow(
+        _class_names(name)))
+    return kind.build(name, project)
 
 
 def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
@@ -95,10 +98,11 @@ def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
     if name in idea.workers or name not in idea.techniques:
         return [build_node(name, project)]
     try:
-        kind = project.library.borrow(_class_names(name), genre = 'step')
+        kind = cast('type[nodes.Step]', project.library.borrow(
+            _class_names(name), genre = 'step'))
     except KeyError:
         kind = nodes.Step
-    alternatives = []
+    alternatives: list[base.Vertex] = []
     for technique in idea.techniques[name]:
         label = f'{technique}_{name}'
         step = kind.build(
@@ -132,10 +136,14 @@ def build_worker(name: str, project: interface.Project) -> nodes.Worker:
     """
     idea = project.idea
     design = idea.designs.get(name, options._DEFAULT_DESIGN)
-    kind = project.library.borrow([name, design], genre = 'worker')
+    kind = cast('type[nodes.Worker]', project.library.borrow(
+        [name, design], genre = 'worker'))
     worker = kind.build(name, project)
     if name in idea.criteria:
-        worker.criteria = build_criteria(idea.criteria[name], project)
+        # Only some designs (such as `Benchmark` and `Contest`) declare
+        # `criteria`, but it is set on any worker whose settings name one.
+        worker.criteria = build_criteria(  # type: ignore[attr-defined]
+            idea.criteria[name], project)
     if name in idea.steps:
         parts = [build_step(step, project) for step in idea.steps[name]]
     else:

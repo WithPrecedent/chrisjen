@@ -21,9 +21,16 @@ import abc
 import copy
 import dataclasses
 from collections.abc import Hashable, Iterator, MutableMapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 from . import base, nodes, utilities
+
+if TYPE_CHECKING:
+    # Type checkers treat `Comparator` as a worker, since it is only mixed
+    # into workers and uses their methods (such as `add` and `walk`).
+    _ComparatorBase = nodes.Worker
+else:
+    _ComparatorBase = abc.ABC
 
 
 @dataclasses.dataclass
@@ -118,7 +125,7 @@ class Benchmark(Flow):
 # `eq` is `False` so that the mixin does not set `__hash__` to `None`, which
 # would stop workers that use it from being hashed by name.
 @dataclasses.dataclass(eq = False)
-class Comparator(abc.ABC):  # noqa: B024
+class Comparator(_ComparatorBase):
     """Mixin for workers that compare every combination of alternatives.
 
     The techniques of each step are alternatives to each other, and the paths
@@ -192,9 +199,11 @@ class Comparator(abc.ABC):  # noqa: B024
             nodes: vertexes and lists of alternative vertexes, in order.
 
         """
-        previous = []
+        previous: list[base.Vertex] = []
         for item in nodes:
-            layer = item if isinstance(item, list) else [item]
+            layer = cast(
+                'list[base.Vertex]',
+                item if isinstance(item, list) else [item])
             for node in layer:
                 self.add(node)
                 for before in previous:
@@ -229,7 +238,7 @@ class Comparator(abc.ABC):  # noqa: B024
             message = f'{self.name!r} has no paths to compare'
             raise ValueError(message)
         for path in paths:
-            label = ' > '.join(node.name for node in path)
+            label = utilities._label_path(path)
             copies = [copy.deepcopy(node) for node in path]
             yield label, utilities._apply_path(
                 copies, copy.deepcopy(item), **kwargs)
@@ -258,7 +267,7 @@ class Comparator(abc.ABC):  # noqa: B024
 
     """ Private Methods """
 
-    def _observe(self, label: str, result: Any) -> None:  # noqa: B027
+    def _observe(self, label: str, result: Any) -> None:
         """Notes what a design needs from the result of a path.
 
         `Contest` and `Survey` call this with each result as soon as its path

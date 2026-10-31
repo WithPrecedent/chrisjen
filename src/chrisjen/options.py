@@ -21,15 +21,15 @@ import nagata
 
 from . import utilities
 
-_DEFAULT_CLERK: nagata.FileManager = nagata.FileManager
+_DEFAULT_CLERK: type[nagata.FileManager] = nagata.FileManager
 _DEFAULT_DESIGN: str = 'flow'
-_DEFAULT_IDEA: bobbie.Settings = bobbie.Settings
+_DEFAULT_IDEA: type[bobbie.Settings] = bobbie.Settings
 _DEFAULT_OUTLINE: str = 'blueprint'
 _DEFAULT_REPORT: str = 'summary'
 _DEFAULT_ROOT: pathlib.Path = pathlib.Path('../project')
-_DEFAULT_SETTINGS: bobbie.Settings = bobbie.Settings
+_DEFAULT_SETTINGS: type[bobbie.Settings] = bobbie.Settings
 # Default naming function for non-str objects.
-_KEY_NAMER: Callable[[Any], str] = utilities._namify
+_KEY_NAMER: Callable[[Any], str | None] = utilities._namify
 # Settings in the "general" section that reach every node with a field of the
 # same name, unless the node has its own setting (see `Vertex.build`). Only
 # these are passed on, so that a general setting meant for something else
@@ -70,7 +70,7 @@ def set_keyer(keyer: Callable[[object | type[Any]], str]) -> None:
         TypeError: if `keyer` is not callable.
 
     """
-    if isinstance(keyer, Callable):
+    if callable(keyer):
         globals()['_KEY_NAMER'] = keyer
     else:
         raise TypeError('keyer argument must be a callable')
@@ -86,7 +86,7 @@ def set_method_namer(namer: Callable[[object | type[Any]], str]) -> None:
         TypeError: if `namer` is not callable.
 
     """
-    if isinstance(namer, Callable):
+    if callable(namer):
         globals()['_METHOD_NAMER'] = namer
     else:
         raise TypeError('namer argument must be a callable')
