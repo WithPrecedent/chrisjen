@@ -1,6 +1,9 @@
 """Configuration settings and convenience functions for changing them.
 
 Contents:
+    add_special_setting: adds a section of settings that is not a worker.
+    is_special_setting: returns whether a section of settings is not a
+        worker.
     set_compatibility_rule: sets the global compatibility rule.
     set_keyer: sets the global default function used to name dict keys.
     set_method_namer: sets the global default function used to name factory
@@ -41,6 +44,40 @@ _SPECIAL_SETTINGS: list[str] = ['general', 'files']
 # Whether to return more elaborate error messages and feedback.
 _VERBOSE: bool = False
 
+
+def add_special_setting(name: str) -> None:
+    """Adds a section of settings that is not a worker.
+
+    A package built on `chrisjen` that reads a section of its own (such as
+    "feature_groups") adds it, so that the section is not built as a worker
+    or taken as the project's section. Adding a section twice does nothing.
+
+    Args:
+        name: name of the section.
+
+    Raises:
+        TypeError: if `name` is not a `str`.
+
+    """
+    if not isinstance(name, str):
+        message = f'the name of a section must be a str, not {name!r}'
+        raise TypeError(message)
+    if name not in _SPECIAL_SETTINGS:
+        _SPECIAL_SETTINGS.append(name)
+
+
+def is_special_setting(name: str) -> bool:
+    """Returns whether a section of settings is not a worker.
+
+    Args:
+        name: name of the section.
+
+    Returns:
+        Whether `name` is "general", "files", or a section added with
+            `add_special_setting`.
+
+    """
+    return name in _SPECIAL_SETTINGS
 
 
 def set_compatibility_rule(compatibility: bool) -> None:

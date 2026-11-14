@@ -37,7 +37,7 @@ class Summary(base.Report):
         """
         workflow = project.workflow
         paths = [
-            utilities._label_path(path)
+            utilities.label_path(path)
             for path in (workflow.walk() if workflow is not None else [])]
         lines = [
             f'project: {project.name}',

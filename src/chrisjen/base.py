@@ -95,7 +95,7 @@ class Library(MutableMapping[str, Any]):
     @property
     def all(self) -> dict[str, type]:
         """Returns a flattened dictionary of all classes in the library."""
-        return utilities._flatten_dict(self.contents)
+        return utilities.flatten_dict(self.contents)
 
     """ Public Methods """
 
@@ -174,7 +174,7 @@ class Library(MutableMapping[str, Any]):
         if genre is None:
             classes = self.all
         else:
-            classes = utilities._flatten_dict(self.get_genre(genre))
+            classes = utilities.flatten_dict(self.get_genre(genre))
         for name in utilities._iterify(names):
             if name in classes:
                 return classes[name]
@@ -493,7 +493,7 @@ class Idea(bobbie.Settings, Genre):
         steps = {}
         for name, value in found.items():
             # Converts a setting such as "clean, scale" to a list of names.
-            steps[name] = utilities._listify_names(value)
+            steps[name] = utilities.listify_names(value)
         return steps
 
     @property
@@ -513,7 +513,7 @@ class Idea(bobbie.Settings, Genre):
         for name, value in self._find_settings('techniques').items():
             # Converts a setting such as "min_max, standard" to a list of
             # names.
-            techniques[name] = utilities._listify_names(value)
+            techniques[name] = utilities.listify_names(value)
         return techniques
 
     @property
@@ -526,8 +526,8 @@ class Idea(bobbie.Settings, Genre):
 
         Returns:
             A `dict` mapping the name of each section of `contents` that does
-                not end in "parameters" and is not in
-                `options._SPECIAL_SETTINGS` to that section.
+                not end in "parameters" and is not special (see
+                `options.is_special_setting`) to that section.
 
         """
         workers = {}
@@ -537,7 +537,7 @@ class Idea(bobbie.Settings, Genre):
                 section, MutableMapping):
                 continue
             # Skips parameters sections and special sections (such as "files").
-            if key.endswith('parameters') or key in options._SPECIAL_SETTINGS:
+            if key.endswith('parameters') or options.is_special_setting(key):
                 continue
             # Stores the project section under the name of the project.
             name = key.removesuffix('_project')

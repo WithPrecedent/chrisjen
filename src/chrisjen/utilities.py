@@ -2,7 +2,10 @@
 
 Contents:
     accepted_arguments: limits keyword arguments to those a function accepts.
+    flatten_dict: returns the values of a nested `dict` in one level.
     import_object: imports an object from its import path.
+    label_path: returns the label of a path: the names of its nodes.
+    listify_names: returns a `list` of names from a setting.
 
 """
 
@@ -93,6 +96,69 @@ def import_object(path: str) -> Any:
         return item
     message = f'cannot import {path!r}: no module of that name was found'
     raise ImportError(message)
+
+
+def flatten_dict(item: MutableMapping[str, Any]) -> dict[str, Any]:
+    """Returns the values of a nested `dict` that are not `dict`s, in one level.
+
+    The keys of the nested `dict`s themselves are dropped.
+
+    Args:
+        item: nested `dict` to flatten.
+
+    Returns:
+        A flat `dict` of the keys and values at every level whose values are
+            not nested `dict`s. If a key is at more than one level, the first
+            one found is kept.
+
+    """
+    flat: dict[str, Any] = {}
+    for key, value in item.items():
+        if isinstance(value, MutableMapping):
+            for nested_key, nested_value in flatten_dict(value).items():
+                flat.setdefault(nested_key, nested_value)
+        else:
+            flat.setdefault(key, value)
+    return flat
+
+
+def label_path(path: Sequence[Hashable]) -> str:
+    """Returns the label of `path`: the names of its nodes, joined by " > ".
+
+    Args:
+        path: nodes in a path through a worker.
+
+    Returns:
+        The label of `path`. A node without a `name` is labeled by its `str`
+            form.
+
+    """
+    return ' > '.join(str(getattr(node, 'name', node)) for node in path)
+
+
+def listify_names(item: Any) -> list[str]:
+    """Returns a `list` of names from a setting.
+
+    Args:
+        item: a `str` of names separated by commas, a sequence of names (each
+            of which may also have commas), or `None`.
+
+    Returns:
+        The names, with whitespace removed and empty names dropped.
+
+    """
+    return [
+        part.strip()
+        for value in _iterify(item)
+        for part in str(value).split(',')
+        if part.strip()]
+
+
+# The private names of `flatten_dict`, `label_path`, and `listify_names`,
+# which packages built on `chrisjen` used before they were public.
+_flatten_dict = flatten_dict
+_label_path = label_path
+_listify_names = listify_names
 
 
 """ Private Functions """
@@ -192,30 +258,6 @@ def _average(items: Iterable[Any]) -> Any:
             f'must support addition and division by an int'
         )
         raise TypeError(message) from error
-
-
-def _flatten_dict(item: MutableMapping[str, Any]) -> dict[str, Any]:
-    """Returns the values of a nested `dict` that are not `dict`s, in one level.
-
-    The keys of the nested `dict`s themselves are dropped.
-
-    Args:
-        item: nested `dict` to flatten.
-
-    Returns:
-        A flat `dict` of the keys and values at every level whose values are
-            not nested `dict`s. If a key is at more than one level, the first
-            one found is kept.
-
-    """
-    flat: dict[str, Any] = {}
-    for key, value in item.items():
-        if isinstance(value, MutableMapping):
-            for nested_key, nested_value in _flatten_dict(value).items():
-                flat.setdefault(nested_key, nested_value)
-        else:
-            flat.setdefault(key, value)
-    return flat
 
 
 def _find(layer: MutableMapping[str, Any], name: str) -> Any:
@@ -346,24 +388,6 @@ def _iterify(item: Any) -> list[Any]:
         return [item]
 
 
-def _listify_names(item: Any) -> list[str]:
-    """Returns a `list` of names from a setting.
-
-    Args:
-        item: a `str` of names separated by commas, a sequence of names (each
-            of which may also have commas), or `None`.
-
-    Returns:
-        The names, with whitespace removed and empty names dropped.
-
-    """
-    return [
-        part.strip()
-        for value in _iterify(item)
-        for part in str(value).split(',')
-        if part.strip()]
-
-
 def _namify(item: Any, default: str | None = None) -> str | None:
     """Returns `str` name representation of `item`.
 
@@ -393,20 +417,6 @@ def _namify(item: Any, default: str | None = None) -> str | None:
                 return _snakify(item.__class__.__name__)
             else:
                 return default
-
-
-def _label_path(path: Sequence[Hashable]) -> str:
-    """Returns the label of `path`: the names of its nodes, joined by " > ".
-
-    Args:
-        path: nodes in a path through a worker.
-
-    Returns:
-        The label of `path`. A node without a `name` is labeled by its `str`
-            form.
-
-    """
-    return ' > '.join(str(getattr(node, 'name', node)) for node in path)
 
 
 def _snakify(item: str) -> str:

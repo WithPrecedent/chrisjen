@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
+## Unreleased
+
+* Made four helpers public for packages built on `chrisjen`:
+  `utilities.flatten_dict`, `utilities.label_path`,
+  `utilities.listify_names`, and `workshop.class_names`. Their private names
+  (such as `_listify_names`) still work.
+* Added `options.add_special_setting` and `options.is_special_setting`, so
+  that a package can add a section of settings that is not a worker (such
+  as "feature_groups") without changing `options._SPECIAL_SETTINGS` itself.
+
 ## 0.4.2
 
 * Added the `py.typed` marker so that type checkers use the type hints in
