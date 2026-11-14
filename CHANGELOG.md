@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 <!-- insertion marker -->
 
-## Unreleased
+## 0.5.0
 
 * Made four helpers public for packages built on `chrisjen`:
   `utilities.flatten_dict`, `utilities.label_path`,
