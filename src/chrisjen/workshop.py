@@ -196,4 +196,3 @@ def class_names(name: str) -> str | list[str]:
 # The private name of `class_names`, which packages built on `chrisjen`
 # used before it was public.
 _class_names = class_names
-
