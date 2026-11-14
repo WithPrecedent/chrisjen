@@ -289,7 +289,7 @@ def _validate_name(name: str | None, idea: base.Idea) -> str:
             if isinstance(key, str) and key.endswith('_project'):
                 return key.removesuffix('_project')
         for key in idea:
-            if isinstance(key, str) and key not in options._SPECIAL_SETTINGS:
+            if isinstance(key, str) and not options.is_special_setting(key):
                 return key
         message = 'A Project name was not given and could not be found in idea'
         raise ValueError(message)

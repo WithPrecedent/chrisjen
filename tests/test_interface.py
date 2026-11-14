@@ -401,7 +401,7 @@ def test_numbered_steps_use_the_step_class_without_the_number(
         ('sha256_2', ['sha256_2', 'sha256']),
     ])
 def test_class_names_drop_a_number(name: str, names: str | list[str]) -> None:
-    assert workshop._class_names(name) == names
+    assert workshop.class_names(name) == names
 
 
 def test_build_criteria_from_the_library(tmp_path: pathlib.Path) -> None:

@@ -248,10 +248,10 @@ def test_flatten_dict_and_all_classes() -> None:
         'contest': list,
         'idea': dict,
     }
-    assert utilities._flatten_dict(LAYERS) == expected
+    assert utilities.flatten_dict(LAYERS) == expected
     assert utilities._all_classes(LAYERS) == expected
     # The first value found for a name is kept.
-    assert utilities._flatten_dict({'a': {'x': 1}, 'b': {'x': 2}}) == {'x': 1}
+    assert utilities.flatten_dict({'a': {'x': 1}, 'b': {'x': 2}}) == {'x': 1}
 
 
 def test_all_genres_and_all_keys() -> None:
@@ -301,7 +301,7 @@ def test_get_path_and_is_abstract() -> None:
     ],
 )
 def test_listify_names(item: Any, expected: list[str]) -> None:
-    assert utilities._listify_names(item) == expected
+    assert utilities.listify_names(item) == expected
 
 
 def test_apply_path() -> None:

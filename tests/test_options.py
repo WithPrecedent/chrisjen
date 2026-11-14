@@ -69,3 +69,24 @@ def test_boolean_rules(function: Any, attribute: str) -> None:
     with pytest.raises(TypeError, match = 'boolean'):
         function(1)
     assert getattr(options, attribute) is False
+
+
+def test_special_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        options, '_SPECIAL_SETTINGS', list(options._SPECIAL_SETTINGS))
+    assert options.is_special_setting('general')
+    assert not options.is_special_setting('feature_groups')
+    options.add_special_setting('feature_groups')
+    options.add_special_setting('feature_groups')
+    assert options.is_special_setting('feature_groups')
+    assert options._SPECIAL_SETTINGS.count('feature_groups') == 1
+    with pytest.raises(TypeError, match = 'str'):
+        options.add_special_setting(3)  # type: ignore[arg-type]
+
+
+def test_private_aliases_of_public_helpers() -> None:
+    from chrisjen import workshop
+    assert utilities._listify_names is utilities.listify_names
+    assert utilities._flatten_dict is utilities.flatten_dict
+    assert utilities._label_path is utilities.label_path
+    assert workshop._class_names is workshop.class_names

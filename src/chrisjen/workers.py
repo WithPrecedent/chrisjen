@@ -238,7 +238,7 @@ class Comparator(_ComparatorBase):
             message = f'{self.name!r} has no paths to compare'
             raise ValueError(message)
         for path in paths:
-            label = utilities._label_path(path)
+            label = utilities.label_path(path)
             copies = [copy.deepcopy(node) for node in path]
             yield label, utilities._apply_path(
                 copies, copy.deepcopy(item), **kwargs)

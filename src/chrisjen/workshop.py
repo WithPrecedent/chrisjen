@@ -10,6 +10,8 @@ Contents:
     build_step: builds the alternatives for a step.
     build_worker: builds a worker and all of the nodes in it.
     build_workflow: builds the workflow of a project.
+    class_names: returns the names of the classes that a node can be
+        built with.
 
 """
 
@@ -70,7 +72,7 @@ def build_node(name: str, project: interface.Project) -> base.Vertex:
     if name in idea.workers or name in idea.steps:
         return build_worker(name, project)
     kind = cast('type[base.Vertex]', project.library.borrow(
-        _class_names(name)))
+        class_names(name)))
     return kind.build(name, project)
 
 
@@ -99,7 +101,7 @@ def build_step(name: str, project: interface.Project) -> list[base.Vertex]:
         return [build_node(name, project)]
     try:
         kind = cast('type[nodes.Step]', project.library.borrow(
-            _class_names(name), genre = 'step'))
+            class_names(name), genre = 'step'))
     except KeyError:
         kind = nodes.Step
     alternatives: list[base.Vertex] = []
@@ -168,10 +170,7 @@ def build_workflow(project: interface.Project) -> nodes.Worker:
     return build_worker(project.name, project)
 
 
-""" Private Functions """
-
-
-def _class_names(name: str) -> str | list[str]:
+def class_names(name: str) -> str | list[str]:
     """Returns the names of the classes that the node `name` can be built with.
 
     A name that ends in a number, such as "logit2", can be built with the class
@@ -192,3 +191,8 @@ def _class_names(name: str) -> str | list[str]:
     if numbered is None:
         return name
     return [name, numbered['base']]
+
+
+# The private name of `class_names`, which packages built on `chrisjen`
+# used before it was public.
+_class_names = class_names
